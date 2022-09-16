@@ -6,6 +6,7 @@ apex/permissions/com.android.bluetooth.xml
 android/app/Android.bp
 android/app/AndroidManifest.xml
 android/app/jni/com_android_bluetooth_a2dp.cpp
+android/app/jni/com_android_bluetooth_a2dp_sink.cpp
 android/app/jni/com_android_bluetooth_avrcp_target.cpp
 android/app/jni/com_android_bluetooth_btservice_AdapterService.cpp
 android/app/res/values/config.xml
@@ -177,12 +178,14 @@ system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
+system/gd/rust/topshim/btav_sink/btav_sink_shim.cc
 system/include/hardware/avrcp/avrcp.h
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/internal_include/bt_target.h
 system/main/shim/btm_api.h
 system/service/hal/fake_bluetooth_interface.cc
+system/service/hal/bluetooth_av_interface.cc
 system/profile/avrcp/avrcp_internal.h
 system/profile/avrcp/connection_handler.cc
 system/profile/avrcp/connection_handler.h
