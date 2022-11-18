@@ -103,7 +103,7 @@ static tGAP_CCB* gap_allocate_ccb(void);
 static void gap_release_ccb(tGAP_CCB* p_ccb);
 static void gap_checks_con_flags(tGAP_CCB* p_ccb);
 
-bool BTM_UseLeLink(const RawAddress& bd_addr);
+extern bool BTM_UseLeLink(const RawAddress& bd_addr);
 
 /*******************************************************************************
  *
