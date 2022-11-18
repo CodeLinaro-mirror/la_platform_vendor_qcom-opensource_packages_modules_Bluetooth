@@ -189,6 +189,7 @@ system/gd/common/BUILD.gn
 system/gd/common/utils.h
 system/gd/common/utils.cc
 system/gd/hal/hci_hal_android_hidl.cc
+system/gd/hci/acl_manager.cc
 system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
