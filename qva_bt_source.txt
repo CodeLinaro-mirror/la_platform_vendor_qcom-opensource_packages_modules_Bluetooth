@@ -278,6 +278,7 @@ system/stack/l2cap/l2c_api.cc
 system/stack/l2cap/l2c_int.h
 system/stack/l2cap/l2c_link.cc
 system/stack/l2cap/l2c_utils.cc
+system/stack/sdp/sdp_main.cc
 system/stack/smp/smp_act.cc
 system/stack/test/a2dp/a2dp_aac_unittest.cc
 system/stack/test/a2dp/a2dp_sbc_unittest.cc
