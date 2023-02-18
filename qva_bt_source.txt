@@ -1,0 +1,1 @@
+# This file lists out all difference between QVA Bluetooth and AOSP Bluetooth
