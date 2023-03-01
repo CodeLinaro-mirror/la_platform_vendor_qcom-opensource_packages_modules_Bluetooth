@@ -8,6 +8,7 @@
   "name": "com.android.btservices",
   "requireNativeLibs": [
     "libaptX_encoder.so",
-    "libaptXHD_encoder.so"
+    "libaptXHD_encoder.so",
+    "libaptX_decoder.so"
   ]
 }

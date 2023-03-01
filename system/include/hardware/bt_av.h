@@ -66,6 +66,7 @@ typedef enum {
   BTAV_A2DP_CODEC_INDEX_SINK_SBC = BTAV_A2DP_CODEC_INDEX_SINK_MIN,
   BTAV_A2DP_CODEC_INDEX_SINK_AAC,
   BTAV_A2DP_CODEC_INDEX_SINK_LDAC,
+  BTAV_A2DP_CODEC_INDEX_SINK_APTX,
   BTAV_A2DP_CODEC_INDEX_SINK_OPUS,
 
   BTAV_A2DP_CODEC_INDEX_SINK_MAX,
@@ -73,6 +74,12 @@ typedef enum {
   BTAV_A2DP_CODEC_INDEX_MIN = BTAV_A2DP_CODEC_INDEX_SOURCE_MIN,
   BTAV_A2DP_CODEC_INDEX_MAX = BTAV_A2DP_CODEC_INDEX_SINK_MAX
 } btav_a2dp_codec_index_t;
+
+typedef enum {
+  BTAV_A2DP_CODEC_LOCATION_SOFTWARE = 0,
+  BTAV_A2DP_CODEC_LOCATION_ADSP,
+  BTAV_A2DP_CODEC_LOCATION_ONCHIP,
+} btav_a2dp_codec_location_t;
 
 typedef enum {
   // Disable the codec.
@@ -171,6 +178,9 @@ typedef struct {
         break;
       case BTAV_A2DP_CODEC_INDEX_SINK_AAC:
         codec_name_str = "AAC (Sink)";
+        break;
+      case BTAV_A2DP_CODEC_INDEX_SINK_APTX:
+        codec_name_str = "APTX (Sink)";
         break;
       case BTAV_A2DP_CODEC_INDEX_SINK_LDAC:
         codec_name_str = "LDAC (Sink)";
