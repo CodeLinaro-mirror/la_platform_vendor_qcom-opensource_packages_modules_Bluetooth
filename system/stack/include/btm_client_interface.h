@@ -146,6 +146,9 @@ struct btm_client_interface_t {
     uint8_t (*BTM_SecClrServiceByPsm)(uint16_t psm);
     void (*BTM_RemoteOobDataReply)(tBTM_STATUS res, const RawAddress& bd_addr,
                                    const Octet16& c, const Octet16& r);
+    void (*BTM_RemoteOobExtendedDataReply)(tBTM_STATUS res, const RawAddress& bd_addr,
+                                   const Octet16& c, const Octet16& r,
+                                   const Octet16& c_ext, const Octet16& r_ext);
     void (*BTM_PINCodeReply)(const RawAddress& bd_addr, tBTM_STATUS res,
                              uint8_t pin_len, uint8_t* p_pin);
     void (*BTM_ConfirmReqReply)(tBTM_STATUS res, const RawAddress& bd_addr);

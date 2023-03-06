@@ -362,6 +362,8 @@ typedef struct bt_oob_data_s {
   uint8_t oob_data_length[2]; /* Classic only data Length. Value includes this
                                  in length */
   uint8_t class_of_device[2]; /* Class of Device (Classic or LE) */
+  uint8_t c_ext[16];  /* Simple Pairing Hash C-256 (Classic P192 & P256 coexsist) */
+  uint8_t r_ext[16];  /* Simple Pairing Randomizer R-256 Classic P192 & P256 coexsist) */
 
   // LE
   uint8_t le_device_role;   /* Supported and preferred role of device */
@@ -788,6 +790,13 @@ typedef struct {
    * Set the event filter for the controller
    */
   int (*clear_event_filter)();
+
+  /**
+   * load remote Out of Band data to BT stack
+   */
+  int (*load_remote_oob_data)(const RawAddress* bd_addr, int transport,
+                              const bt_oob_data_t* p192_data,
+                              const bt_oob_data_t* p256_data);
 } bt_interface_t;
 
 #define BLUETOOTH_INTERFACE_STRING "bluetoothInterface"
