@@ -371,6 +371,15 @@ void bluetooth::shim::BTM_RemoteOobDataReply(tBTM_STATUS res,
                                              const Octet16& r) {
   inc_func_call_count(__func__);
 }
+
+void bluetooth::shim::BTM_RemoteOobExtendedDataReply(tBTM_STATUS res,
+                                             const RawAddress& bd_addr,
+                                             const Octet16& c,
+                                             const Octet16& r,
+                                             const Octet16& c_ext,
+                                             const Octet16& r_ext) {
+  mock_function_count_map[__func__]++;
+}
 void bluetooth::shim::BTM_SecAddBleDevice(const RawAddress& bd_addr,
                                           tBT_DEVICE_TYPE dev_type,
                                           tBLE_ADDR_TYPE addr_type) {
