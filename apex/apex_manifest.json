@@ -9,6 +9,7 @@
   "requireNativeLibs": [
     "libaptX_encoder.so",
     "libaptXHD_encoder.so",
-    "libaptX_decoder.so"
+    "libaptX_decoder.so",
+    "libaptX_HD_decoder.so"
   ]
 }
