@@ -48,6 +48,7 @@ system/stack/btm/btm_sec.cc
 system/stack/btm/btm_sec.h
 system/stack/btu/btu_hcif.cc
 system/stack/BUILD.gn
+system/stack/eatt/eatt_impl.h
 system/stack/hcic/hcicmds.cc
 system/stack/include/a2dp_codec_api.h
 system/stack/include/a2dp_vendor.h
@@ -61,6 +62,7 @@ system/stack/include/btm_client_interface.h
 system/stack/include/hcidefs.h
 system/stack/include/hcimsgs.h
 system/stack/include/sec_hci_link_interface.h
+system/stack/test/eatt/eatt_test.cc
 system/stack/test/stack_a2dp_test.cc
 system/test/mock/mock_btif_dm.cc
 system/test/mock/mock_main_shim_btm_api.cc
