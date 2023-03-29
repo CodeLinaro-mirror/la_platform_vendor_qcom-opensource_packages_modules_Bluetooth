@@ -2857,7 +2857,10 @@ static void bta_av_sink_media_callback(const RawAddress& peer_address,
       btif_av_sink_config_req_t config_req;
 
       // Update the codec info of the A2DP Sink decoder
-      btif_a2dp_sink_update_decoder((uint8_t*)(p_data->avk_config.codec_info));
+      BtifAvPeer* peer = btif_av_sink_find_peer(peer_address);
+      if (peer != nullptr && peer->IsActivePeer()) {
+        btif_a2dp_sink_update_decoder((uint8_t*)(p_data->avk_config.codec_info));
+      }
 
       config_req.sample_rate =
           A2DP_GetTrackSampleRate(p_data->avk_config.codec_info);
