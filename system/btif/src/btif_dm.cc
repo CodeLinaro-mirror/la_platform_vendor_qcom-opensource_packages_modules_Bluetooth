@@ -2208,35 +2208,40 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
       bd_addr = p_data->link_down.bd_addr;
       btm_set_bond_type_dev(p_data->link_down.bd_addr,
                             tBTM_SEC_DEV_REC::BOND_TYPE_UNKNOWN);
-      GetInterfaceToProfiles()->onLinkDown(bd_addr);
+      BTIF_TRACE_DEBUG("BTA_DM_LINK_DOWN_EVT. transport = %d",
+                        p_data->link_down.transport_link_type);
+      if(p_data->link_down.transport_link_type == BT_TRANSPORT_BR_EDR)
+      {
+        GetInterfaceToProfiles()->onLinkDown(bd_addr);
 
-      bt_conn_direction_t direction;
-      switch (btm_get_acl_disc_reason_code()) {
-        case HCI_ERR_PEER_USER:
-        case HCI_ERR_REMOTE_LOW_RESOURCE:
-        case HCI_ERR_REMOTE_POWER_OFF:
-          direction = bt_conn_direction_t::BT_CONN_DIRECTION_INCOMING;
-          break;
-        case HCI_ERR_CONN_CAUSE_LOCAL_HOST:
-        case HCI_ERR_HOST_REJECT_SECURITY:
-          direction = bt_conn_direction_t::BT_CONN_DIRECTION_OUTGOING;
-          break;
-        default:
-          direction = bt_conn_direction_t::BT_CONN_DIRECTION_UNKNOWN;
+        bt_conn_direction_t direction;
+        switch (btm_get_acl_disc_reason_code()) {
+          case HCI_ERR_PEER_USER:
+          case HCI_ERR_REMOTE_LOW_RESOURCE:
+          case HCI_ERR_REMOTE_POWER_OFF:
+            direction = bt_conn_direction_t::BT_CONN_DIRECTION_INCOMING;
+            break;
+          case HCI_ERR_CONN_CAUSE_LOCAL_HOST:
+          case HCI_ERR_HOST_REJECT_SECURITY:
+            direction = bt_conn_direction_t::BT_CONN_DIRECTION_OUTGOING;
+            break;
+          default:
+            direction = bt_conn_direction_t::BT_CONN_DIRECTION_UNKNOWN;
+        }
+
+        GetInterfaceToProfiles()->events->invoke_acl_state_changed_cb(
+            BT_STATUS_SUCCESS, bd_addr, BT_ACL_STATE_DISCONNECTED,
+            (int)p_data->link_down.transport_link_type,
+            static_cast<bt_hci_error_code_t>(btm_get_acl_disc_reason_code()),
+            direction, INVALID_ACL_HANDLE);
+        LOG_DEBUG(
+            "Sent BT_ACL_STATE_DISCONNECTED upward as ACL link down event "
+            "device:%s reason:%s",
+            ADDRESS_TO_LOGGABLE_CSTR(bd_addr),
+            hci_reason_code_text(
+                static_cast<tHCI_REASON>(btm_get_acl_disc_reason_code()))
+                .c_str());
       }
-
-      GetInterfaceToProfiles()->events->invoke_acl_state_changed_cb(
-          BT_STATUS_SUCCESS, bd_addr, BT_ACL_STATE_DISCONNECTED,
-          (int)p_data->link_down.transport_link_type,
-          static_cast<bt_hci_error_code_t>(btm_get_acl_disc_reason_code()),
-          direction, INVALID_ACL_HANDLE);
-      LOG_DEBUG(
-          "Sent BT_ACL_STATE_DISCONNECTED upward as ACL link down event "
-          "device:%s reason:%s",
-          ADDRESS_TO_LOGGABLE_CSTR(bd_addr),
-          hci_reason_code_text(
-              static_cast<tHCI_REASON>(btm_get_acl_disc_reason_code()))
-              .c_str());
     } break;
 
     case BTA_DM_BLE_KEY_EVT:
