@@ -28,6 +28,7 @@ system/btif/src/btif_dm.cc
 system/btif/Android.bp
 system/btif/src/btif_hf_client.cc
 system/gd/hci/hci_layer.cc
+system/btif/src/btif_rc.cc
 system/include/hardware/bt_av.h
 system/internal_include/bt_target.h
 system/stack/a2dp/a2dp_aac.cc
