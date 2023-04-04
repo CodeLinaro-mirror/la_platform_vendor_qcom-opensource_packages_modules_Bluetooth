@@ -24,6 +24,7 @@ system/btif/src/btif_a2dp_sink.cc
 system/btif/src/btif_av.cc
 system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_dm.cc
+system/btif/src/btif_rc.cc
 system/btif/src/btif_util.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
