@@ -797,6 +797,16 @@ typedef struct {
   int (*load_remote_oob_data)(const RawAddress* bd_addr, int transport,
                               const bt_oob_data_t* p192_data,
                               const bt_oob_data_t* p256_data);
+
+  /**
+   * Data passed from BluetoothDevice.metadata_changed
+   *
+   * @param remote_bd_addr remote address
+   * @param key Metadata key
+   * @param value Metadata value
+   */
+  void (*metadata_changed)(const RawAddress& remote_bd_addr, int key,
+                           std::vector<uint8_t> value);
 } bt_interface_t;
 
 #define BLUETOOTH_INTERFACE_STRING "bluetoothInterface"
