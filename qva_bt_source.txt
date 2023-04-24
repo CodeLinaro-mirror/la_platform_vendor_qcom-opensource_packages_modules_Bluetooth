@@ -44,6 +44,7 @@ system/stack/a2dp/a2dp_vendor_aptx_hd_encoder.cc
 system/stack/a2dp/a2dp_vendor_ldac.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/Android.bp
+system/stack/avdt/avdt_ccb_act.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/btm/btm_client_interface.cc
 system/stack/btm/btm_sec.cc
