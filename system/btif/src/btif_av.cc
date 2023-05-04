@@ -1322,8 +1322,6 @@ BtifAvPeer* BtifAvSink::FindOrCreatePeer(const RawAddress& peer_address,
   peers_.insert(std::make_pair(peer_address, peer));
   peer->Init();
   if (active_peer_.IsEmpty()) {
-    LOG_INFO("%s: No active peer, set %s to be active", __PRETTY_FUNCTION__,
-             peer_address.ToString().c_str());
     active_peer_ = peer_address;
   }
   return peer;
@@ -2863,16 +2861,9 @@ static void bta_av_sink_media_callback(const RawAddress& peer_address,
       btif_av_sink_config_req_t config_req;
 
       // Update the codec info of the A2DP Sink decoder
-      BtifAvPeer* peer = btif_av_sink.FindOrCreatePeer(peer_address, kBtaHandleUnknown);
-      if (peer != nullptr) {
-        if(peer->IsActivePeer()) {
-          btif_a2dp_sink_update_decoder((uint8_t*)(p_data->avk_config.codec_info));
-        } else {
-          APPL_TRACE_DEBUG("%s: Don't update decoder because %s is not active device",
-              __func__, peer_address.ToString().c_str());
-        }
-      } else {
-        APPL_TRACE_ERROR("%s: FindOrCreatePeer fail", __func__);
+      BtifAvPeer* peer = btif_av_sink_find_peer(peer_address);
+      if (peer != nullptr && peer->IsActivePeer()) {
+        btif_a2dp_sink_update_decoder((uint8_t*)(p_data->avk_config.codec_info));
       }
 
       config_req.sample_rate =
