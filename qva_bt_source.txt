@@ -6,7 +6,10 @@ android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachin
 framework/java/android/bluetooth/BluetoothDevice.java
 
 # system (bluetooth stack)
+system/bta/include/bta_av_co.h
+system/btif/co/bta_av_co.cc
 system/btif/src/btif_a2dp_sink.cc
+system/btif/src/btif_av.cc
 system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_gatt_server.cc
 system/btif/src/btif_dm.cc
