@@ -22,7 +22,9 @@ system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/include/bta_api.h
+system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
+system/btif/co/bta_av_co.cc
 system/btif/include/btif_common.h
 system/btif/include/btif_dm.h
 system/btif/src/bluetooth.cc
