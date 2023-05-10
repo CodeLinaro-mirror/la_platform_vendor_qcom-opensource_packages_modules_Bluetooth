@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package android.bluetooth;
@@ -1287,6 +1292,9 @@ public final class BluetoothDevice implements Parcelable, Attributable {
 
     private static final String NULL_MAC_ADDRESS = "00:00:00:00:00:00";
 
+    // Invalid Gatt Id
+    private static final int INVALID_GATT_ID = -1;
+
     private final String mAddress;
     @AddressType private final int mAddressType;
 
@@ -2069,6 +2077,48 @@ public final class BluetoothDevice implements Parcelable, Attributable {
         return defaultValue;
     }
 
+    private @ConnectionReturnValues int disconnectAllEnabledProfiles() {
+        final IBluetooth service = getService();
+        if (service == null || !isBluetoothEnabled()) {
+            Log.e(TAG, "BT not enabled. Cannot disconnect to remote device.");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+            return BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
+        }
+
+        final int defaultValue = BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
+        try {
+            final SynchronousResultReceiver<Integer> recv = SynchronousResultReceiver.get();
+            service.disconnectAllEnabledProfiles(this, mAttributionSource, recv);
+            return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue);
+        } catch (TimeoutException e) {
+            Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+        } catch (RemoteException e) {
+            Log.e(TAG, "", e);
+            throw e.rethrowFromSystemServer();
+        }
+
+        return defaultValue;
+    }
+
+    private @ConnectionReturnValues int disconnectGATT() {
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        IBluetoothManager managerService = adapter.getBluetoothManager();
+        final int defaultValue = BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
+        try {
+            IBluetoothGatt service = managerService.getBluetoothGatt();
+            final SynchronousResultReceiver<Integer> recv = SynchronousResultReceiver.get();
+            service.serverDisconnect(INVALID_GATT_ID, getAddress(), mAttributionSource, recv);
+            return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue);
+        } catch (TimeoutException e) {
+            Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+        } catch (RemoteException e) {
+            Log.e(TAG, "", e);
+            throw e.rethrowFromSystemServer();
+        }
+
+        return defaultValue;
+    }
+
     /**
      * Disconnects all connected bluetooth profiles between the local and remote device.
      * Disconnection is asynchronous, so you should listen to each profile's broadcast intent
@@ -2096,24 +2146,11 @@ public final class BluetoothDevice implements Parcelable, Attributable {
         if (!BluetoothAdapter.checkBluetoothAddress(getAddress())) {
             throw new IllegalArgumentException("device cannot have an invalid address");
         }
-        final IBluetooth service = getService();
-        final int defaultValue = BluetoothStatusCodes.ERROR_BLUETOOTH_NOT_ENABLED;
-        if (service == null || !isBluetoothEnabled()) {
-            Log.e(TAG, "BT not enabled. Cannot disconnect to remote device.");
-            if (DBG) log(Log.getStackTraceString(new Throwable()));
-        } else {
-            try {
-                final SynchronousResultReceiver<Integer> recv = SynchronousResultReceiver.get();
-                service.disconnectAllEnabledProfiles(this, mAttributionSource, recv);
-                return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue);
-            } catch (TimeoutException e) {
-                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
-            } catch (RemoteException e) {
-                Log.e(TAG, "", e);
-                throw e.rethrowFromSystemServer();
-            }
-        }
-        return defaultValue;
+
+        int result = disconnectAllEnabledProfiles();
+        return result != BluetoothStatusCodes.SUCCESS ?
+               result :
+               disconnectGATT();
     }
 
     /**
