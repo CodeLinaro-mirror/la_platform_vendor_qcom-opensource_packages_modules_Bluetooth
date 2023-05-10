@@ -205,6 +205,7 @@ system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/a2dp/a2dp_vendor_opus_encoder.cc
 system/stack/Android.bp
 system/stack/avdt/avdt_ccb_act.cc
+system/stack/avdt/avdt_msg.cc
 system/stack/avdt/avdt_scb.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_api.cc
