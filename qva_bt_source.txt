@@ -10,6 +10,8 @@ android/app/res/values/config.xml
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
 android/app/src/com/android/bluetooth/btservice/AdapterService.java
+android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
+android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 
 # framework
 framework/java/android/bluetooth/BluetoothDevice.java
