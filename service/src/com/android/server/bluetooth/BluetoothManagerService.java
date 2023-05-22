@@ -462,16 +462,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                 }
             }
 
-            int st = STATE_OFF;
-            try {
-                mBluetoothLock.readLock().lock();
-                st = synchronousGetState();
-            } catch (RemoteException | TimeoutException e) {
-                Log.e(TAG, "Unable to call getState", e);
-                return;
-            } finally {
-                mBluetoothLock.readLock().unlock();
-            }
+            int st = getState();
 
             Log.d(TAG,
                     "Airplane Mode change - current state:  " + BluetoothAdapter.nameForState(
@@ -1034,15 +1025,6 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     }
 
     @GuardedBy("mBluetoothLock")
-    private int synchronousGetState()
-            throws RemoteException, TimeoutException {
-        if (mBluetooth == null) return STATE_OFF;
-        final SynchronousResultReceiver<Integer> recv = SynchronousResultReceiver.get();
-        mBluetooth.getState(recv);
-        return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(STATE_OFF);
-    }
-
-    @GuardedBy("mBluetoothLock")
     private void synchronousOnBrEdrDown(AttributionSource attributionSource)
             throws RemoteException, TimeoutException {
         if (mBluetooth == null) return;
@@ -1117,22 +1099,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     }
 
     public int getState() {
-        if (!isCallerSystem(getCallingAppId()) && !checkIfCallerIsForegroundUser()) {
-            Log.w(TAG, "getState(): report OFF for non-active and non system user");
-            return BluetoothAdapter.STATE_OFF;
-        }
-
-        mBluetoothLock.readLock().lock();
-        try {
-            if (mBluetooth != null) {
-                return synchronousGetState();
-            }
-        } catch (RemoteException | TimeoutException e) {
-            Log.e(TAG, "getState()", e);
-        } finally {
-            mBluetoothLock.readLock().unlock();
-        }
-        return STATE_OFF;
+        return mState;
     }
 
     class ClientDeathRecipient implements IBinder.DeathRecipient {
@@ -1244,14 +1211,12 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     private void disableBleScanMode() {
         mBluetoothLock.writeLock().lock();
         try {
-            if (mBluetooth != null && synchronousGetState() != STATE_ON) {
+            if (mBluetooth != null && getState() != STATE_ON) {
                 if (DBG) {
                     Log.d(TAG, "Resetting the mEnable flag for clean disable");
                 }
                 mEnable = false;
             }
-        } catch (RemoteException | TimeoutException e) {
-            Log.e(TAG, "getState()", e);
         } finally {
             mBluetoothLock.writeLock().unlock();
         }
@@ -1908,18 +1873,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         }
 
         private boolean bindService(int rebindCount) {
-            int state = STATE_OFF;
-            try {
-                mBluetoothLock.readLock().lock();
-                state = synchronousGetState();
-            } catch (RemoteException | TimeoutException e) {
-                Log.e(TAG, "Unable to call getState", e);
-                return false;
-            } finally {
-                mBluetoothLock.readLock().unlock();
-            }
-
-            if (state != STATE_ON) {
+            if (getState() != STATE_ON) {
                 if (DBG) {
                     Log.d(TAG, "Unable to bindService while Bluetooth is disabled");
                 }
@@ -2299,7 +2253,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                     try {
                         if (mBluetooth != null) {
                             boolean isHandled = true;
-                            int state = synchronousGetState();
+                            int state = getState();
                             switch (state) {
                                 case STATE_BLE_ON:
                                     if (isBle == 1) {
@@ -3102,12 +3056,9 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                 if (mBluetooth == null && states.contains(STATE_OFF)) {
                     return true; // We are so OFF that the bluetooth is not bind
                 }
-                if (mBluetooth != null && states.contains(synchronousGetState())) {
+                if (mBluetooth != null && states.contains(getState())) {
                     return true;
                 }
-            } catch (RemoteException | TimeoutException e) {
-                Log.e(TAG, "getState()", e);
-                break;
             } finally {
                 mBluetoothLock.readLock().unlock();
             }
