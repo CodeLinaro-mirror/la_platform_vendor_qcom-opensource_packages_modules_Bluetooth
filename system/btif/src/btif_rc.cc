@@ -5201,7 +5201,12 @@ static bt_status_t get_metadata_attribute_cmd(uint8_t num_attribute,
                    num_attribute, p_attr_ids[0]);
 
   // If browsing is connected then send the command out that channel
-  if (p_dev->br_connected) {
+  // Call get_element_attribute_cmd when uid is 0.
+  // Avrcp spec v1.6, 6.10.3 UIDs:
+  // The value of UID=0x0 is a special value used only to request the metadata
+  // for the currently playing media using the GetElementAttributes command and
+  // shall not be used for any item in a folder.
+  if (p_dev->br_connected && p_dev->rc_playing_uid != 0) {
     return get_item_attribute_cmd(p_dev->rc_playing_uid,
                                    AVRC_SCOPE_NOW_PLAYING, num_attribute,
                                    p_attr_ids, p_dev);
