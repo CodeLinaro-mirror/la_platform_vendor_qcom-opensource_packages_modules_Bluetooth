@@ -255,4 +255,15 @@ btav_a2dp_scmst_info_t bta_av_co_get_scmst_info(const RawAddress& peer_address);
  ******************************************************************************/
 uint8_t* bta_av_co_get_codec_config(const RawAddress& peer_address);
 
+/*******************************************************************************
+ **
+ ** Function        bta_av_co_is_current_codec_config_empty
+ **
+ ** Description     Check whether active peer codec config is empty or not
+ **
+ ** Returns         true if empty, otherwise false
+ **
+ ******************************************************************************/
+bool bta_av_co_is_current_codec_config_empty();
+
 #endif /* BTA_AV_CO_H */
