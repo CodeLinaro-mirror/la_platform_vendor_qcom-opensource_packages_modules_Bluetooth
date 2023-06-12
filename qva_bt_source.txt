@@ -10,6 +10,9 @@ android/app/res/values/config.xml
 android/app/res/values/strings.xml
 android/app/src/com/android/bluetooth/a2dp/A2dpNativeInterface.java
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+android/app/src/com/android/bluetooth/a2dp/A2dpAudioZone.java
+android/app/src/com/android/bluetooth/a2dp/A2dpService.java
+android/app/src/com/android/bluetooth/a2dp/A2dpStateMachine.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
@@ -36,6 +39,7 @@ android/app/src/com/android/bluetooth/btservice/ProfileService.java
 android/app/src/com/android/bluetooth/btservice/RemoteDevices.java
 android/app/src/com/android/bluetooth/btservice/SilenceDeviceManager.java
 android/app/src/com/android/bluetooth/btservice/storage/DatabaseManager.java
+android/app/src/com/android/bluetooth/btservice/storage/Metadata.java
 android/app/src/com/android/bluetooth/btservice/storage/MetadataDatabase.java
 android/app/src/com/android/bluetooth/gatt/GattExtService.java
 android/app/src/com/android/bluetooth/gatt/GattService.java
@@ -96,6 +100,7 @@ service/java/com/android/server/bluetooth/BluetoothService.java
 system/audio_hal_interface/aidl/le_audio_software_aidl.cc
 system/binder/Android.bp
 system/binder/android/bluetooth/IBluetooth.aidl
+system/binder/android/bluetooth/IBluetoothA2dp.aidl
 system/binder/android/bluetooth/IBluetoothExt.aidl
 system/binder/android/bluetooth/IBluetoothGattExt.aidl
 system/binder/android/bluetooth/IBluetoothManagerExt.aidl
