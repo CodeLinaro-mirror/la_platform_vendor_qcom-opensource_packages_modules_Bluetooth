@@ -21,7 +21,11 @@ framework/java/android/bluetooth/OobData.java
 
 # system (bluetooth stack)
 system/audio_hal_interface/aidl/le_audio_software_aidl.cc
+system/binder/Android.bp
 system/binder/android/bluetooth/IBluetooth.aidl
+system/binder/android/bluetooth/IBluetoothExt.aidl
+system/binder/android/bluetooth/IBluetoothGattExt.aidl
+system/binder/android/bluetooth/IBluetoothManagerExt.aidl
 system/bta/av/bta_av_ssm.cc
 system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
