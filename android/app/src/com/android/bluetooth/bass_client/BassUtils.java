@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.bass_client;
@@ -30,6 +35,7 @@ import android.os.Message;
 import android.os.ParcelUuid;
 import android.util.Log;
 
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.btservice.ServiceFactory;
 
 import java.util.ArrayList;
@@ -37,6 +43,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Bass Utility functions
@@ -58,10 +65,13 @@ class BassUtils {
     private BluetoothLeScanner mLeScanner = null;
     private BassClientService mService = null;
     private ServiceFactory mFactory = new ServiceFactory();
+    private AdapterService mAdapterService;
 
     BassUtils(BassClientService service) {
         mService = service;
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapterService = Objects.requireNonNull(AdapterService.getAdapterService(),
+                "AdapterService cannot be null when BassUtils init");
+        mBluetoothAdapter = AdapterService.getAdapter();
         mLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
     }
 

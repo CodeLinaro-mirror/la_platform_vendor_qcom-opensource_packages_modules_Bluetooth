@@ -1,3 +1,10 @@
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
+ */
+
 package com.android.bluetooth.sap;
 
 import android.app.AlarmManager;
@@ -24,6 +31,7 @@ import android.os.SystemProperties;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.R;
 import com.android.bluetooth.Utils;
 import com.android.internal.annotations.VisibleForTesting;
@@ -474,7 +482,7 @@ public class SapServer extends Thread implements Callback {
             /* TODO: Change to the needed Exception types when done testing */
             Log.w(TAG, e);
         } finally {
-            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            BluetoothAdapter adapter = AdapterService.getAdapter();
             int state = (adapter != null) ? adapter.getState() : -1;
             if (state != BluetoothAdapter.STATE_ON) {
                 if (DEBUG) Log.d(TAG, "BT State :" + state);

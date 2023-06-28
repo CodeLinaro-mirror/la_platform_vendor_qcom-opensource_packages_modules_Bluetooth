@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice;
@@ -21,6 +26,7 @@ import static android.Manifest.permission.BLUETOOTH_SCAN;
 
 import android.app.admin.SecurityLog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothAdapterExt;
 import android.bluetooth.BluetoothAssignedNumbers;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
@@ -165,8 +171,8 @@ final class RemoteDevices {
     };
 
     RemoteDevices(AdapterService service, Looper looper) {
-        sAdapter = BluetoothAdapter.getDefaultAdapter();
         sAdapterService = service;
+        sAdapter = sAdapterService.getAdapter();
         sSdpTracker = new ArrayList<BluetoothDevice>();
         mDevices = new HashMap<String, DeviceProperties>();
         mDualDevicesMap = new HashMap<String, String>();
@@ -352,6 +358,16 @@ final class RemoteDevices {
             synchronized (mObject) {
                 return mBluetoothClass;
             }
+        }
+
+        /**
+         * @param btClass the btClass to set
+         */
+        void setBluetoothClass(BluetoothClass btClass) {
+            int classInt = btClass.getClassOfDevice();
+            this.mBluetoothClass = classInt;
+            sAdapterService.setDevicePropertyNative(mAddress,
+                    AbstractionLayer.BT_PROPERTY_CLASS_OF_DEVICE, Utils.intToByteArray(classInt));
         }
 
         /**
@@ -771,6 +787,11 @@ final class RemoteDevices {
             return;
         }
 
+        if (filterDevice(device)) {
+            warnLog("Not broadcast Device: " + device);
+            return;
+        }
+
         Intent intent = new Intent(BluetoothDevice.ACTION_FOUND);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
         intent.putExtra(BluetoothDevice.EXTRA_CLASS,
@@ -861,7 +882,8 @@ final class RemoteDevices {
                 intent.putExtra(BluetoothDevice.EXTRA_TRANSPORT, transportLinkType);
             } else if (state == BluetoothAdapter.STATE_BLE_ON
                     || state == BluetoothAdapter.STATE_BLE_TURNING_ON) {
-                intent = new Intent(BluetoothAdapter.ACTION_BLE_ACL_CONNECTED);
+                intent = AdapterUtil.newIntent(BluetoothAdapter.ACTION_BLE_ACL_CONNECTED,
+                        BluetoothAdapterExt.ACTION_BLE_ACL_CONNECTED);
             }
             BatteryService batteryService = BatteryService.getBatteryService();
             if (batteryService != null) {
@@ -886,7 +908,8 @@ final class RemoteDevices {
                 intent.putExtra(BluetoothDevice.EXTRA_TRANSPORT, transportLinkType);
             } else if (state == BluetoothAdapter.STATE_BLE_ON
                     || state == BluetoothAdapter.STATE_BLE_TURNING_OFF) {
-                intent = new Intent(BluetoothAdapter.ACTION_BLE_ACL_DISCONNECTED);
+                intent = AdapterUtil.newIntent(BluetoothAdapter.ACTION_BLE_ACL_DISCONNECTED,
+                        BluetoothAdapterExt.ACTION_BLE_ACL_DISCONNECTED);
             }
             // Reset battery level on complete disconnection
             if (sAdapterService.getConnectionState(device) == 0) {
@@ -1195,6 +1218,10 @@ final class RemoteDevices {
             int batteryLevel = intent.getIntExtra(BluetoothHeadsetClient.EXTRA_BATTERY_LEVEL, -1);
             updateBatteryLevel(device, batteryChargeIndicatorToPercentge(batteryLevel));
         }
+    }
+
+    private boolean filterDevice(BluetoothDevice device) {
+        return AdapterUtil.filterDevice(device);
     }
 
     private static void errorLog(String msg) {
