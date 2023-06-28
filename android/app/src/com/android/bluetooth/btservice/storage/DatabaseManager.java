@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -63,6 +68,7 @@ public class DatabaseManager {
     private static final String TAG = "BluetoothDatabase";
 
     private AdapterService mAdapterService = null;
+    private BluetoothAdapter mAdapter = null;
     private HandlerThread mHandlerThread = null;
     private Handler mHandler = null;
     private MetadataDatabase mDatabase = null;
@@ -113,6 +119,7 @@ public class DatabaseManager {
      */
     public DatabaseManager(AdapterService service) {
         mAdapterService = service;
+        mAdapter = mAdapterService.getAdapter();
         mMetadataChangedLog = EvictingQueue.create(METADATA_CHANGED_LOG_MAX_SIZE);
     }
 
@@ -681,8 +688,7 @@ public class DatabaseManager {
             sortedMetadata.sort((o1, o2) -> Long.compare(o2.last_active_time, o1.last_active_time));
             for (Metadata metadata : sortedMetadata) {
                 try {
-                    mostRecentlyConnectedDevices.add(BluetoothAdapter.getDefaultAdapter()
-                            .getRemoteDevice(metadata.getAddress()));
+                    mostRecentlyConnectedDevices.add(mAdapter.getRemoteDevice(metadata.getAddress()));
                 } catch (IllegalArgumentException ex) {
                     Log.d(TAG, "getBondedDevicesOrdered: Invalid address for "
                             + "device " + metadata.getAddress());
@@ -735,8 +741,7 @@ public class DatabaseManager {
                 Metadata metadata = entry.getValue();
                 if (metadata.is_active_a2dp_device) {
                     try {
-                        return BluetoothAdapter.getDefaultAdapter().getRemoteDevice(
-                                metadata.getAddress());
+                        return mAdapter.getRemoteDevice(metadata.getAddress());
                     } catch (IllegalArgumentException ex) {
                         Log.d(TAG, "getMostRecentlyConnectedA2dpDevice: Invalid address for "
                                 + "device " + metadata.getAddress());

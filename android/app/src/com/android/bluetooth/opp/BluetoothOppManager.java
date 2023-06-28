@@ -28,6 +28,11 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.opp;
@@ -47,6 +52,7 @@ import android.util.Log;
 import android.util.Pair;
 
 import com.android.bluetooth.BluetoothMethodProxy;
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.R;
 import com.android.internal.annotations.VisibleForTesting;
 
@@ -158,7 +164,7 @@ public class BluetoothOppManager {
 
         mContext = context;
 
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+       mAdapter = AdapterService.getAdapter();
         if (mAdapter == null) {
             if (V) {
                 Log.v(TAG, "BLUETOOTH_SERVICE is not started! ");

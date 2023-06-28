@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice;
@@ -84,6 +89,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelUuid;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -112,6 +118,7 @@ import com.android.bluetooth.btservice.bluetoothkeystore.BluetoothKeystoreServic
 import com.android.bluetooth.btservice.storage.DatabaseManager;
 import com.android.bluetooth.btservice.storage.MetadataDatabase;
 import com.android.bluetooth.csip.CsipSetCoordinatorService;
+import com.android.bluetooth.gatt.GattExtService;
 import com.android.bluetooth.gatt.GattService;
 import com.android.bluetooth.gatt.ScanManager;
 import com.android.bluetooth.hap.HapClientService;
@@ -152,6 +159,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -262,7 +270,6 @@ public class AdapterService extends Service {
         }
     }
 
-    private BluetoothAdapter mAdapter;
     @VisibleForTesting
     AdapterProperties mAdapterProperties;
     private AdapterState mAdapterStateMachine;
@@ -329,6 +336,20 @@ public class AdapterService extends Service {
     private BatteryService mBatteryService;
 
     private volatile boolean mTestModeEnabled = false;
+
+    private int mAdapterIndex = 0;
+    private BluetoothAdapter mAdapter = null;
+    private boolean mEnableNewAdapter = false;
+    private boolean mDisableNewAdapter = false;
+
+    private void initAdapter() {
+        mAdapterIndex = AdapterUtil.getAdapterIndex();
+        mAdapter = AdapterUtil.getAdapter();
+    }
+
+    public static BluetoothAdapter getAdapter() {
+        return AdapterUtil.getAdapter();
+    }
 
     private MetricsLogger mMetricsLogger;
 
@@ -431,7 +452,7 @@ public class AdapterService extends Service {
                     mRunningProfiles.add(profile);
                     // TODO(b/228875190): GATT is assumed supported. GATT starting triggers hardware
                     // initializtion. Configuring a device without GATT causes start up failures.
-                    if (GattService.class.getSimpleName().equals(profile.getName())) {
+                    if (isGattService(profile.getName())) {
                         enableNative();
                     } else if (mRegisteredProfiles.size() == Config.getSupportedProfiles().length
                             && mRegisteredProfiles.size() == mRunningProfiles.size()) {
@@ -459,8 +480,8 @@ public class AdapterService extends Service {
                     // TODO(b/228875190): GATT is assumed supported. GATT is expected to be the only
                     // profile available in the "BLE ON" state. If only GATT is left, send
                     // BREDR_STOPPED. If GATT is stopped, deinitialize the hardware.
-                    if ((mRunningProfiles.size() == 1 && (GattService.class.getSimpleName()
-                            .equals(mRunningProfiles.get(0).getName())))) {
+                    if ((mRunningProfiles.size() == 1)
+                            && isGattService(mRunningProfiles.get(0).getName())) {
                         mAdapterStateMachine.sendMessage(AdapterState.BREDR_STOPPED);
                     } else if (mRunningProfiles.size() == 0) {
                         disableNative();
@@ -479,12 +500,12 @@ public class AdapterService extends Service {
         super.onCreate();
         initMetricsLogger();
         debugLog("onCreate()");
+        initAdapter();
         mDeviceConfigListener.start();
         mRemoteDevices = new RemoteDevices(this, Looper.getMainLooper());
         mRemoteDevices.init();
         clearDiscoveringPackages();
         mBinder = new AdapterServiceBinder(this);
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
         mAdapterProperties = new AdapterProperties(this);
         mAdapterStateMachine = AdapterState.make(this);
         mJniCallbacks = new JniCallbacks(this, mAdapterProperties);
@@ -664,7 +685,7 @@ public class AdapterService extends Service {
             Log.w(TAG,
                     "GATT is configured off but the stack assumes it to be enabled. Start anyway.");
         }
-        setProfileServiceState(GattService.class, BluetoothAdapter.STATE_ON);
+        setProfileServiceState(AdapterUtil.getGattServiceClass(), BluetoothAdapter.STATE_ON);
     }
 
     void bringDownBle() {
@@ -703,8 +724,8 @@ public class AdapterService extends Service {
         // TODO(b/228875190): GATT is assumed supported. If we support no other profiles then just
         // move on to BREDR_STARTED. Note that configuring GATT to NOT supported will cause adapter
         // initialization failures
-        if (supportedProfileServices.length == 1 && GattService.class.getSimpleName()
-                .equals(supportedProfileServices[0].getSimpleName())) {
+        if ((supportedProfileServices.length == 1)
+                && isGattService(supportedProfileServices[0].getSimpleName())) {
             mAdapterProperties.onBluetoothReady();
             updateUuids();
             setBluetoothClassFromConfig();
@@ -737,10 +758,10 @@ public class AdapterService extends Service {
             debugLog("stopGattProfileService() - No profiles services to stop.");
             mAdapterStateMachine.sendMessage(AdapterState.BLE_STOPPED);
         }
-        setProfileServiceState(GattService.class, BluetoothAdapter.STATE_OFF);
+        setProfileServiceState(AdapterUtil.getGattServiceClass(), BluetoothAdapter.STATE_OFF);
     }
 
-    private void invalidateBluetoothGetStateCache() {
+    public void invalidateBluetoothGetStateCache() {
         BluetoothAdapter.invalidateBluetoothGetStateCache();
     }
 
@@ -1014,7 +1035,7 @@ public class AdapterService extends Service {
         for (Class service : services) {
             // TODO(b/228875190): GATT is assumed supported and treated differently as part of the
             // "BLE ON" state, despite GATT not being BLE specific.
-            if (GattService.class.getSimpleName().equals(service.getSimpleName())) {
+            if (isGattService(service.getSimpleName())) {
                 continue;
             }
             setProfileServiceState(service, state);
@@ -1590,7 +1611,7 @@ public class AdapterService extends Service {
     /**
      * Handlers for incoming service calls
      */
-    private AdapterServiceBinder mBinder;
+    protected AdapterServiceBinder mBinder;
 
     /**
      * The Binder implementation must be declared to be a static class, with
@@ -1610,7 +1631,7 @@ public class AdapterService extends Service {
         AdapterServiceBinder(AdapterService svc) {
             mService = svc;
             mService.invalidateBluetoothGetStateCache();
-            BluetoothAdapter.getDefaultAdapter().disableBluetoothGetStateCache();
+            mService.getAdapter().disableBluetoothGetStateCache();
         }
 
         public void cleanup() {
@@ -1659,6 +1680,8 @@ public class AdapterService extends Service {
                 return false;
             }
 
+            service.handleDualAdapterMode(true);
+
             return service.enable(quietMode);
         }
 
@@ -1677,6 +1700,8 @@ public class AdapterService extends Service {
                             service, attributionSource, "AdapterService disable")) {
                 return false;
             }
+
+            service.handleDualAdapterMode(false);
 
             return service.disable();
         }
@@ -2410,7 +2435,7 @@ public class AdapterService extends Service {
             }
             enforceBluetoothPrivilegedPermission(service);
 
-            return Config.getSupportedProfilesBitMask();
+            return service.getSupportedProfiles();
         }
 
         @Override
@@ -4083,13 +4108,13 @@ public class AdapterService extends Service {
     public BluetoothDevice getDeviceFromByte(byte[] address) {
         BluetoothDevice device = mRemoteDevices.getDevice(address);
         if (device == null) {
-            device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+            device = mAdapter.getRemoteDevice(address);
         }
         return device;
     }
 
     public String getIdentityAddress(String address) {
-        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address.toUpperCase());
+        BluetoothDevice device = mAdapter.getRemoteDevice(address.toUpperCase());
         DeviceProperties deviceProp = mRemoteDevices.getDeviceProperties(device);
         if (deviceProp != null && deviceProp.getIdentityAddress() != null) {
             return deviceProp.getIdentityAddress();
@@ -4222,6 +4247,11 @@ public class AdapterService extends Service {
         byte[] addr = Utils.getBytesFromAddress(device.getAddress());
 
         return loadRemoteOobDataNative(addr, transport, remoteP192Data, remoteP256Data);
+    }
+
+    public long getSupportedProfiles() {
+        debugLog("getSupportedProfiles");
+        return Config.getSupportedProfilesBitMask();
     }
 
     public boolean isQuietModeEnabled() {
@@ -4934,6 +4964,16 @@ public class AdapterService extends Service {
     }
 
     /**
+     * Get the maximum number of connected audio devices.
+     *
+     * @return the maximum number of connected audio devices
+     */
+    public int getMaxConnectedAudioDevices(int profile) {
+        return mAdapterProperties.getMaxConnectedAudioDevices(
+                getSupportedProfiles(), profile);
+    }
+
+    /**
      * Check whether A2DP offload is enabled.
      *
      * @return true if A2DP offload is enabled
@@ -5324,6 +5364,7 @@ public class AdapterService extends Service {
                             properties.getString(property, null)));
             }
         }
+        initFlags.add(String.format(Locale.US, "%s=%d", "--hci", mAdapterIndex));
         return initFlags.toArray(new String[0]);
     }
 
@@ -5694,6 +5735,47 @@ public class AdapterService extends Service {
      */
     public void setBatteryLevel(BluetoothDevice device, int batteryLevel) {
         mRemoteDevices.updateBatteryLevel(device, batteryLevel);
+    }
+
+    private boolean isGattService(String name) {
+        return AdapterUtil.isAdapter1() ?
+                GattExtService.class.getSimpleName().equals(name) :
+                GattService.class.getSimpleName().equals(name);
+    }
+
+    public boolean isNewAdapter() {
+        return AdapterUtil.isAdapter1();
+    }
+
+    private int getAdapterIndex() {
+        return mAdapterIndex;
+    }
+
+    private void handleDualAdapterMode(boolean enable) {
+        if (AdapterUtil.isDualAdapterMode()) {
+            if (AdapterUtil.isAdapterDefault()) {
+                // In dual adapter mode, default adapter enable/disable
+                // new adapter concurrently.
+                if (enable) {
+                    mEnableNewAdapter = AdapterExt.enable();
+                } else {
+                    mDisableNewAdapter = AdapterExt.disable();
+                }
+            }
+        }
+    }
+
+    public boolean canEnableNewAdapter() {
+        return mEnableNewAdapter;
+    }
+
+    public boolean canDisableNewAdapter() {
+        return mDisableNewAdapter;
+    }
+
+    public void notifyNewAdapterState(boolean isOn) {
+        mAdapterStateMachine.sendMessage(AdapterState.NEW_ADAPTER_STATE_CHANGED,
+                isOn ? 1 : 0);
     }
 
     static native void classInitNative();

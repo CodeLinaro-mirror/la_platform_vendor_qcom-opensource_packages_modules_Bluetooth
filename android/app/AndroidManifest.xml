@@ -28,6 +28,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED"/>
     <uses-permission android:name="android.permission.BLUETOOTH_MAP"/>
+    <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" />
     <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -102,8 +103,17 @@
             </intent-filter>
         </service>
 
+        <service android:process="@string/new_process"
+             android:name="com.android.bluetooth.btservice.AdapterExtService"
+             android:exported="true"
+             android:permission="android.permission.ACCESS_BLUETOOTH_SHARE">
+            <intent-filter>
+                <action android:name="android.bluetooth.IBluetoothExt"/>
+            </intent-filter>
+        </service>
+
         <!--  Advanced Audio Distribution Profile (A2DP) source Profile Service  -->
-        <service android:process="@string/process"
+        <service android:process="@string/new_process"
              android:name="com.android.bluetooth.a2dp.A2dpService"
              android:enabled="true"
              android:exported="true">
@@ -133,7 +143,7 @@
         </service>
 
         <!--  Audio/Video Remote Control Profile (AVRCP) target Profile Service  -->
-        <service android:process="@string/process"
+        <service android:process="@string/new_process"
              android:name="com.android.bluetooth.avrcp.AvrcpTargetService"
              android:enabled="true"
              android:exported="true">
@@ -227,6 +237,17 @@
              android:permission="android.permission.ACCESS_BLUETOOTH_SHARE">
             <intent-filter>
                 <action android:name="android.bluetooth.IBluetoothGatt"/>
+            </intent-filter>
+        </service>
+
+        <!--  New Generic Attribute (GATT) Profile Service  -->
+        <service android:process="@string/new_process"
+             android:name="com.android.bluetooth.gatt.GattExtService"
+             android:enabled="true"
+             android:exported="true"
+             android:permission="android.permission.ACCESS_BLUETOOTH_SHARE">
+            <intent-filter>
+                <action android:name="android.bluetooth.IBluetoothGattExt"/>
             </intent-filter>
         </service>
 

@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.telephony;
@@ -47,6 +52,7 @@ import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.hfp.BluetoothHeadsetProxy;
 import com.android.bluetooth.tbs.BluetoothLeCallControlProxy;
 
@@ -57,6 +63,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -103,6 +110,7 @@ public class BluetoothInCallService extends InCallService {
     private BluetoothCall mOldHeldCall = null;
     private boolean mHeadsetUpdatedRecently = false;
     private boolean mIsDisconnectedTonePlaying = false;
+    private AdapterService mAdapterService;
 
     @VisibleForTesting
     boolean mIsTerminatedByClient = false;
@@ -134,6 +142,8 @@ public class BluetoothInCallService extends InCallService {
     private static BluetoothInCallService sInstance = null;
 
     public CallInfo mCallInfo = new CallInfo();
+
+    private BluetoothAdapter mAdapter;
 
     protected boolean mOnCreateCalled = false;
 
@@ -344,6 +354,8 @@ public class BluetoothInCallService extends InCallService {
         Log.i(TAG, "BluetoothInCallService is created");
         sInstance = this;
         mExecutor = Executors.newSingleThreadExecutor();
+        mAdapterService = Objects.requireNonNull(AdapterService.getAdapterService(),
+                "AdapterService cannot be null when BluetoothInCallService init");
     }
 
     public static BluetoothInCallService getInstance() {
@@ -649,10 +661,9 @@ public class BluetoothInCallService extends InCallService {
     public void onCreate() {
         Log.d(TAG, "onCreate");
         super.onCreate();
-        BluetoothAdapter.getDefaultAdapter()
-                .getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
-        BluetoothAdapter.getDefaultAdapter()
-                .getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
+        mAdapter = mAdapterService.getAdapter();
+        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
+        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
         mBluetoothAdapterReceiver = new BluetoothAdapterReceiver();
         IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mBluetoothAdapterReceiver, intentFilter);

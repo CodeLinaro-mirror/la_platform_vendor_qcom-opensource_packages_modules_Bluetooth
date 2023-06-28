@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.bass_client;
@@ -49,6 +54,7 @@ import android.provider.DeviceConfig;
 import android.util.Log;
 
 import com.android.bluetooth.BluetoothMethodProxy;
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.ProfileService;
 import com.android.bluetooth.btservice.ServiceFactory;
@@ -67,6 +73,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -135,8 +142,8 @@ public class BassClientStateMachine extends StateMachine {
     private ScanResult mScanRes = null;
     @VisibleForTesting
     int mNumOfBroadcastReceiverStates = 0;
-    private BluetoothAdapter mBluetoothAdapter =
-            BluetoothAdapter.getDefaultAdapter();
+    private BluetoothAdapter mBluetoothAdapter = null;
+    private AdapterService mAdapterService = null;
     private ServiceFactory mFactory = new ServiceFactory();
     @VisibleForTesting
     int mPendingOperation = -1;
@@ -177,7 +184,9 @@ public class BassClientStateMachine extends StateMachine {
         addState(mConnectedProcessing);
         setInitialState(mDisconnected);
         // PSYNC and PAST instances
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapterService = Objects.requireNonNull(AdapterService.getAdapterService(),
+                "AdapterService cannot be null when BassClientStateMachine init");
+        mBluetoothAdapter = mAdapterService.getAdapter();
         if (mBluetoothAdapter != null) {
             mPeriodicAdvManager = mBluetoothAdapter.getPeriodicAdvertisingManager();
         }
@@ -628,7 +637,6 @@ public class BassClientStateMachine extends StateMachine {
         }
         log("processBroadcastReceiverState: receiverState length: " + receiverState.length);
 
-        BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
         BluetoothLeBroadcastReceiveState recvState = null;
         if (receiverState.length == 0
                 || isEmpty(Arrays.copyOfRange(receiverState, 1, receiverState.length - 1))) {
@@ -636,7 +644,7 @@ public class BassClientStateMachine extends StateMachine {
             if (mPendingOperation == REMOVE_BCAST_SOURCE) {
                 recvState = new BluetoothLeBroadcastReceiveState(mPendingSourceId,
                         BluetoothDevice.ADDRESS_TYPE_PUBLIC, // sourceAddressType
-                        btAdapter.getRemoteDevice(emptyBluetoothDevice),  // sourceDevice
+                        mBluetoothAdapter.getRemoteDevice(emptyBluetoothDevice),  // sourceDevice
                         0,  // sourceAdvertisingSid
                         0,  // broadcastId
                         BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE, // paSyncState
@@ -658,7 +666,7 @@ public class BassClientStateMachine extends StateMachine {
                 mNextSourceId++;
                 recvState = new BluetoothLeBroadcastReceiveState(mNextSourceId,
                         BluetoothDevice.ADDRESS_TYPE_PUBLIC, // sourceAddressType
-                        btAdapter.getRemoteDevice(emptyBluetoothDevice),   // sourceDevice
+                        mBluetoothAdapter.getRemoteDevice(emptyBluetoothDevice),   // sourceDevice
                         0,  // sourceAdvertisingSid
                         0,  // broadcastId
                         BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE, // paSyncState
@@ -730,7 +738,7 @@ public class BassClientStateMachine extends StateMachine {
                     .BCAST_RCVR_STATE_SRC_ADDR_TYPE_IDX];
             BassUtils.reverse(sourceAddress);
             String address = Utils.getAddressStringFromByte(sourceAddress);
-            BluetoothDevice device = btAdapter.getRemoteLeDevice(
+            BluetoothDevice device = mBluetoothAdapter.getRemoteLeDevice(
                     address, sourceAddressType);
             byte sourceAdvSid = receiverState[BassConstants.BCAST_RCVR_STATE_SRC_ADV_SID_IDX];
             recvState = new BluetoothLeBroadcastReceiveState(

@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.gatt;
@@ -1828,7 +1833,7 @@ public class GattService extends ProfileService {
                 continue;
             }
 
-            BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+            BluetoothDevice device = mAdapter.getRemoteDevice(address);
 
             ScanSettings settings = client.settings;
             byte[] scanRecordData;
@@ -2673,7 +2678,7 @@ public class GattService extends ProfileService {
                     extractBytes(batchRecord, i * TRUNCATED_RESULT_SIZE, TRUNCATED_RESULT_SIZE);
             byte[] address = extractBytes(record, 0, 6);
             reverse(address);
-            BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+            BluetoothDevice device = mAdapter.getRemoteDevice(address);
             int rssi = record[8];
             long timestampNanos = now - parseTimestampNanos(extractBytes(record, 9, 2));
             results.add(new ScanResult(device, ScanRecord.parseFromBytes(new byte[0]), rssi,
@@ -2700,7 +2705,7 @@ public class GattService extends ProfileService {
             byte[] address = extractBytes(batchRecord, position, 6);
             // TODO: remove temp hack.
             reverse(address);
-            BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+            BluetoothDevice device = mAdapter.getRemoteDevice(address);
             position += 6;
             // Skip address type.
             position++;
@@ -2778,8 +2783,7 @@ public class GattService extends ProfileService {
             return;
         }
 
-        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter()
-                .getRemoteDevice(trackingInfo.getAddress());
+        BluetoothDevice device = mAdapter.getRemoteDevice(trackingInfo.getAddress());
         int advertiserState = trackingInfo.getAdvState();
         ScanResult result =
                 new ScanResult(device, ScanRecord.parseFromBytes(trackingInfo.getResult()),
@@ -2911,7 +2915,7 @@ public class GattService extends ProfileService {
         connectedDevices.addAll(mServerMap.getConnectedDevices());
 
         for (String address : connectedDevices) {
-            BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+            BluetoothDevice device = mAdapter.getRemoteDevice(address);
             if (device != null) {
                 deviceStates.put(device, BluetoothProfile.STATE_CONNECTED);
             }
@@ -4701,7 +4705,7 @@ public class GattService extends ProfileService {
     }
 
     private void statsLogAppPackage(String address, int applicationUid, int sessionIndex) {
-        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+        BluetoothDevice device = mAdapter.getRemoteDevice(address);
         BluetoothStatsLog.write(
                 BluetoothStatsLog.BLUETOOTH_GATT_APP_INFO,
                 sessionIndex, mAdapterService.getMetricId(device), applicationUid);
@@ -4714,7 +4718,7 @@ public class GattService extends ProfileService {
     private void statsLogGattConnectionStateChange(
             int profile, String address, int sessionIndex, int connectionState,
             int connectionStatus) {
-        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+        BluetoothDevice device = mAdapter.getRemoteDevice(address);
         BluetoothStatsLog.write(
                 BluetoothStatsLog.BLUETOOTH_CONNECTION_STATE_CHANGED, connectionState,
                 0 /* deprecated */, profile, new byte[0],

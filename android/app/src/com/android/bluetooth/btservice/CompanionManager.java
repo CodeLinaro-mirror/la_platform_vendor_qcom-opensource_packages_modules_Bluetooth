@@ -85,11 +85,12 @@ public class CompanionManager {
     static final String PROPERTY_SUFFIX_SECONDARY = ".secondary";
 
     private final AdapterService mAdapterService;
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
+    private final BluetoothAdapter mAdapter;
     private final Set<BluetoothDevice> mMetadataListeningDevices = new HashSet<>();
 
     public CompanionManager(AdapterService service, ServiceFactory factory) {
         mAdapterService = service;
+        mAdapter = mAdapterService.getAdapter();
 
         mGattConnHighDefault = new int[] {
                 getGattConfig(PROPERTY_HIGH_MIN_INTERVAL,
