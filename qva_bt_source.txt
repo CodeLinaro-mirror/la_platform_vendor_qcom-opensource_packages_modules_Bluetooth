@@ -61,7 +61,28 @@ android/app/src/com/android/bluetooth/telephony/BluetoothInCallService.java
 android/app/src/com/android/bluetooth/vc/VolumeControlNativeInterface.java
 
 # framework
+framework/Android.bp
+framework/java/android/bluetooth/BluetoothA2dp.java
+framework/java/android/bluetooth/BluetoothA2dpSink.java
+framework/java/android/bluetooth/BluetoothAdapter.java
+framework/java/android/bluetooth/BluetoothAdapterCommon.java
+framework/java/android/bluetooth/BluetoothAdapterExt.java
+framework/java/android/bluetooth/BluetoothAdapterUtil.java
+framework/java/android/bluetooth/BluetoothAvrcpController.java
 framework/java/android/bluetooth/BluetoothDevice.java
+framework/java/android/bluetooth/BluetoothHapClient.java
+framework/java/android/bluetooth/BluetoothHeadset.java
+framework/java/android/bluetooth/BluetoothHeadsetClient.java
+framework/java/android/bluetooth/BluetoothHearingAid.java
+framework/java/android/bluetooth/BluetoothHidDevice.java
+framework/java/android/bluetooth/BluetoothHidHost.java
+framework/java/android/bluetooth/BluetoothMap.java
+framework/java/android/bluetooth/BluetoothMapClient.java
+framework/java/android/bluetooth/BluetoothPbap.java
+framework/java/android/bluetooth/BluetoothPbapClient.java
+framework/java/android/bluetooth/BluetoothProfileConnector.java
+framework/java/android/bluetooth/BluetoothServerSocket.java
+framework/java/android/bluetooth/BluetoothSocket.java
 framework/java/android/bluetooth/OobData.java
 
 # system (bluetooth stack)
