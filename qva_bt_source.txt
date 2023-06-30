@@ -85,6 +85,11 @@ framework/java/android/bluetooth/BluetoothServerSocket.java
 framework/java/android/bluetooth/BluetoothSocket.java
 framework/java/android/bluetooth/OobData.java
 
+# service
+service/java/com/android/server/bluetooth/BluetoothManagerExtService.java
+service/java/com/android/server/bluetooth/BluetoothManagerService.java
+service/java/com/android/server/bluetooth/BluetoothService.java
+
 # system (bluetooth stack)
 system/audio_hal_interface/aidl/le_audio_software_aidl.cc
 system/binder/Android.bp
