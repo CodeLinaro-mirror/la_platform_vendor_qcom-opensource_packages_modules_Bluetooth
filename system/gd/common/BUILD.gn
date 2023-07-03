@@ -20,6 +20,7 @@ source_set("BluetoothCommonSources") {
     "metric_id_manager.cc",
     "stop_watch.cc",
     "strings.cc",
+    "utils.cc"
   ]
 
   configs += [ "//bt/system/gd:gd_defaults" ]

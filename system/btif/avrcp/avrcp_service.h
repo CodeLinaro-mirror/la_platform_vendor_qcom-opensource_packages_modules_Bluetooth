@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #pragma once
@@ -20,6 +25,7 @@
 #include <memory>
 #include <mutex>
 
+#include "gd/common/utils.h"
 #include "hardware/avrcp/avrcp.h"
 #include "osi/include/properties.h"
 #include "profile/avrcp/connection_handler.h"
@@ -111,5 +117,7 @@ class AvrcpService : public MediaCallbacks {
 }  // namespace bluetooth
 
 inline bool is_new_avrcp_enabled() {
-  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false);
+  // New Bluetooth adapter supports AVRCP(TG)
+  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false) &&
+         !is_default_bluetooth();
 }

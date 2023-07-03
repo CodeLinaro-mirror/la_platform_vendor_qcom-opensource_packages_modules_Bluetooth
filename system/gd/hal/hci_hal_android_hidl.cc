@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include <android/hardware/bluetooth/1.0/types.h>
@@ -26,6 +31,7 @@
 #include "common/init_flags.h"
 #include "common/stop_watch.h"
 #include "common/strings.h"
+#include "common/utils.h"
 #include "hal/hci_hal.h"
 #include "hal/snoop_logger.h"
 #include "os/alarm.h"
@@ -39,10 +45,24 @@ using ::android::hardware::bluetooth::V1_1::IBluetoothHciCallbacks;
 using HidlStatus = ::android::hardware::bluetooth::V1_0::Status;
 using IBluetoothHci_1_0 = ::android::hardware::bluetooth::V1_0::IBluetoothHci;
 using bluetooth::common::BindOnce;
+using bluetooth::common::InitFlags;
 
 namespace bluetooth {
 namespace hal {
 namespace {
+
+std::string GetHciInstance() {
+  char buf[64];
+  int hci_adapter = InitFlags::GetAdapterIndex();
+  // 0 -> "default" (default bluetooth adapter)
+  // 1 -> "hci1" (new bluetooth adapter)
+  if (hci_adapter > 0) {
+    snprintf(buf, sizeof(buf), "hci%d", hci_adapter);
+  } else {
+    snprintf(buf, sizeof(buf), "default");
+  }
+  return std::string(buf);
+}
 
 class HciDeathRecipient : public ::android::hardware::hidl_death_recipient {
  public:
@@ -214,12 +234,14 @@ class HciHalHidl : public HciHal {
         }),
         std::chrono::milliseconds(500));
 
-    bt_hci_1_1_ = IBluetoothHci::getService();
+    std::string instance = GetHciInstance();
+
+    bt_hci_1_1_ = IBluetoothHci::getService(instance);
 
     if (bt_hci_1_1_ != nullptr) {
       bt_hci_ = bt_hci_1_1_;
     } else {
-      bt_hci_ = IBluetoothHci_1_0::getService();
+      bt_hci_ = IBluetoothHci_1_0::getService(instance);
     }
 
     get_service_alarm->Cancel();
