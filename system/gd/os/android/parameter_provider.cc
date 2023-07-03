@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include "os/parameter_provider.h"
@@ -21,6 +26,8 @@
 
 #include <mutex>
 #include <string>
+
+#include "common/utils.h"
 
 namespace bluetooth {
 namespace os {
@@ -43,7 +50,9 @@ std::string ParameterProvider::ConfigFilePath() {
       return config_file_path;
     }
   }
-  return "/data/misc/bluedroid/bt_config.conf";
+  return is_default_bluetooth() ?
+          "/data/misc/bluedroid/bt_config.conf" :
+          "/data/misc/bluedroid/new/bt_config.conf";
 }
 
 void ParameterProvider::OverrideConfigFilePath(const std::string& path) {
@@ -58,7 +67,9 @@ std::string ParameterProvider::SnoopLogFilePath() {
       return snoop_log_file_path;
     }
   }
-  return "/data/misc/bluetooth/logs/btsnoop_hci.log";
+  return is_default_bluetooth() ?
+          "/data/misc/bluetooth/logs/btsnoop_hci.log" :
+          "/data/misc/bluetooth/newlogs/btsnoop_hci.log";
 }
 
 void ParameterProvider::OverrideSnoopLogFilePath(const std::string& path) {
@@ -74,7 +85,9 @@ std::string ParameterProvider::SnoozLogFilePath() {
       return snooz_log_file_path;
     }
   }
-  return "/data/misc/bluetooth/logs/btsnooz_hci.log";
+  return is_default_bluetooth() ?
+          "/data/misc/bluetooth/logs/btsnooz_hci.log" :
+          "/data/misc/bluetooth/newlogs/btsnooz_hci.log";
 }
 
 void ParameterProvider::OverrideSnoozLogFilePath(const std::string& path) {
