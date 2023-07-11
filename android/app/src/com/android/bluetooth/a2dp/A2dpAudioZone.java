@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -127,6 +127,8 @@ public final class A2dpAudioZone {
     }
 
     public static boolean validMediaPlayer(Context context, String mediaPlayer) {
+        if (mediaPlayer.isEmpty())
+            return false;
         return getApplicationInfo(context, mediaPlayer) != null;
     }
 
@@ -173,7 +175,7 @@ public final class A2dpAudioZone {
 
             debugLog("mapAudioZone: bt addr: " + addr + ", audio bus: " + bus);
             mAudioManager.setParameters(String.format(
-                    "bt_a2dp: addr=%s, bus=%s",
+                    "bdaddress=%s;bus=%s",
                     addr, bus));
 
             audioZone.setMediaPlayerMapped(mDevice);
@@ -334,6 +336,8 @@ public final class A2dpAudioZone {
             if (mMediaPlayerList.containsKey(device)) {
                 MediaPlayerInfo mpInfo = mMediaPlayerList.get(device);
                 mpInfo.setMapped();
+            } else {
+                Log.w(TAG, "No MediaPlayerInfo for " + device);
             }
         }
 

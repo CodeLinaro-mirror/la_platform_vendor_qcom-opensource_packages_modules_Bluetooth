@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #define LOG_TAG "BluetoothA2dpServiceJni"
@@ -448,7 +453,7 @@ static jboolean setSilenceDeviceNative(JNIEnv* env, jobject object,
 }
 
 static jboolean setActiveDeviceNative(JNIEnv* env, jobject object,
-                                      jbyteArray address) {
+                                      jbyteArray address, jboolean active) {
   ALOGI("%s: sBluetoothA2dpInterface: %p", __func__, sBluetoothA2dpInterface);
   std::shared_lock<std::shared_timed_mutex> lock(interface_mutex);
   if (!sBluetoothA2dpInterface) {
@@ -462,7 +467,7 @@ static jboolean setActiveDeviceNative(JNIEnv* env, jobject object,
   if (addr) {
     bd_addr.FromOctets(reinterpret_cast<const uint8_t*>(addr));
   }
-  bt_status_t status = sBluetoothA2dpInterface->set_active_device(bd_addr);
+  bt_status_t status = sBluetoothA2dpInterface->set_active_device(bd_addr, active);
   if (status != BT_STATUS_SUCCESS) {
     ALOGE("%s: Failed A2DP set_active_device, status: %d", __func__, status);
   }
@@ -509,7 +514,7 @@ static JNINativeMethod sMethods[] = {
     {"connectA2dpNative", "([B)Z", (void*)connectA2dpNative},
     {"disconnectA2dpNative", "([B)Z", (void*)disconnectA2dpNative},
     {"setSilenceDeviceNative", "([BZ)Z", (void*)setSilenceDeviceNative},
-    {"setActiveDeviceNative", "([B)Z", (void*)setActiveDeviceNative},
+    {"setActiveDeviceNative", "([BZ)Z", (void*)setActiveDeviceNative},
     {"setCodecConfigPreferenceNative",
      "([B[Landroid/bluetooth/BluetoothCodecConfig;)Z",
      (void*)setCodecConfigPreferenceNative},

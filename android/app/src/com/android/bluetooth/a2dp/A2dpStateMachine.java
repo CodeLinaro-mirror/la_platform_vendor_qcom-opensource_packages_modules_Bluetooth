@@ -194,7 +194,6 @@ final class A2dpStateMachine extends StateMachine {
             }
             if (mA2dpAudioZone != null) {
                 mA2dpAudioZone.clearMediaPlayer();
-                mA2dpAudioZone.notifyA2dpStatus(false);
             }
         }
 
@@ -516,8 +515,7 @@ final class A2dpStateMachine extends StateMachine {
             broadcastAudioState(BluetoothA2dp.STATE_NOT_PLAYING,
                                 BluetoothA2dp.STATE_PLAYING);
             if (mA2dpAudioZone != null) {
-                setMediaPlayer();
-                mA2dpAudioZone.notifyA2dpStatus(true);
+                mA2dpService.setMediaPlayer(mDevice, mA2dpService.getMediaPlayer(mDevice));
                 // Always notify app to set media player if needed
                 broadcastSetMediaPlayerRequest();
             }
