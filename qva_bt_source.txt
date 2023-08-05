@@ -2,6 +2,7 @@
 # system (bluetooth stack)
 system/btif/src/btif_a2dp_sink.cc
 system/btif/src/btif_avrcp_audio_track.cc
+system/gd/hci/hci_layer.cc
 system/include/hardware/bt_av.h
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
