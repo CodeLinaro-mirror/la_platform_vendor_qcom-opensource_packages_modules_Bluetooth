@@ -42,6 +42,7 @@ system/btif/src/btif_gatt_server.cc
 system/btif/src/btif_rc.cc
 system/btif/src/btif_util.cc
 system/device/include/interop_database.h
+system/gd/hci/hci_layer.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/main/shim/btm_api.h
