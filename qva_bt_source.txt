@@ -149,6 +149,7 @@ system/stack/Android.bp
 system/stack/avdt/avdt_ccb_act.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_api.cc
+system/stack/avct/avct_ccb.cc
 system/stack/btm/btm_client_interface.cc
 system/stack/btm/btm_sec.cc
 system/stack/btm/btm_sec.h
