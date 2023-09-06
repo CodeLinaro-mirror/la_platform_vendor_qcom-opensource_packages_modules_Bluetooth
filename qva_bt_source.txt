@@ -16,6 +16,7 @@ apex/permissions/com.android.bluetooth.xml
 framework/java/android/bluetooth/BluetoothDevice.java
 
 # system (bluetooth stack)
+system/bta/hf_client/bta_hf_client_int.h
 system/bta/include/bta_av_co.h
 system/btif/co/bta_av_co.cc
 system/btif/src/btif_a2dp_sink.cc
@@ -24,8 +25,10 @@ system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_gatt_server.cc
 system/btif/src/btif_dm.cc
 system/btif/Android.bp
+system/btif/src/btif_hf_client.cc
 system/gd/hci/hci_layer.cc
 system/include/hardware/bt_av.h
+system/internal_include/bt_target.h
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
 system/stack/a2dp/a2dp_sbc.cc
