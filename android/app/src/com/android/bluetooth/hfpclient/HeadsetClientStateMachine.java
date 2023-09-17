@@ -2471,4 +2471,13 @@ public class HeadsetClientStateMachine extends StateMachine {
     int getInBandRingtonePolicyProperty() {
         return mInBandRingtonePolicyProperty;
     }
+
+    /**
+     * gets the SCO state
+     *
+     * @return boolean sAudioIsRouted
+     */
+    public static boolean isAudioRouted() {
+        return sAudioIsRouted;
+    }
 }
