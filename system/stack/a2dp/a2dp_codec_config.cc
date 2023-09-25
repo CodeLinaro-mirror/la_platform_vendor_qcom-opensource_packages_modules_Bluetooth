@@ -49,11 +49,11 @@
 
 #define PROPERTY_CODEC_LOCATION_LEN 100
 
-/* aptX-HD is not set by default due to no sound when use AAudioStream */
 #define DEFAULT_SUPPORTED_CODECS \
   ((1 << BTAV_A2DP_CODEC_INDEX_SINK_SBC) | \
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_AAC) | \
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_APTX)| \
+   (1 << BTAV_A2DP_CODEC_INDEX_SINK_APTX_HD)| \
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_OPUS))
 
 static bool A2DP_CheckCodecLocation(btav_a2dp_codec_index_t codec_index,

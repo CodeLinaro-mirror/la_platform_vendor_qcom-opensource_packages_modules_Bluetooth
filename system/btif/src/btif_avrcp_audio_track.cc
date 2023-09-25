@@ -44,7 +44,7 @@ char outputFilename[50] = "/data/misc/bluedroid/output_sample.pcm";
 
 void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
                                 int channelCount) {
-  LOG_VERBOSE("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ",
+  LOG_INFO("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ",
               __func__, trackFreq, bitsPerSample, channelCount);
 
   AAudioStreamBuilder* builder;
@@ -54,8 +54,10 @@ void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
   AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
   AAudioStreamBuilder_setChannelCount(builder, channelCount);
   AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
-  AAudioStreamBuilder_setPerformanceMode(builder,
-                                         AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+  aaudio_performance_mode_t mode = (bitsPerSample >= 24) ?
+      AAUDIO_PERFORMANCE_MODE_NONE : AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
+  LOG_DEBUG("%s: mode:%d", __func__, mode);
+  AAudioStreamBuilder_setPerformanceMode(builder, mode);
   result = AAudioStreamBuilder_openStream(builder, &stream);
   CHECK(result == AAUDIO_OK);
   AAudioStreamBuilder_delete(builder);
