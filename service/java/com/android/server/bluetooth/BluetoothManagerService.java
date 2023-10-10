@@ -1208,6 +1208,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             return false;
         }
 
+        if (!isBluetoothAvailable()) {
+            if (DBG) {
+                Log.e(TAG, "enable(): not enabling - bluetooth not available");
+            }
+            return false;
+        }
+
         if (!isToggleAllowed()) {
             if (DBG) {
                 Log.e(TAG, "enableBle(): toggle disallowed");
@@ -1380,6 +1387,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             return false;
         }
 
+        if (!isBluetoothAvailable()) {
+            if (DBG) {
+                Log.e(TAG, "enable(): not enabling - bluetooth not available");
+            }
+            return false;
+        }
+
         if (!isToggleAllowed()) {
             if (DBG) {
                 Log.e(TAG, "enableNoAutoConnect(): not enabling - toggle disallowed");
@@ -1411,6 +1425,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         if (!checkBluetoothPermissions(attributionSource, "enable", true)) {
             if (DBG) {
                 Log.d(TAG, "enable(): not enabling - bluetooth disallowed");
+            }
+            return false;
+        }
+
+        if (!isBluetoothAvailable()) {
+            if (DBG) {
+                Log.e(TAG, "enable(): not enabling - bluetooth not available");
             }
             return false;
         }
@@ -1703,6 +1724,14 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             Log.d(TAG, "Bluetooth boot completed");
         }
         mAppOps = mContext.getSystemService(AppOpsManager.class);
+
+        if (!isBluetoothAvailable()) {
+            if (DBG) {
+                Log.e(TAG, "enable(): not enabling - bluetooth not available");
+            }
+            return;
+        }
+
         final boolean isBluetoothDisallowed = isBluetoothDisallowed();
         if (isBluetoothDisallowed) {
             return;
@@ -3486,6 +3515,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         } finally {
             Binder.restoreCallingIdentity(ident);
         }
+    }
+
+    private boolean isBluetoothAvailable() {
+        /* Always assume Bluetooth is available if auto-detect is disabled */
+        return isAdapter1() ?
+                SystemProperties.getBoolean("vendor.bt.available1", true) :
+                SystemProperties.getBoolean("vendor.bt.available", true);
     }
 
     private boolean isServiceIBluetooth(String name) {
