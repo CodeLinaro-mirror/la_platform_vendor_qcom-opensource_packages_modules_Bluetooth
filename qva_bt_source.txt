@@ -101,6 +101,7 @@ system/bta/av/bta_av_ssm.cc
 system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
+system/bta/hf_client/bta_hf_client_int.h
 system/bta/include/bta_api.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
@@ -115,6 +116,7 @@ system/btif/src/btif_av.cc
 system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_dm.cc
 system/btif/src/btif_gatt_server.cc
+system/btif/src/btif_hf_client.cc
 system/btif/src/btif_rc.cc
 system/btif/src/btif_util.cc
 system/device/include/interop_database.h
@@ -127,6 +129,7 @@ system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
+system/internal_include/bt_target.h
 system/main/shim/btm_api.h
 system/service/hal/fake_bluetooth_interface.cc
 system/stack/a2dp/a2dp_aac.cc

@@ -47,10 +47,11 @@ using os::Handler;
 using std::move;
 using std::unique_ptr;
 
-static void fail_if_reset_complete_not_success(CommandCompleteView complete) {
+static void fail_if_reset_complete_not_success(std::promise<void> reset_ready_promise, CommandCompleteView complete) {
   auto reset_complete = ResetCompleteView::Create(complete);
   ASSERT(reset_complete.IsValid());
   ASSERT(reset_complete.GetStatus() == ErrorCode::SUCCESS);
+  reset_ready_promise.set_value();
 }
 
 static void abort_after_time_out(OpCode op_code) {
@@ -223,8 +224,13 @@ struct HciLayer::impl {
     command_queue_.clear();
     command_credits_ = 1;
     waiting_command_ = OpCode::NONE;
+
+    std::promise<void> reset_ready_promise;
+    auto reset_ready_future = reset_ready_promise.get_future();
     enqueue_command(
-        ControllerDebugInfoBuilder::Create(), module_.GetHandler()->BindOnce(&fail_if_reset_complete_not_success));
+        ControllerDebugInfoBuilder::Create(), module_.GetHandler()->BindOnce(&fail_if_reset_complete_not_success,
+                                                                             std::move(reset_ready_promise)));
+    reset_ready_future.wait();
     // Don't time out for this one;
     if (hci_timeout_alarm_ != nullptr) {
       hci_timeout_alarm_->Cancel();
@@ -651,7 +657,15 @@ void HciLayer::Start() {
   RegisterEventHandler(EventCode::MAX_SLOTS_CHANGE, drop_packet);
 
   hal->registerIncomingPacketCallback(hal_callbacks_);
-  EnqueueCommand(ResetBuilder::Create(), handler->BindOnce(&fail_if_reset_complete_not_success));
+  /* Sometimes HCI LE_SET_EVNET_MASK command may be sent before Bluetooth stack receives
+   * HCI RESET CC event for previous HCI_RESET command.
+   * This results into ASSERT in "waiting_command_(LE_SET_EVENT_MASK)!=opcode(RESET)"
+   * when to handle HCI event in "handle_command_response", so that Bluetooth process raises
+   * exception. */
+  std::promise<void> reset_ready_promise;
+  auto reset_ready_future = reset_ready_promise.get_future();
+  EnqueueCommand(ResetBuilder::Create(), handler->BindOnce(&fail_if_reset_complete_not_success, std::move(reset_ready_promise)));
+  reset_ready_future.wait();
 }
 
 void HciLayer::Stop() {
