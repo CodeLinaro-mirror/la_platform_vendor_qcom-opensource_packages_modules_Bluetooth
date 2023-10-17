@@ -42,6 +42,7 @@
 #include "osi/include/fixed_queue.h"
 #include "osi/include/log.h"
 #include "osi/include/osi.h"  // UNUSED_ATTR
+#include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_types.h"
 #include "types/raw_address.h"
@@ -702,6 +703,11 @@ void btif_handle_incoming_encoded_data(BT_HDR *p_msg) {
   }
 }
 
+static size_t btif_a2dp_sink_get_delayed_start_frame_count() {
+  return (size_t)osi_property_get_int32("persist.bluetooth.a2dp.max_start_count",
+                                         MAX_A2DP_DELAYED_START_FRAME_COUNT);
+}
+
 uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   LockGuard lock(g_mutex);
   /* Flush enabled or audio track is nullptr, do not enqueue */
@@ -724,7 +730,7 @@ uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   memcpy(p_msg->data, p_pkt->data + p_pkt->offset, p_pkt->len);
   fixed_queue_enqueue(btif_a2dp_sink_cb.rx_audio_queue, p_msg);
   if (fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue) ==
-      MAX_A2DP_DELAYED_START_FRAME_COUNT) {
+      btif_a2dp_sink_get_delayed_start_frame_count()) {
     BTIF_TRACE_DEBUG("%s: Initiate decoding", __func__);
     btif_a2dp_sink_audio_handle_start_decoding();
   }
