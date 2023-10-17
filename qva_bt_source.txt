@@ -46,6 +46,7 @@ android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/map/BluetoothMapContentObserver.java
 android/app/src/com/android/bluetooth/map/BluetoothMapMasInstance.java
 android/app/src/com/android/bluetooth/map/BluetoothMapUtils.java
+android/app/src/com/android/bluetooth/mapclient/MnsService.java
 android/app/src/com/android/bluetooth/ObexServerSockets.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppBatch.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppBtEnablingActivity.java
