@@ -108,6 +108,7 @@ system/stack/btm/btm_sec.cc
 system/stack/btm/btm_sec.h
 system/stack/btu/btu_hcif.cc
 system/stack/BUILD.gn
+system/stack/gatt/att_protocol.cc
 system/stack/hcic/hcicmds.cc
 system/stack/include/a2dp_codec_api.h
 system/stack/include/a2dp_vendor.h
