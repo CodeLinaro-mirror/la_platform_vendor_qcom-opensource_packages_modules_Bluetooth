@@ -552,7 +552,9 @@ class AvrcpControllerStateMachine extends StateMachine {
                     return true;
 
                 case MESSAGE_GET_FOLDER_ITEMS:
-                    transitionTo(mGetFolderList);
+                    if (mBrowsingConnected) {
+                        transitionTo(mGetFolderList);
+                    }
                     return true;
 
                 case MESSAGE_PLAY_ITEM:
