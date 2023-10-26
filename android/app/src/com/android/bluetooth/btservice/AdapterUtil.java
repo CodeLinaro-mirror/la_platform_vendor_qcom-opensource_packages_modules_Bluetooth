@@ -72,7 +72,8 @@ public final class AdapterUtil {
                 BluetoothProfile.GATT_SERVER,
                 BluetoothProfile.HEADSET_CLIENT,
                 BluetoothProfile.PBAP_CLIENT,
-                BluetoothProfile.HID_HOST)));
+                BluetoothProfile.HID_HOST,
+                BluetoothProfile.MAP_CLIENT)));
         sProfiles.put(ADAPTER_1, new ArrayList<Integer>(Arrays.asList(
                 BluetoothProfile.A2DP,
                 BluetoothProfile.AVRCP,
