@@ -98,6 +98,7 @@ system/binder/android/bluetooth/IBluetoothExt.aidl
 system/binder/android/bluetooth/IBluetoothGattExt.aidl
 system/binder/android/bluetooth/IBluetoothManagerExt.aidl
 system/bta/av/bta_av_ssm.cc
+system/bta/av/bta_av_act.cc
 system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
