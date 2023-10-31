@@ -104,6 +104,7 @@ system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/hf_client/bta_hf_client_int.h
 system/bta/include/bta_api.h
+system/bta/include/bta_av_api.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
 system/bta/le_audio/devices.cc
