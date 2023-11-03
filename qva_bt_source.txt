@@ -124,6 +124,7 @@ system/bta/av/bta_av_act.cc
 system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
+system/bta/gatt/bta_gatts_act.cc
 system/bta/hf_client/bta_hf_client_int.h
 system/bta/hf_client/bta_hf_client_rfc.cc
 system/bta/hf_client/bta_hf_client_main.cc
