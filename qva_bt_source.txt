@@ -8,9 +8,12 @@ system/stack/a2dp/a2dp_codec_config.cc
 system/stack/a2dp/a2dp_sbc.cc
 system/stack/a2dp/a2dp_vendor.cc
 system/stack/a2dp/a2dp_vendor_aptx.cc
+system/stack/a2dp/a2dp_vendor_aptx_hd.cc
 system/stack/a2dp/a2dp_vendor_aptx_decoder.cc
+system/stack/a2dp/a2dp_vendor_aptx_hd_decoder.cc
 system/stack/a2dp/a2dp_vendor_aptx_decoder_auth.cc
 system/stack/a2dp/a2dp_vendor_aptx_encoder.cc
+system/stack/a2dp/a2dp_vendor_aptx_hd_encoder.cc
 system/stack/a2dp/a2dp_vendor_ldac.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/Android.bp
@@ -19,7 +22,9 @@ system/stack/BUILD.gn
 system/stack/include/a2dp_codec_api.h
 system/stack/include/a2dp_vendor.h
 system/stack/include/a2dp_vendor_aptx.h
+system/stack/include/a2dp_vendor_aptx_hd.h
 system/stack/include/a2dp_vendor_aptx_decoder.h
+system/stack/include/a2dp_vendor_aptx_hd_decoder.h
 system/stack/include/a2dp_vendor_aptx_decoder_auth.h
 system/stack/test/stack_a2dp_test.cc
 system/test/mock/mock_a2dp_codec_config.cc
