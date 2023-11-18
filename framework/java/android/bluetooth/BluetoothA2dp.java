@@ -295,14 +295,7 @@ public final class BluetoothA2dp implements BluetoothProfile {
 
     private final BluetoothAdapter mAdapter;
     private final AttributionSource mAttributionSource;
-    private final BluetoothProfileConnector<IBluetoothA2dp> mProfileConnector =
-            new BluetoothProfileConnector(this, BluetoothProfile.A2DP, "BluetoothA2dp",
-                    IBluetoothA2dp.class.getName()) {
-                @Override
-                public IBluetoothA2dp getServiceInterface(IBinder service) {
-                    return IBluetoothA2dp.Stub.asInterface(service);
-                }
-    };
+    private final BluetoothProfileConnector<IBluetoothA2dp> mProfileConnector;
 
     /**
      * Create a BluetoothA2dp proxy object for interacting with the local
@@ -312,6 +305,22 @@ public final class BluetoothA2dp implements BluetoothProfile {
             BluetoothAdapter adapter) {
         mAdapter = adapter;
         mAttributionSource = adapter.getAttributionSource();
+        mProfileConnector =
+                    new BluetoothProfileConnector(this, BluetoothProfile.A2DP, "BluetoothA2dp",
+                            BluetoothAdapterUtil.isDefaultAdapter(mAdapter) ?
+                            IBluetoothA2dp.class.getName() :IBluetoothA2dpExt.class.getName()) {
+                        @Override
+                        public IBluetoothA2dp getServiceInterface(IBinder service) {
+                            try {
+                                return BluetoothAdapterUtil.isDefaultAdapter(mAdapter) ?
+                                    IBluetoothA2dp.Stub.asInterface(service) :
+                                    IBluetoothA2dpExt.Stub.asInterface(service).getBluetoothA2dp();
+                            } catch (RemoteException e) {
+                                Log.e(TAG, "RemoteException occurs in IBluetoothA2dpExt.getBluetoothA2dp", e);
+                                return null;
+                            }
+                        }
+            };
         mProfileConnector.connect(context, listener);
     }
 
