@@ -104,11 +104,11 @@ public class Config {
      * List of profile services with the profile-supported resource flag and bit mask.
      */
     private static final ProfileConfig[] PROFILE_SERVICES_AND_FLAGS = {
-            new ProfileConfig(A2dpService.class, A2dpService.isEnabled(),
+            new ProfileConfig(AdapterUtil.getA2dpServiceClass(), A2dpService.isEnabled(),
                     BluetoothProfile.A2DP),
             new ProfileConfig(A2dpSinkService.class, A2dpSinkService.isEnabled(),
                     BluetoothProfile.A2DP_SINK),
-            new ProfileConfig(AvrcpTargetService.class, AvrcpTargetService.isEnabled(),
+            new ProfileConfig(AdapterUtil.getAvrcpTargetServiceClass(), AvrcpTargetService.isEnabled(),
                     BluetoothProfile.AVRCP),
             new ProfileConfig(AvrcpControllerService.class, AvrcpControllerService.isEnabled(),
                     BluetoothProfile.AVRCP_CONTROLLER),

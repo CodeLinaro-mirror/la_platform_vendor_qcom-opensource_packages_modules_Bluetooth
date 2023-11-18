@@ -1,4 +1,4 @@
-/*
+/* Changes from Qualcomm Innovation Center are provided under the following license:
  * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
@@ -18,6 +18,8 @@ import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.util.Log;
+
+import com.android.bluetooth.btservice.AdapterUtil;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -64,10 +66,22 @@ public final class A2dpAudioZone {
     private static void initAudioZone(Context context) {
         int audioZoneIndex = 0;
         CarAudioManager carAudioManager = getCarAudioManager(context);
+        int audioZoneOffset;
         if (carAudioManager == null) {
             return;
         }
+        // The first 2 headset audio zones are for Adapter 0
+        // The last 2 headset audio zones are for Adapter 1
+        if (AdapterUtil.isAdapterDefault()) {
+            audioZoneOffset = 0;
+        } else {
+            audioZoneOffset = 2;
+        }
         for (int audioZoneId: carAudioManager.getAudioZoneIds()) {
+            if (audioZoneOffset > 0) {
+                audioZoneOffset = audioZoneOffset-1;
+                continue;
+            }
             AudioDeviceInfo deviceInfo = carAudioManager
                     .getOutputDeviceForUsage(audioZoneId, AudioAttributes.USAGE_MEDIA);
             if (deviceInfo == null) {
