@@ -169,8 +169,6 @@ public final class BluetoothA2dp implements BluetoothProfile {
      * <ul>
      * <li> {@link BluetoothDevice#EXTRA_DEVICE} - The remote device. </li>
      * </ul>
-     *
-     * @hide
      */
     @RequiresLegacyBluetoothPermission
     @RequiresBluetoothConnectPermission
@@ -1072,7 +1070,6 @@ public final class BluetoothA2dp implements BluetoothProfile {
      *
      * @param device Paired bluetooth device
      * @return media player's name
-     * @hide
      */
     @RequiresBluetoothConnectPermission
     @RequiresPermission(allOf = {
@@ -1112,7 +1109,6 @@ public final class BluetoothA2dp implements BluetoothProfile {
      * @param device Paired bluetooth device
      * @param mediaPlayer media player's name
      * @return true if success, false on error
-     * @hide
      */
     @RequiresBluetoothConnectPermission
     @RequiresPermission(allOf = {

@@ -75,6 +75,7 @@ android/app/src/com/android/bluetooth/vc/VolumeControlNativeInterface.java
 
 # framework
 framework/Android.bp
+framework/api/current.txt
 framework/java/android/bluetooth/BluetoothA2dp.java
 framework/java/android/bluetooth/BluetoothA2dpSink.java
 framework/java/android/bluetooth/BluetoothAdapter.java
