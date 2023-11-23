@@ -1447,7 +1447,6 @@ public final class BluetoothDevice implements Parcelable, Attributable {
      * @throws IllegalArgumentException address is invalid
      * @hide
      */
-    @UnsupportedAppUsage
     /*package*/ BluetoothDevice(String address, int addressType) {
         this(ADAPTER_DEFAULT, address, addressType);
     }
