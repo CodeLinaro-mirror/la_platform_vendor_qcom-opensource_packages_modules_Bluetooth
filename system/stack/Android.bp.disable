@@ -216,6 +216,10 @@ cc_library_static {
         "libaptx_enc",
         "libaptxhd_enc",
     ],
+    shared_libs: [
+        "libbt-sbc-encoder",
+        "libbt-sbc-encoder2",
+    ],
     host_supported: true,
     min_sdk_version: "Tiramisu"
 }
