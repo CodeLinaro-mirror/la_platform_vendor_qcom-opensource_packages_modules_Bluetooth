@@ -79,6 +79,7 @@ java_sdk_library {
         "//frameworks/base/packages/SettingsLib",
         ":__subpackages__",
         "//vendor:__subpackages__",
+        "//packages/apps/Car/Settings",
     ],
 
     apex_available: [

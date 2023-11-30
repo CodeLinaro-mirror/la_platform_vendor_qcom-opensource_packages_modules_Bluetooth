@@ -201,6 +201,7 @@ public class Config {
                     + config.mSupported);
             if (config.mSupported
                     && AdapterUtil.isProfileSupported(config.mProfileId)) {
+                Log.i(TAG, "Add profile " + config.mClass.getSimpleName());
                 profiles.add(config.mClass);
             }
         }
