@@ -1,4 +1,7 @@
 # This file lists out all difference between QVA Bluetooth and AOSP Bluetooth
+# app
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+
 # framework
 framework/java/android/bluetooth/BluetoothDevice.java
 
