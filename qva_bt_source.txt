@@ -1,7 +1,12 @@
 # This file lists out all difference between QVA Bluetooth and AOSP Bluetooth
+# framework
+framework/java/android/bluetooth/BluetoothDevice.java
+
 # system (bluetooth stack)
 system/btif/src/btif_a2dp_sink.cc
 system/btif/src/btif_avrcp_audio_track.cc
+system/btif/src/btif_gatt_server.cc
+system/btif/src/btif_dm.cc
 system/gd/hci/hci_layer.cc
 system/include/hardware/bt_av.h
 system/stack/a2dp/a2dp_aac.cc
