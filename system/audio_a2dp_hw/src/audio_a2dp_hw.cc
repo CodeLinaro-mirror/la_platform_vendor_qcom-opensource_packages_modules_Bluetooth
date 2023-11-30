@@ -49,9 +49,14 @@
 #include <hardware/hardware.h>
 #include <system/audio.h>
 
+#ifdef INSTALL_A2DP_HAL
+#include <unordered_map>
+#include <cutils/properties.h>
+#else
 #include "osi/include/hash_map_utils.h"
 #include "osi/include/osi.h"
 #include "osi/include/socket_utils/sockets.h"
+#endif
 
 #include "audio_a2dp_hw.h"
 
@@ -93,7 +98,23 @@
 
 #define IS_AUDIO_DEVICE_OUT_BUS(dev) ((dev) == AUDIO_DEVICE_OUT_BUS)
 
-#define IS_AUDIO_DEVICE_OUT_BUS(dev) ((dev) == AUDIO_DEVICE_OUT_BUS)
+/* To remove libosi dependency */
+/*
+ * See also android.os.LocalSocketAddress.Namespace
+ */
+// Linux "abstract" (non-filesystem) namespace
+#define ANDROID_SOCKET_NAMESPACE_ABSTRACT 0
+// Android "reserved" (/dev/socket) namespace
+#define ANDROID_SOCKET_NAMESPACE_RESERVED 1
+// Normal filesystem namespace
+#define ANDROID_SOCKET_NAMESPACE_FILESYSTEM 2
+#define ANDROID_RESERVED_SOCKET_PREFIX "/dev/socket/"
+
+#define OSI_NO_INTR(fn) \
+  do {                  \
+  } while ((fn) == -1 && errno == EINTR)
+
+#define UNUSED_ATTR __attribute__((unused))
 
 /*****************************************************************************
  *  Local type definitions
@@ -193,6 +214,164 @@ static void a2dp_open_ctrl_path(struct a2dp_stream_common* common);
 /*****************************************************************************
  *   Miscellaneous helper functions
  *****************************************************************************/
+#ifdef INSTALL_A2DP_HAL
+static std::unordered_map<std::string, std::string>
+hash_map_utils_new_from_string_params(const char* params) {
+  CHECK(params != NULL);
+
+  std::unordered_map<std::string, std::string> map;
+
+  char* str = strdup(params);
+  if (!str) return map;
+
+  // Parse |str| and add extracted key-and-value pair(s) in |map|.
+  int items = 0;
+  char* tmpstr;
+  char* kvpair = strtok_r(str, ";", &tmpstr);
+  while (kvpair && *kvpair) {
+    char* eq = strchr(kvpair, '=');
+
+    if (eq == kvpair) goto next_pair;
+
+    char* key;
+    char* value;
+    if (eq) {
+      key = strndup(kvpair, eq - kvpair);
+
+      // The increment of |eq| moves |eq| to the beginning of the value.
+      ++eq;
+      value = (*eq != '\0') ? strdup(eq) : strdup("");
+    } else {
+      key = strdup(kvpair);
+      value = strdup("");
+    }
+
+    map[key] = value;
+
+    free(key);
+    free(value);
+
+    items++;
+  next_pair:
+    kvpair = strtok_r(NULL, ";", &tmpstr);
+  }
+
+  free(str);
+  return map;
+}
+
+/* Documented in header file. */
+static int osi_socket_make_sockaddr_un(const char* name, int namespaceId,
+                                struct sockaddr_un* p_addr, socklen_t* alen) {
+  memset(p_addr, 0, sizeof(*p_addr));
+  size_t namelen;
+
+  switch (namespaceId) {
+    case ANDROID_SOCKET_NAMESPACE_ABSTRACT:
+#if defined(__linux__)
+      namelen = strlen(name);
+
+      // Test with length +1 for the *initial* '\0'.
+      if ((namelen + 1) > sizeof(p_addr->sun_path)) {
+        goto error;
+      }
+
+      /*
+       * Note: The path in this case is *not* supposed to be
+       * '\0'-terminated. ("man 7 unix" for the gory details.)
+       */
+
+      p_addr->sun_path[0] = 0;
+      memcpy(p_addr->sun_path + 1, name, namelen);
+#else
+      /* this OS doesn't have the Linux abstract namespace */
+
+      namelen = strlen(name) + strlen(FILESYSTEM_SOCKET_PREFIX);
+      /* unix_path_max appears to be missing on linux */
+      if (namelen >
+          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
+        goto error;
+      }
+
+      strlcpy(p_addr->sun_path, FILESYSTEM_SOCKET_PREFIX, sizeof(p_addr->sun_path));
+      strlcat(p_addr->sun_path, name, sizeof(p_addr->sun_path));
+#endif
+      break;
+
+    case ANDROID_SOCKET_NAMESPACE_RESERVED:
+      namelen = strlen(name) + strlen(ANDROID_RESERVED_SOCKET_PREFIX);
+      /* unix_path_max appears to be missing on linux */
+      if (namelen >
+          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
+        goto error;
+      }
+
+      strlcpy(p_addr->sun_path, ANDROID_RESERVED_SOCKET_PREFIX, sizeof(p_addr->sun_path));
+      strlcat(p_addr->sun_path, name, sizeof(p_addr->sun_path));
+      break;
+
+    case ANDROID_SOCKET_NAMESPACE_FILESYSTEM:
+      namelen = strlen(name);
+      /* unix_path_max appears to be missing on linux */
+      if (namelen >
+          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
+        goto error;
+      }
+
+      strlcpy(p_addr->sun_path, name, sizeof(p_addr->sun_path));
+      break;
+    default:
+      // invalid namespace id
+      return -1;
+  }
+
+  p_addr->sun_family = AF_LOCAL;
+  *alen = namelen + offsetof(struct sockaddr_un, sun_path) + 1;
+  return 0;
+error:
+  return -1;
+}
+
+
+/**
+ * connect to peer named "name" on fd
+ * returns same fd or -1 on error.
+ * fd is not closed on error. that's your job.
+ *
+ * Used by AndroidSocketImpl
+ */
+static int osi_socket_local_client_connect(int fd, const char* name, int namespaceId,
+                                    int type UNUSED_ATTR) {
+  struct sockaddr_un addr;
+  socklen_t alen;
+  int err;
+
+  err = osi_socket_make_sockaddr_un(name, namespaceId, &addr, &alen);
+
+  if (err < 0) {
+    goto error;
+  }
+
+  OSI_NO_INTR(err = connect(fd, (struct sockaddr*)&addr, alen));
+  if (err < 0) {
+    goto error;
+  }
+
+  return fd;
+
+error:
+  return -1;
+}
+
+bool osi_property_get_bool(const char* key, bool default_value) {
+#if defined(OS_GENERIC)
+  return default_value;
+#else
+  return property_get_bool(key, default_value);
+#endif  // defined(OS_GENERIC)
+}
+#endif
+
 static void hash_map_utils_dump_string_keys_string_values(
     std::unordered_map<std::string, std::string>& map) {
   for (const auto& ptr : map) {
