@@ -105,6 +105,7 @@ service/java/com/android/server/bluetooth/BluetoothManagerService.java
 service/java/com/android/server/bluetooth/BluetoothService.java
 
 # system (bluetooth stack)
+system/audio_a2dp_hw/Android.bp
 system/audio_a2dp_hw/src/audio_a2dp_hw.cc
 system/audio_hal_interface/a2dp_encoding_host.cc
 system/audio_hal_interface/aidl/a2dp_encoding_aidl.cc
