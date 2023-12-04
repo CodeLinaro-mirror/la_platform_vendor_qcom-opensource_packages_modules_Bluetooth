@@ -216,6 +216,7 @@ cc_test {
         "libhidlbase",
         "libprotobuf-cpp-lite",
         "libprocessgroup",
+        "libbt-sbc-encoder",
     ],
     static_libs: [
         "android.hardware.bluetooth.a2dp@1.0",
@@ -229,7 +230,6 @@ cc_test {
         "libbt-hci",
         "libbt-protos-lite",
         "libbt-sbc-decoder",
-        "libbt-sbc-encoder",
         "libbt-stack",
         "libbt-utils",
         "libFraunhoferAAC",
