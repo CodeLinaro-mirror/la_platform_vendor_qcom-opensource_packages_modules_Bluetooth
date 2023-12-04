@@ -1,4 +1,4 @@
-/*
+/* Changes from Qualcomm Innovation Center are provided under the following license:
  * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
@@ -18,6 +18,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.SystemProperties;
 import android.provider.Settings;
+
+import com.android.bluetooth.a2dp.A2dpService;
+import com.android.bluetooth.a2dp.A2dpExtService;
+import com.android.bluetooth.avrcp.AvrcpTargetService;
+import com.android.bluetooth.avrcp.AvrcpTargetExtService;
 
 import com.android.bluetooth.gatt.GattService;
 import com.android.bluetooth.gatt.GattExtService;
@@ -144,6 +149,14 @@ public final class AdapterUtil {
 
     public static Class getGattServiceClass() {
         return isAdapter1() ? GattExtService.class : GattService.class;
+    }
+
+    public static Class getA2dpServiceClass() {
+        return isAdapter1() ? A2dpExtService.class : A2dpService.class;
+    }
+
+    public static Class getAvrcpTargetServiceClass() {
+        return isAdapter1() ? AvrcpTargetExtService.class : AvrcpTargetService.class;
     }
 
     public static boolean isDualAdapterMode() {

@@ -15,11 +15,13 @@ android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/a2dp/A2dpAudioZone.java
 android/app/src/com/android/bluetooth/a2dp/A2dpNativeInterface.java
 android/app/src/com/android/bluetooth/a2dp/A2dpService.java
+android/app/src/com/android/bluetooth/a2dp/A2dpExtService.java
 android/app/src/com/android/bluetooth/a2dp/A2dpStateMachine.java
 android/app/src/com/android/bluetooth/audio_util/MediaPlayerList.java
 android/app/src/com/android/bluetooth/audio_util/MediaPlayerWrapper.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpNativeInterface.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetService.java
+android/app/src/com/android/bluetooth/avrcp/AvrcpTargetExtService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
@@ -114,6 +116,8 @@ system/audio_hal_interface/hidl/a2dp_encoding_hidl.cc
 system/binder/Android.bp
 system/binder/android/bluetooth/IBluetooth.aidl
 system/binder/android/bluetooth/IBluetoothA2dp.aidl
+system/binder/android/bluetooth/IBluetoothA2dpExt.aidl
+system/binder/android/bluetooth/IBluetoothAvrcpTargetExt.aidl
 system/binder/android/bluetooth/IBluetoothExt.aidl
 system/binder/android/bluetooth/IBluetoothGattExt.aidl
 system/binder/android/bluetooth/IBluetoothManagerExt.aidl
