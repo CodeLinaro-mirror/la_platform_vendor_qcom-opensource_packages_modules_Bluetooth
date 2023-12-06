@@ -75,6 +75,7 @@ android/app/src/com/android/bluetooth/vc/VolumeControlNativeInterface.java
 
 # framework
 framework/Android.bp
+framework/api/current.txt
 framework/java/android/bluetooth/BluetoothA2dp.java
 framework/java/android/bluetooth/BluetoothA2dpSink.java
 framework/java/android/bluetooth/BluetoothAdapter.java
@@ -205,6 +206,7 @@ system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/a2dp/a2dp_vendor_opus_encoder.cc
 system/stack/Android.bp
 system/stack/avdt/avdt_ccb_act.cc
+system/stack/avdt/avdt_msg.cc
 system/stack/avdt/avdt_scb.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_api.cc
@@ -217,7 +219,10 @@ system/stack/btu/btu_hcif.cc
 system/stack/include/a2dp_aac.h
 system/stack/include/a2dp_aac_encoder.h
 system/stack/BUILD.gn
+system/stack/eatt/eatt.h
 system/stack/eatt/eatt_impl.h
+system/stack/gatt/gatt_cl.cc
+system/stack/gatt/gatt_sr.cc
 system/stack/hcic/hcicmds.cc
 system/stack/include/a2dp_codec_api.h
 system/stack/include/a2dp_sbc.h
