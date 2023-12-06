@@ -423,12 +423,12 @@ int A2DP_VendorGetBitRate(const RawAddress& peer_address,
   if (A2DP_IsAptxCodec(vendor_id, codec_id)) {
     return A2DP_VendorGetBitRateAptx(peer_address, p_codec_info);
   }
-/*
+
   // Check for aptX-HD
   if (A2DP_IsAptxHdCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetBitRateAptxHd(p_codec_info);
+    return A2DP_VendorGetBitRateAptxHd(peer_address, p_codec_info);
   }
-
+/*
   // Check for LDAC
   if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
     return A2DP_VendorGetBitRateLdac(p_codec_info);
@@ -635,12 +635,12 @@ A2dpEncoderInterface* A2DP_VendorGetEncoderInterface(
   if (A2DP_IsAptxCodec(vendor_id, codec_id)) {
     return A2DP_VendorGetEncoderInterfaceAptx(peer_address, p_codec_info);
   }
-/*
+
   // Check for aptX-HD
   if (A2DP_IsAptxHdCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetEncoderInterfaceAptxHd(p_codec_info);
+    return A2DP_VendorGetEncoderInterfaceAptxHd(peer_address, p_codec_info);
   }
-
+/*
   // Check for LDAC
   if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
     return A2DP_VendorGetEncoderInterfaceLdac(p_codec_info);
