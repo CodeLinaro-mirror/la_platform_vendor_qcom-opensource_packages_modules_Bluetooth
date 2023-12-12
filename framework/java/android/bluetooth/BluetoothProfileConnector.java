@@ -169,6 +169,11 @@ public abstract class BluetoothProfileConnector<T> {
         }
     }
 
+    void connect(Context context, BluetoothAdapter adapter, BluetoothProfile.ServiceListener listener) {
+        mAdapter = adapter;
+        connect(context, listener);
+    }
+
     void connect(Context context, BluetoothProfile.ServiceListener listener) {
         mContext = context;
         mServiceListener = listener;
@@ -182,8 +187,12 @@ public abstract class BluetoothProfileConnector<T> {
             throw new SecurityException("Need BLUETOOTH permission");
         }
 
-        mAdapter = BluetoothAdapterUtil.getAdapter(
-                BluetoothAdapterUtil.getAdapterIndex(mProfileId));
+        // For A2dp mAdapter is set from parameter of connect
+        if (mProfileId != BluetoothProfile.A2DP) {
+            mAdapter = BluetoothAdapterUtil.getAdapter(
+                    BluetoothAdapterUtil.getAdapterIndex(mProfileId));
+        }
+
         mProfileSupported = (mAdapter != null);
 
         // Bind Bluetooth profile service only if Bluetooth adapter supports the profile

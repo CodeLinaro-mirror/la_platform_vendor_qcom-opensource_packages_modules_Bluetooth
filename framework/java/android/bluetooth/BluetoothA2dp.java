@@ -321,7 +321,7 @@ public final class BluetoothA2dp implements BluetoothProfile {
                             }
                         }
             };
-        mProfileConnector.connect(context, listener);
+        mProfileConnector.connect(context, adapter, listener);
     }
 
     @UnsupportedAppUsage
