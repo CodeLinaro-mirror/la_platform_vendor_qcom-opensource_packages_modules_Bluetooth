@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package android.bluetooth;
@@ -75,7 +80,8 @@ import java.io.IOException;
 public final class BluetoothServerSocket implements Closeable {
 
     private static final String TAG = "BluetoothServerSocket";
-    private static final boolean DBG = false;
+    private static final boolean DBG = Log.isLoggable(TAG, Log.DEBUG);
+    private static final int ADAPTER_DEFAULT = BluetoothAdapterCommon.ADAPTER_DEFAULT;
     @UnsupportedAppUsage(publicAlternatives = "Use public {@link BluetoothServerSocket} API "
             + "instead.")
     /*package*/ final BluetoothSocket mSocket;
@@ -96,7 +102,27 @@ public final class BluetoothServerSocket implements Closeable {
     /*package*/ BluetoothServerSocket(int type, boolean auth, boolean encrypt, int port)
             throws IOException {
         mChannel = port;
-        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, port, null);
+        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, port, null, ADAPTER_DEFAULT);
+        if (port == BluetoothAdapter.SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
+            mSocket.setExcludeSdp(true);
+        }
+    }
+
+    /**
+     * Construct a socket for incoming connections.
+     *
+     * @param type type of socket
+     * @param auth require the remote device to be authenticated
+     * @param encrypt require the connection to be encrypted
+     * @param port remote port
+     * @param adapterIndex Bluetooth adapter index
+     * @throws IOException On error, for example Bluetooth not available, or insufficient
+     * privileges
+     */
+    /*package*/ BluetoothServerSocket(int type, boolean auth, boolean encrypt, int port, int adapterIndex)
+            throws IOException {
+        mChannel = port;
+        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, port, null, adapterIndex);
         if (port == BluetoothAdapter.SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             mSocket.setExcludeSdp(true);
         }
@@ -119,7 +145,31 @@ public final class BluetoothServerSocket implements Closeable {
             throws IOException {
         mChannel = port;
         mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, port, null, mitm,
-                min16DigitPin);
+                min16DigitPin, ADAPTER_DEFAULT);
+        if (port == BluetoothAdapter.SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
+            mSocket.setExcludeSdp(true);
+        }
+    }
+
+    /**
+     * Construct a socket for incoming connections.
+     *
+     * @param type type of socket
+     * @param auth require the remote device to be authenticated
+     * @param encrypt require the connection to be encrypted
+     * @param port remote port
+     * @param mitm enforce person-in-the-middle protection for authentication.
+     * @param min16DigitPin enforce a minimum length of 16 digits for a sec mode 2 connection
+     * @param adapterIndex Bluetooth adapter index
+     * @throws IOException On error, for example Bluetooth not available, or insufficient
+     * privileges
+     */
+    /*package*/ BluetoothServerSocket(int type, boolean auth, boolean encrypt, int port,
+            boolean mitm, boolean min16DigitPin, int adapterIndex)
+            throws IOException {
+        mChannel = port;
+        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, port, null, mitm,
+                min16DigitPin, adapterIndex);
         if (port == BluetoothAdapter.SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             mSocket.setExcludeSdp(true);
         }
@@ -137,11 +187,28 @@ public final class BluetoothServerSocket implements Closeable {
      */
     /*package*/ BluetoothServerSocket(int type, boolean auth, boolean encrypt, ParcelUuid uuid)
             throws IOException {
-        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, -1, uuid);
+        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, -1, uuid, ADAPTER_DEFAULT);
         // TODO: This is the same as mChannel = -1 - is this intentional?
         mChannel = mSocket.getPort();
     }
 
+    /**
+     * Construct a socket for incoming connections.
+     *
+     * @param type type of socket
+     * @param auth require the remote device to be authenticated
+     * @param encrypt require the connection to be encrypted
+     * @param uuid uuid
+     * @param adapterIndex Bluetooth adapter index
+     * @throws IOException On error, for example Bluetooth not available, or insufficient
+     * privileges
+     */
+    /*package*/ BluetoothServerSocket(int type, boolean auth, boolean encrypt, ParcelUuid uuid,
+            int adapterIndex) throws IOException {
+        mSocket = new BluetoothSocket(type, -1, auth, encrypt, null, -1, uuid, adapterIndex);
+        // TODO: This is the same as mChannel = -1 - is this intentional?
+        mChannel = mSocket.getPort();
+    }
 
     /**
      * Block until a connection is established.

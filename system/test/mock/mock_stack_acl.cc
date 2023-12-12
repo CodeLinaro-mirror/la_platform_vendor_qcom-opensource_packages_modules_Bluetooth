@@ -114,7 +114,6 @@ struct acl_disconnect_from_handle acl_disconnect_from_handle;
 struct acl_link_segments_xmitted acl_link_segments_xmitted;
 struct acl_packets_completed acl_packets_completed;
 struct acl_process_extended_features acl_process_extended_features;
-struct acl_process_num_completed_pkts acl_process_num_completed_pkts;
 struct acl_process_supported_features acl_process_supported_features;
 struct acl_rcv_acl_data acl_rcv_acl_data;
 struct acl_reject_connection_request acl_reject_connection_request;
@@ -476,10 +475,6 @@ void acl_process_extended_features(uint16_t handle, uint8_t current_page_number,
   test::mock::stack_acl::acl_process_extended_features(
       handle, current_page_number, max_page_number, features);
 }
-void acl_process_num_completed_pkts(uint8_t* p, uint8_t evt_len) {
-  mock_function_count_map[__func__]++;
-  test::mock::stack_acl::acl_process_num_completed_pkts(p, evt_len);
-}
 void acl_process_supported_features(uint16_t handle, uint64_t features) {
   mock_function_count_map[__func__]++;
   test::mock::stack_acl::acl_process_supported_features(handle, features);
@@ -626,9 +621,9 @@ void btm_read_failed_contact_counter_timeout(UNUSED_ATTR void* data) {
   mock_function_count_map[__func__]++;
   test::mock::stack_acl::btm_read_failed_contact_counter_timeout(data);
 }
-void btm_read_link_quality_complete(uint8_t* p) {
+void btm_read_link_quality_complete(uint8_t* p, uint16_t evt_len) {
   mock_function_count_map[__func__]++;
-  test::mock::stack_acl::btm_read_link_quality_complete(p);
+  test::mock::stack_acl::btm_read_link_quality_complete(p, evt_len);
 }
 void btm_read_link_quality_timeout(UNUSED_ATTR void* data) {
   mock_function_count_map[__func__]++;
@@ -665,17 +660,17 @@ void btm_read_remote_version_complete(tHCI_STATUS status, uint16_t handle,
   test::mock::stack_acl::btm_read_remote_version_complete(
       status, handle, lmp_version, manufacturer, lmp_subversion);
 }
-void btm_read_rssi_complete(uint8_t* p) {
+void btm_read_rssi_complete(uint8_t* p, uint16_t evt_len) {
   mock_function_count_map[__func__]++;
-  test::mock::stack_acl::btm_read_rssi_complete(p);
+  test::mock::stack_acl::btm_read_rssi_complete(p, evt_len);
 }
 void btm_read_rssi_timeout(UNUSED_ATTR void* data) {
   mock_function_count_map[__func__]++;
   test::mock::stack_acl::btm_read_rssi_timeout(data);
 }
-void btm_read_tx_power_complete(uint8_t* p, bool is_ble) {
+void btm_read_tx_power_complete(uint8_t* p, uint16_t evt_len, bool is_ble) {
   mock_function_count_map[__func__]++;
-  test::mock::stack_acl::btm_read_tx_power_complete(p, is_ble);
+  test::mock::stack_acl::btm_read_tx_power_complete(p, evt_len, is_ble);
 }
 void btm_read_tx_power_timeout(UNUSED_ATTR void* data) {
   mock_function_count_map[__func__]++;

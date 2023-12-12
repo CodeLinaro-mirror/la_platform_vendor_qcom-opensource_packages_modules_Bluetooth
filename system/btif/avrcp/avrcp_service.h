@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #pragma once
@@ -20,6 +25,7 @@
 #include <memory>
 #include <mutex>
 
+#include "gd/common/utils.h"
 #include "hardware/avrcp/avrcp.h"
 #include "osi/include/properties.h"
 #include "profile/avrcp/connection_handler.h"
@@ -68,6 +74,8 @@ class AvrcpService : public MediaCallbacks {
   // Functions inherited from MediaCallbacks in order to receive updates
   void SendMediaUpdate(bool track_changed, bool play_state,
                        bool queue) override;
+  void SendMediaUpdateExt(const RawAddress& bdaddr, bool track_changed,
+                          bool play_state, bool queue);
   void SendFolderUpdate(bool available_players, bool addressed_player,
                         bool queue) override;
   void SendActiveDeviceChanged(const RawAddress& address) override;

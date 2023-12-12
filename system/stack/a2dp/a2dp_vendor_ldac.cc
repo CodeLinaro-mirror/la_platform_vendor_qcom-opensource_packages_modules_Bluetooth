@@ -82,7 +82,7 @@ static const tA2DP_LDAC_CIE a2dp_ldac_default_config = {
     A2DP_LDAC_CHANNEL_MODE_STEREO,      // channelMode
     BTAV_A2DP_CODEC_BITS_PER_SAMPLE_32  // bits_per_sample
 };
-
+/*
 static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_ldac = {
     a2dp_vendor_ldac_encoder_init,
     a2dp_vendor_ldac_encoder_cleanup,
@@ -92,7 +92,7 @@ static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_ldac = {
     a2dp_vendor_ldac_get_effective_frame_size,
     a2dp_vendor_ldac_send_frames,
     a2dp_vendor_ldac_set_transmit_queue_length};
-
+*/
 static const tA2DP_DECODER_INTERFACE a2dp_decoder_interface_ldac = {
     a2dp_vendor_ldac_decoder_init,          a2dp_vendor_ldac_decoder_cleanup,
     a2dp_vendor_ldac_decoder_decode_packet, a2dp_vendor_ldac_decoder_start,
@@ -518,6 +518,11 @@ bool A2DP_VendorBuildCodecHeaderLdac(UNUSED_ATTR const uint8_t* p_codec_info,
                                      uint16_t frames_per_packet) {
   uint8_t* p;
 
+  // there is a 4 byte timestamp right following p_buf
+  if (p_buf->offset < 4 + A2DP_LDAC_MPL_HDR_LEN) {
+    return false;
+  }
+
   p_buf->offset -= A2DP_LDAC_MPL_HDR_LEN;
   p = (uint8_t*)(p_buf + 1) + p_buf->offset;
   p_buf->len += A2DP_LDAC_MPL_HDR_LEN;
@@ -573,14 +578,14 @@ std::string A2DP_VendorCodecInfoStringLdac(const uint8_t* p_codec_info) {
 
   return res.str();
 }
-
+/*
 const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterfaceLdac(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsVendorSourceCodecValidLdac(p_codec_info)) return NULL;
 
   return &a2dp_encoder_interface_ldac;
 }
-
+*/
 const tA2DP_DECODER_INTERFACE* A2DP_VendorGetDecoderInterfaceLdac(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsVendorSinkCodecValidLdac(p_codec_info)) return NULL;

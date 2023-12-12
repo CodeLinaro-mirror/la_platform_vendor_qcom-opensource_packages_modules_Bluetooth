@@ -28,6 +28,11 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.opp;
@@ -46,7 +51,10 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.bluetooth.BluetoothMethodProxy;
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.R;
+import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -61,7 +69,8 @@ public class BluetoothOppManager {
     private static final String TAG = "BluetoothOppManager";
     private static final boolean V = Constants.VERBOSE;
 
-    private static BluetoothOppManager sInstance;
+    @VisibleForTesting
+    static BluetoothOppManager sInstance;
 
     /** Used when obtaining a reference to the singleton instance. */
     private static final Object INSTANCE_LOCK = new Object();
@@ -72,17 +81,22 @@ public class BluetoothOppManager {
 
     private BluetoothAdapter mAdapter;
 
-    private String mMimeTypeOfSendingFile;
+    @VisibleForTesting
+    String mMimeTypeOfSendingFile;
 
-    private String mUriOfSendingFile;
+    @VisibleForTesting
+    String mUriOfSendingFile;
 
-    private String mMimeTypeOfSendingFiles;
+    @VisibleForTesting
+    String mMimeTypeOfSendingFiles;
 
-    private ArrayList<Uri> mUrisOfSendingFiles;
+    @VisibleForTesting
+    ArrayList<Uri> mUrisOfSendingFiles;
 
     private boolean mIsHandoverInitiated;
 
-    private static final String OPP_PREFERENCE_FILE = "OPPMGR";
+    @VisibleForTesting
+    static final String OPP_PREFERENCE_FILE = "OPPMGR";
 
     private static final String SENDING_FLAG = "SENDINGFLAG";
 
@@ -132,6 +146,14 @@ public class BluetoothOppManager {
     }
 
     /**
+     * Set Singleton instance. Intended for testing purpose
+     */
+    @VisibleForTesting
+    static void setInstance(BluetoothOppManager instance) {
+        sInstance = instance;
+    }
+
+    /**
      * init
      */
     private boolean init(Context context) {
@@ -142,7 +164,7 @@ public class BluetoothOppManager {
 
         mContext = context;
 
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+       mAdapter = AdapterService.getAdapter();
         if (mAdapter == null) {
             if (V) {
                 Log.v(TAG, "BLUETOOTH_SERVICE is not started! ");
@@ -303,7 +325,7 @@ public class BluetoothOppManager {
      */
     public boolean isEnabled() {
         if (mAdapter != null) {
-            return mAdapter.isEnabled();
+            return BluetoothMethodProxy.getInstance().bluetoothAdapterIsEnabled(mAdapter);
         } else {
             if (V) {
                 Log.v(TAG, "BLUETOOTH_SERVICE is not available! ");
@@ -470,14 +492,14 @@ public class BluetoothOppManager {
                 }
 
                 values.put(BluetoothShare.MIMETYPE, contentType);
-                values.put(BluetoothShare.DESTINATION, mRemoteDevice.getAddress());
+                values.put(BluetoothShare.DESTINATION, mRemoteDevice.getIdentityAddress());
                 values.put(BluetoothShare.TIMESTAMP, ts);
                 if (mIsHandoverInitiated) {
                     values.put(BluetoothShare.USER_CONFIRMATION,
                             BluetoothShare.USER_CONFIRMATION_HANDOVER_CONFIRMED);
                 }
-                final Uri contentUri =
-                        mContext.getContentResolver().insert(BluetoothShare.CONTENT_URI, values);
+                final Uri contentUri = BluetoothMethodProxy.getInstance().contentResolverInsert(
+                        mContext.getContentResolver(), BluetoothShare.CONTENT_URI, values);
                 if (V) {
                     Log.v(TAG, "Insert contentUri: " + contentUri + "  to device: " + getDeviceName(
                             mRemoteDevice));
@@ -492,13 +514,13 @@ public class BluetoothOppManager {
             ContentValues values = new ContentValues();
             values.put(BluetoothShare.URI, mUri);
             values.put(BluetoothShare.MIMETYPE, mTypeOfSingleFile);
-            values.put(BluetoothShare.DESTINATION, mRemoteDevice.getAddress());
+            values.put(BluetoothShare.DESTINATION, mRemoteDevice.getIdentityAddress());
             if (mIsHandoverInitiated) {
                 values.put(BluetoothShare.USER_CONFIRMATION,
                         BluetoothShare.USER_CONFIRMATION_HANDOVER_CONFIRMED);
             }
-            final Uri contentUri =
-                    mContext.getContentResolver().insert(BluetoothShare.CONTENT_URI, values);
+            final Uri contentUri = BluetoothMethodProxy.getInstance().contentResolverInsert(
+                    mContext.getContentResolver(), BluetoothShare.CONTENT_URI, values);
             if (V) {
                 Log.v(TAG, "Insert contentUri: " + contentUri + "  to device: " + getDeviceName(
                         mRemoteDevice));

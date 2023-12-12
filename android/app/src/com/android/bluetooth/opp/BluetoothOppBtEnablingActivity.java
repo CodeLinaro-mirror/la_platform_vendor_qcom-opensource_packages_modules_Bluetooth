@@ -28,6 +28,11 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.opp;
@@ -48,7 +53,10 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
 
+import com.android.bluetooth.BluetoothMethodProxy;
 import com.android.bluetooth.R;
+import com.android.bluetooth.btservice.AdapterService;
+import com.android.internal.annotations.VisibleForTesting;
 
 /**
  * This class is designed to show BT enabling progress.
@@ -62,7 +70,8 @@ public class BluetoothOppBtEnablingActivity extends AlertActivity {
 
     private static final int BT_ENABLING_TIMEOUT = 0;
 
-    private static final int BT_ENABLING_TIMEOUT_VALUE = 20000;
+    @VisibleForTesting
+    static int sBtEnablingTimeoutMs = 20000;
 
     private boolean mRegistered = false;
 
@@ -72,8 +81,8 @@ public class BluetoothOppBtEnablingActivity extends AlertActivity {
 
         getWindow().addSystemFlags(SYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS);
         // If BT is already enabled jus return.
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        if (adapter.isEnabled()) {
+        BluetoothAdapter adapter = AdapterService.getAdapter();
+        if (BluetoothMethodProxy.getInstance().bluetoothAdapterIsEnabled(adapter)) {
             finish();
             return;
         }
@@ -88,7 +97,7 @@ public class BluetoothOppBtEnablingActivity extends AlertActivity {
 
         // Add timeout for enabling progress
         mTimeoutHandler.sendMessageDelayed(mTimeoutHandler.obtainMessage(BT_ENABLING_TIMEOUT),
-                BT_ENABLING_TIMEOUT_VALUE);
+                sBtEnablingTimeoutMs);
     }
 
     private View createView() {
@@ -119,7 +128,8 @@ public class BluetoothOppBtEnablingActivity extends AlertActivity {
         }
     }
 
-    private final Handler mTimeoutHandler = new Handler() {
+    @VisibleForTesting
+    final Handler mTimeoutHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -135,7 +145,8 @@ public class BluetoothOppBtEnablingActivity extends AlertActivity {
         }
     };
 
-    private final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
+    @VisibleForTesting
+    final BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();

@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 /*
@@ -26,6 +31,7 @@ import android.bluetooth.BluetoothDevice;
 import android.util.Log;
 
 import com.android.bluetooth.Utils;
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 
@@ -46,7 +52,7 @@ public class HearingAidNativeInterface {
     }
 
     private HearingAidNativeInterface() {
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapter = AdapterService.getAdapter();
         if (mAdapter == null) {
             Log.wtf(TAG, "No Bluetooth Adapter Available");
         }
@@ -128,14 +134,16 @@ public class HearingAidNativeInterface {
         return mAdapter.getRemoteDevice(address);
     }
 
-    private byte[] getByteAddress(BluetoothDevice device) {
+    @VisibleForTesting
+    byte[] getByteAddress(BluetoothDevice device) {
         if (device == null) {
             return Utils.getBytesFromAddress("00:00:00:00:00:00");
         }
         return Utils.getBytesFromAddress(device.getAddress());
     }
 
-    private void sendMessageToService(HearingAidStackEvent event) {
+    @VisibleForTesting
+    void sendMessageToService(HearingAidStackEvent event) {
         HearingAidService service = HearingAidService.getHearingAidService();
         if (service != null) {
             service.messageFromNative(event);
@@ -148,7 +156,8 @@ public class HearingAidNativeInterface {
     // All callbacks are routed via the Service which will disambiguate which
     // state machine the message should be routed to.
 
-    private void onConnectionStateChanged(int state, byte[] address) {
+    @VisibleForTesting
+    void onConnectionStateChanged(int state, byte[] address) {
         HearingAidStackEvent event =
                 new HearingAidStackEvent(HearingAidStackEvent.EVENT_TYPE_CONNECTION_STATE_CHANGED);
         event.device = getDevice(address);
@@ -160,7 +169,8 @@ public class HearingAidNativeInterface {
         sendMessageToService(event);
     }
 
-    private void onDeviceAvailable(byte capabilities, long hiSyncId, byte[] address) {
+    @VisibleForTesting
+    void onDeviceAvailable(byte capabilities, long hiSyncId, byte[] address) {
         HearingAidStackEvent event = new HearingAidStackEvent(
                 HearingAidStackEvent.EVENT_TYPE_DEVICE_AVAILABLE);
         event.device = getDevice(address);

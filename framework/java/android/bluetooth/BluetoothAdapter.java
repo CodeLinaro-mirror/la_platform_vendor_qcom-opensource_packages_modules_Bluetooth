@@ -13,6 +13,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package android.bluetooth;
@@ -779,6 +784,10 @@ public final class BluetoothAdapter {
 
     private static final int ADDRESS_LENGTH = 17;
 
+    private static final int ADAPTER_DEFAULT = BluetoothAdapterCommon.ADAPTER_DEFAULT;
+    private static final int ADAPTER_1 = BluetoothAdapterCommon.ADAPTER_1;
+    private static final int ADAPTER_NUMBER = BluetoothAdapterCommon.ADAPTER_NUMBER;
+
     /**
      * Lazily initialized singleton. Guaranteed final after first object
      * constructed.
@@ -789,6 +798,7 @@ public final class BluetoothAdapter {
     private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
     private PeriodicAdvertisingManager mPeriodicAdvertisingManager;
 
+    private final int mAdapterIndex;
     private final IBluetoothManager mManagerService;
     private final AttributionSource mAttributionSource;
 
@@ -802,10 +812,10 @@ public final class BluetoothAdapter {
     private final ReentrantReadWriteLock mServiceLock = new ReentrantReadWriteLock();
 
     @GuardedBy("sServiceLock")
-    private static boolean sServiceRegistered;
+    private static HashMap<Integer, Boolean> sServiceRegistered;
     @GuardedBy("sServiceLock")
-    private static IBluetooth sService;
-    private static final Object sServiceLock = new Object();
+    private static HashMap<Integer, IBluetooth> sService;
+    private static HashMap<Integer, Object> sServiceLock;
 
     private final Object mLock = new Object();
     private final Map<LeScanCallback, ScanCallback> mLeScanClients;
@@ -813,6 +823,11 @@ public final class BluetoothAdapter {
                 mMetadataListeners = new HashMap<>();
     private final Map<BluetoothConnectionCallback, Executor>
             mBluetoothConnectionCallbackExecutorMap = new HashMap<>();
+
+    private static HashMap<Integer, IBluetoothManagerCallback> sManagerCallback;
+
+    @GuardedBy("sServiceLock")
+    private static HashMap<Integer, WeakHashMap<IBluetoothManagerCallback, Void>> sProxyServiceStateCallbacks;
 
     /**
      * Bluetooth metadata listener. Overrides the default BluetoothMetadataListener
@@ -840,6 +855,35 @@ public final class BluetoothAdapter {
             return;
         }
     };
+
+    static {
+        classInit();
+    }
+
+    private static void classInit() {
+        sServiceRegistered = new HashMap<Integer, Boolean>(ADAPTER_NUMBER);
+        sServiceRegistered.put(ADAPTER_DEFAULT, false);
+        sServiceRegistered.put(ADAPTER_1, false);
+
+        sService = new HashMap<Integer, IBluetooth>(ADAPTER_NUMBER);
+
+        sManagerCallback = new HashMap<Integer, IBluetoothManagerCallback>(ADAPTER_NUMBER);
+        sManagerCallback.put(ADAPTER_DEFAULT,
+                new BluetoothManagerCallback(ADAPTER_DEFAULT));
+        sManagerCallback.put(ADAPTER_1,
+                new BluetoothManagerCallback(ADAPTER_1));
+
+        sProxyServiceStateCallbacks =
+                new HashMap<Integer, WeakHashMap<IBluetoothManagerCallback, Void>>(ADAPTER_NUMBER);
+        sProxyServiceStateCallbacks.put(ADAPTER_DEFAULT,
+                new WeakHashMap<IBluetoothManagerCallback, Void>());
+        sProxyServiceStateCallbacks.put(ADAPTER_1,
+                new WeakHashMap<IBluetoothManagerCallback, Void>());
+
+        sServiceLock = new HashMap<Integer, Object>(ADAPTER_NUMBER);
+        sServiceLock.put(ADAPTER_DEFAULT, new Object());
+        sServiceLock.put(ADAPTER_1, new Object());
+    }
 
     /** @hide */
     @IntDef(value = {
@@ -989,6 +1033,19 @@ public final class BluetoothAdapter {
      * Use {@link #getDefaultAdapter} to get the BluetoothAdapter instance.
      */
     BluetoothAdapter(IBluetoothManager managerService, AttributionSource attributionSource) {
+        this(managerService, attributionSource, ADAPTER_DEFAULT);
+    }
+
+    /**
+     * {@hide}
+     * Get the BluetoothAdapter instance through Adapter index
+     */
+    BluetoothAdapter(IBluetoothManager managerService, AttributionSource attributionSource,
+            int adapterIndex) {
+        if (!BluetoothAdapterCommon.validAdapter(adapterIndex)) {
+            throw new IllegalArgumentException("Invalid adapter index: " + adapterIndex);
+        }
+        mAdapterIndex = adapterIndex;
         mManagerService = Objects.requireNonNull(managerService);
         mAttributionSource = Objects.requireNonNull(attributionSource);
         Lock l = mServiceLock.writeLock();
@@ -1000,6 +1057,11 @@ public final class BluetoothAdapter {
         }
         mLeScanClients = new HashMap<LeScanCallback, ScanCallback>();
         mToken = new Binder(DESCRIPTOR);
+    }
+
+    /** {@hide} */
+    public int getAdapterIndex() {
+        return mAdapterIndex;
     }
 
     /**
@@ -1016,7 +1078,7 @@ public final class BluetoothAdapter {
      */
     @RequiresNoPermission
     public BluetoothDevice getRemoteDevice(String address) {
-        final BluetoothDevice res = new BluetoothDevice(address);
+        final BluetoothDevice res = new BluetoothDevice(mAdapterIndex, address);
         res.setAttributionSource(mAttributionSource);
         return res;
     }
@@ -1037,7 +1099,7 @@ public final class BluetoothAdapter {
     @RequiresNoPermission
     public @NonNull BluetoothDevice getRemoteLeDevice(@NonNull String address,
             @AddressType int addressType) {
-        final BluetoothDevice res = new BluetoothDevice(address, addressType);
+        final BluetoothDevice res = new BluetoothDevice(mAdapterIndex, address, addressType);
         res.setAttributionSource(mAttributionSource);
         return res;
     }
@@ -1058,7 +1120,7 @@ public final class BluetoothAdapter {
         if (address == null || address.length != 6) {
             throw new IllegalArgumentException("Bluetooth address must have 6 bytes");
         }
-        final BluetoothDevice res = new BluetoothDevice(
+        final BluetoothDevice res = new BluetoothDevice(mAdapterIndex,
                 String.format(Locale.US, "%02X:%02X:%02X:%02X:%02X:%02X", address[0], address[1],
                         address[2], address[3], address[4], address[5]));
         res.setAttributionSource(mAttributionSource);
@@ -2952,6 +3014,7 @@ public final class BluetoothAdapter {
     public @NonNull List<Integer> getSupportedProfiles() {
         final ArrayList<Integer> supportedProfiles = new ArrayList<Integer>();
 
+        mServiceLock.readLock().lock();
         try {
             synchronized (mManagerCallback) {
                 if (mService != null) {
@@ -2974,6 +3037,8 @@ public final class BluetoothAdapter {
             }
         } catch (RemoteException | TimeoutException e) {
             Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+        } finally {
+            mServiceLock.readLock().unlock();
         }
         return supportedProfiles;
     }
@@ -3162,7 +3227,7 @@ public final class BluetoothAdapter {
             boolean min16DigitPin) throws IOException {
         BluetoothServerSocket socket =
                 new BluetoothServerSocket(BluetoothSocket.TYPE_RFCOMM, true, true, channel, mitm,
-                        min16DigitPin);
+                        min16DigitPin, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (channel == SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             socket.setChannel(socket.mSocket.getPort());
@@ -3429,7 +3494,7 @@ public final class BluetoothAdapter {
             boolean auth, boolean encrypt) throws IOException {
         BluetoothServerSocket socket;
         socket = new BluetoothServerSocket(BluetoothSocket.TYPE_RFCOMM, auth, encrypt,
-                new ParcelUuid(uuid));
+                new ParcelUuid(uuid), mAdapterIndex);
         socket.setServiceName(name);
         int errno = socket.mSocket.bindListen();
         if (errno != 0) {
@@ -3454,7 +3519,7 @@ public final class BluetoothAdapter {
     @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
     public BluetoothServerSocket listenUsingInsecureRfcommOn(int port) throws IOException {
         BluetoothServerSocket socket =
-                new BluetoothServerSocket(BluetoothSocket.TYPE_RFCOMM, false, false, port);
+                new BluetoothServerSocket(BluetoothSocket.TYPE_RFCOMM, false, false, port, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (port == SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             socket.setChannel(socket.mSocket.getPort());
@@ -3489,7 +3554,7 @@ public final class BluetoothAdapter {
             throws IOException {
         BluetoothServerSocket socket =
                 new BluetoothServerSocket(BluetoothSocket.TYPE_L2CAP, true, true, port, mitm,
-                        min16DigitPin);
+                        min16DigitPin, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (port == SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             int assignedChannel = socket.mSocket.getPort();
@@ -3541,7 +3606,7 @@ public final class BluetoothAdapter {
         Log.d(TAG, "listenUsingInsecureL2capOn: port=" + port);
         BluetoothServerSocket socket =
                 new BluetoothServerSocket(BluetoothSocket.TYPE_L2CAP, false, false, port, false,
-                                          false);
+                                          false, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (port == SOCKET_CHANNEL_AUTO_STATIC_NO_SDP) {
             int assignedChannel = socket.mSocket.getPort();
@@ -3795,16 +3860,23 @@ public final class BluetoothAdapter {
         }
     }
 
-    private static final IBluetoothManagerCallback sManagerCallback =
-            new IBluetoothManagerCallback.Stub() {
+    private static class BluetoothManagerCallback extends IBluetoothManagerCallback.Stub {
+                private final int mAdapterIndex;
+
+                BluetoothManagerCallback(int adapterIndex) {
+                    mAdapterIndex = adapterIndex;
+                }
+
                 public void onBluetoothServiceUp(IBluetooth bluetoothService) {
                     if (DBG) {
                         Log.d(TAG, "onBluetoothServiceUp: " + bluetoothService);
                     }
 
-                    synchronized (sServiceLock) {
-                        sService = bluetoothService;
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
+                    synchronized (sServiceLock.get(mAdapterIndex)) {
+                        sService.put(mAdapterIndex, bluetoothService);
+                        WeakHashMap<IBluetoothManagerCallback, Void> serviceStateCallback =
+                                sProxyServiceStateCallbacks.get(mAdapterIndex);
+                        for (IBluetoothManagerCallback cb : serviceStateCallback.keySet()) {
                             try {
                                 if (cb != null) {
                                     cb.onBluetoothServiceUp(bluetoothService);
@@ -3823,9 +3895,11 @@ public final class BluetoothAdapter {
                         Log.d(TAG, "onBluetoothServiceDown");
                     }
 
-                    synchronized (sServiceLock) {
-                        sService = null;
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
+                    synchronized (sServiceLock.get(mAdapterIndex)) {
+                        sService.put(mAdapterIndex, null);
+                        WeakHashMap<IBluetoothManagerCallback, Void> serviceStateCallback =
+                                sProxyServiceStateCallbacks.get(mAdapterIndex);
+                        for (IBluetoothManagerCallback cb : serviceStateCallback.keySet()) {
                             try {
                                 if (cb != null) {
                                     cb.onBluetoothServiceDown();
@@ -3844,8 +3918,10 @@ public final class BluetoothAdapter {
                         Log.i(TAG, "onBrEdrDown");
                     }
 
-                    synchronized (sServiceLock) {
-                        for (IBluetoothManagerCallback cb : sProxyServiceStateCallbacks.keySet()) {
+                    synchronized (sServiceLock.get(mAdapterIndex)) {
+                        WeakHashMap<IBluetoothManagerCallback, Void> serviceStateCallback =
+                                sProxyServiceStateCallbacks.get(mAdapterIndex);
+                        for (IBluetoothManagerCallback cb : serviceStateCallback.keySet()) {
                             try {
                                 if (cb != null) {
                                     cb.onBrEdrDown();
@@ -4227,13 +4303,9 @@ public final class BluetoothAdapter {
         return mAttributionSource;
     }
 
-    @GuardedBy("sServiceLock")
-    private static final WeakHashMap<IBluetoothManagerCallback, Void> sProxyServiceStateCallbacks =
-            new WeakHashMap<>();
-
     /*package*/ IBluetooth getBluetoothService() {
-        synchronized (sServiceLock) {
-            return sService;
+        synchronized (sServiceLock.get(mAdapterIndex)) {
+            return sService.get(mAdapterIndex);
         }
     }
 
@@ -4248,17 +4320,17 @@ public final class BluetoothAdapter {
     @UnsupportedAppUsage
     /*package*/ IBluetooth getBluetoothService(IBluetoothManagerCallback cb) {
         Objects.requireNonNull(cb);
-        synchronized (sServiceLock) {
-            sProxyServiceStateCallbacks.put(cb, null);
+        synchronized (sServiceLock.get(mAdapterIndex)) {
+            sProxyServiceStateCallbacks.get(mAdapterIndex).put(cb, null);
             registerOrUnregisterAdapterLocked();
-            return sService;
+            return sService.get(mAdapterIndex);
         }
     }
 
     /*package*/ void removeServiceStateCallback(IBluetoothManagerCallback cb) {
         Objects.requireNonNull(cb);
-        synchronized (sServiceLock) {
-            sProxyServiceStateCallbacks.remove(cb);
+        synchronized (sServiceLock.get(mAdapterIndex)) {
+            sProxyServiceStateCallbacks.get(mAdapterIndex).remove(cb);
             registerOrUnregisterAdapterLocked();
         }
     }
@@ -4270,25 +4342,27 @@ public final class BluetoothAdapter {
      */
     @GuardedBy("sServiceLock")
     private void registerOrUnregisterAdapterLocked() {
-        final boolean isRegistered = sServiceRegistered;
-        final boolean wantRegistered = !sProxyServiceStateCallbacks.isEmpty();
+        final boolean isRegistered = sServiceRegistered.get(mAdapterIndex);
+        final boolean wantRegistered = !sProxyServiceStateCallbacks.get(mAdapterIndex).isEmpty();
+        IBluetoothManagerCallback managerCallback = sManagerCallback.get(mAdapterIndex);
 
         if (isRegistered != wantRegistered) {
             if (wantRegistered) {
                 try {
-                    sService = mManagerService.registerAdapter(sManagerCallback);
+                    sService.put(mAdapterIndex,
+                            mManagerService.registerAdapter(managerCallback));
                 } catch (RemoteException e) {
                     throw e.rethrowFromSystemServer();
                 }
             } else {
                 try {
-                    mManagerService.unregisterAdapter(sManagerCallback);
-                    sService = null;
+                    mManagerService.unregisterAdapter(managerCallback);
+                    sService.put(mAdapterIndex, null);
                 } catch (RemoteException e) {
                     throw e.rethrowFromSystemServer();
                 }
             }
-            sServiceRegistered = wantRegistered;
+            sServiceRegistered.put(mAdapterIndex, wantRegistered);
         }
     }
 
@@ -4553,7 +4627,7 @@ public final class BluetoothAdapter {
             throws IOException {
         BluetoothServerSocket socket =
                             new BluetoothServerSocket(BluetoothSocket.TYPE_L2CAP_LE, true, true,
-                                      SOCKET_CHANNEL_AUTO_STATIC_NO_SDP, false, false);
+                                      SOCKET_CHANNEL_AUTO_STATIC_NO_SDP, false, false, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (errno != 0) {
             throw new IOException("Error: " + errno);
@@ -4601,7 +4675,7 @@ public final class BluetoothAdapter {
             throws IOException {
         BluetoothServerSocket socket =
                             new BluetoothServerSocket(BluetoothSocket.TYPE_L2CAP_LE, false, false,
-                                      SOCKET_CHANNEL_AUTO_STATIC_NO_SDP, false, false);
+                                      SOCKET_CHANNEL_AUTO_STATIC_NO_SDP, false, false, mAdapterIndex);
         int errno = socket.mSocket.bindListen();
         if (errno != 0) {
             throw new IOException("Error: " + errno);

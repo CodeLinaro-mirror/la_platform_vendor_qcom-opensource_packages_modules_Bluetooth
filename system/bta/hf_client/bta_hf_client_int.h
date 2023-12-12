@@ -45,7 +45,7 @@
 #endif
 
 /* Maximum number of HF devices supported simultaneously */
-#define HF_CLIENT_MAX_DEVICES 10
+#define HF_CLIENT_MAX_DEVICES BTM_MAX_SCO_LINKS
 
 enum {
   /* these events are handled by the state machine */
@@ -105,6 +105,7 @@ enum {
   BTA_HF_CLIENT_AT_BIND_READ_ENABLED_IND,
   BTA_HF_CLIENT_AT_BIEV,
   BTA_HF_CLIENT_AT_VENDOR_SPECIFIC,
+  BTA_HF_CLIENT_AT_ANDROID,
 };
 
 /*****************************************************************************

@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include "a2dp_encoding_host.h"
@@ -70,7 +75,7 @@ static void btif_a2dp_data_cb([[maybe_unused]] tUIPC_CH_ID ch_id,
        * received a stop request. Potentially, the audioflinger detached
        * abnormally.
        */
-      if (btif_a2dp_source_is_streaming()) {
+      if (btif_a2dp_source_is_streaming(RawAddress::kEmpty)) {
         /* Post stop event and wait for audio path to stop */
         btif_av_stream_stop(RawAddress::kEmpty);
       }
@@ -88,7 +93,7 @@ static void btif_a2dp_data_cb([[maybe_unused]] tUIPC_CH_ID ch_id,
 // server should be in the same group that BT stack runs with to access
 // A2DP socket.
 static void a2dp_data_path_open() {
-  UIPC_Open(*a2dp_uipc, UIPC_CH_ID_AV_AUDIO, btif_a2dp_data_cb,
+  UIPC_Open(RawAddress::kEmpty, *a2dp_uipc, UIPC_CH_ID_AV_AUDIO, btif_a2dp_data_cb,
             A2DP_HOST_DATA_PATH);
   struct group* grp = getgrnam(A2DP_HOST_DATA_GROUP);
   chmod(A2DP_HOST_DATA_PATH, 0770);
@@ -117,7 +122,7 @@ bool SetAudioConfig(AudioConfig config) {
   codec_config.sample_rate = config.sample_rate;
   codec_config.bits_per_sample = config.bits_per_sample;
   codec_config.channel_mode = config.channel_mode;
-  btif_a2dp_source_feeding_update_req(codec_config);
+  btif_a2dp_source_feeding_update_req(RawAddress::kEmpty, codec_config);
   return true;
 }
 
@@ -143,12 +148,12 @@ bool StartRequest() {
     return false;
   }
 
-  if (btif_av_stream_started_ready()) {
+  if (btif_av_stream_started_ready(RawAddress::kEmpty)) {
     // Already started, ACK back immediately.
     a2dp_data_path_open();
     return true;
   }
-  if (btif_av_stream_ready()) {
+  if (btif_av_stream_ready(RawAddress::kEmpty)) {
     a2dp_data_path_open();
     /*
      * Post start event and wait for audio path to open.
@@ -156,8 +161,8 @@ bool StartRequest() {
      * procedure is completed, othewise send it now.
      */
     a2dp_pending_cmd_ = A2DP_CTRL_CMD_START;
-    btif_av_stream_start();
-    if (btif_av_get_peer_sep() != AVDT_TSEP_SRC) {
+    btif_av_stream_start(RawAddress::kEmpty);
+    if (btif_av_get_peer_sep(RawAddress::kEmpty) != AVDT_TSEP_SRC) {
       LOG(INFO) << __func__ << ": accepted";
       return false;  // TODO: should be pending
     }
@@ -170,9 +175,9 @@ bool StartRequest() {
 
 // Invoked by audio server when audio streaming is done.
 bool StopRequest() {
-  if (btif_av_get_peer_sep() == AVDT_TSEP_SNK &&
-      !btif_av_stream_started_ready()) {
-    btif_av_clear_remote_suspend_flag();
+  if (btif_av_get_peer_sep(RawAddress::kEmpty) == AVDT_TSEP_SNK &&
+      !btif_av_stream_started_ready(RawAddress::kEmpty)) {
+    btif_av_clear_remote_suspend_flag(RawAddress::kEmpty);
     return true;
   }
   LOG(INFO) << __func__ << ": handling";
@@ -271,6 +276,9 @@ size_t read(uint8_t* p_buf, uint32_t len) {
   clock_gettime(CLOCK_MONOTONIC_RAW, &data_position_);
   return bytes_read;
 }
+
+// Check if OPUS codec is supported
+bool is_opus_supported() { return true; }
 
 }  // namespace a2dp
 }  // namespace audio

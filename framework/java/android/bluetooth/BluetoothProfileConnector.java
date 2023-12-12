@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package android.bluetooth;
@@ -22,12 +27,14 @@ import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.util.CloseGuard;
@@ -50,9 +57,14 @@ public abstract class BluetoothProfileConnector<T> {
     private final String mProfileName;
     private final String mServiceName;
     private volatile T mService;
+    private BluetoothAdapter mAdapter = null;
+    private boolean mProfileSupported;
 
     // -3 match with UserHandle.USER_CURRENT_OR_SELF
     private static final UserHandle USER_HANDLE_CURRENT_OR_SELF = UserHandle.of(-3);
+
+    private static final int MESSAGE_SERVICE_CONNECTED = 100;
+    private static final int MESSAGE_SERVICE_DISCONNECTED = 101;
 
     private final IBluetoothStateChangeCallback mBluetoothStateChangeCallback =
             new IBluetoothStateChangeCallback.Stub() {
@@ -89,22 +101,22 @@ public abstract class BluetoothProfileConnector<T> {
         return comp;
     }
 
-    private final ServiceConnection mConnection = new ServiceConnection() {
+    private final IBluetoothProfileServiceConnection mConnection =
+            new IBluetoothProfileServiceConnection.Stub() {
+        @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             logDebug("Proxy object connected");
             mService = getServiceInterface(service);
-
-            if (mServiceListener != null) {
-                mServiceListener.onServiceConnected(mProfileId, mProfileProxy);
-            }
+            mHandler.sendMessage(mHandler.obtainMessage(
+                    MESSAGE_SERVICE_CONNECTED));
         }
 
+        @Override
         public void onServiceDisconnected(ComponentName className) {
             logDebug("Proxy object disconnected");
             doUnbind();
-            if (mServiceListener != null) {
-                mServiceListener.onServiceDisconnected(mProfileId);
-            }
+            mHandler.sendMessage(mHandler.obtainMessage(
+                    MESSAGE_SERVICE_DISCONNECTED));
         }
     };
 
@@ -123,23 +135,16 @@ public abstract class BluetoothProfileConnector<T> {
         doUnbind();
     }
 
-    @SuppressLint("AndroidFrameworkRequiresPermission")
     private boolean doBind() {
         synchronized (mConnection) {
             if (mService == null) {
                 logDebug("Binding service...");
                 mCloseGuard.open("doUnbind");
                 try {
-                    Intent intent = new Intent(mServiceName);
-                    ComponentName comp = resolveSystemService(intent, mContext.getPackageManager());
-                    intent.setComponent(comp);
-                    if (comp == null || !mContext.bindServiceAsUser(intent, mConnection, 0,
-                            USER_HANDLE_CURRENT_OR_SELF)) {
-                        logError("Could not bind to Bluetooth Service with " + intent);
-                        return false;
-                    }
-                } catch (SecurityException se) {
-                    logError("Failed to bind service. " + se);
+                    return mAdapter.getBluetoothManager()
+                            .bindBluetoothProfileService(mProfileId, mServiceName, mConnection);
+                } catch (RemoteException re) {
+                    logError("Failed to bind service. " + re);
                     return false;
                 }
             }
@@ -153,9 +158,10 @@ public abstract class BluetoothProfileConnector<T> {
                 logDebug("Unbinding service...");
                 mCloseGuard.close();
                 try {
-                    mContext.unbindService(mConnection);
-                } catch (IllegalArgumentException ie) {
-                    logError("Unable to unbind service: " + ie);
+                    mAdapter.getBluetoothManager()
+                            .unbindBluetoothProfileService(mProfileId, mConnection);
+                } catch (RemoteException re) {
+                    logError("Unable to unbind service: " + re);
                 } finally {
                     mService = null;
                 }
@@ -166,7 +172,6 @@ public abstract class BluetoothProfileConnector<T> {
     void connect(Context context, BluetoothProfile.ServiceListener listener) {
         mContext = context;
         mServiceListener = listener;
-        IBluetoothManager mgr = BluetoothAdapter.getDefaultAdapter().getBluetoothManager();
 
         // Preserve legacy compatibility where apps were depending on
         // registerStateChangeCallback() performing a permissions check which
@@ -177,27 +182,27 @@ public abstract class BluetoothProfileConnector<T> {
             throw new SecurityException("Need BLUETOOTH permission");
         }
 
-        if (mgr != null) {
-            try {
-                mgr.registerStateChangeCallback(mBluetoothStateChangeCallback);
-            } catch (RemoteException re) {
-                logError("Failed to register state change callback. " + re);
-            }
+        mAdapter = BluetoothAdapterUtil.getAdapter(
+                BluetoothAdapterUtil.getAdapterIndex(mProfileId));
+        mProfileSupported = (mAdapter != null);
+
+        // Bind Bluetooth profile service only if Bluetooth adapter supports the profile
+        if (mProfileSupported) {
+            registerStateChangeCallback(mBluetoothStateChangeCallback);
+            doBind();
+        } else {
+            logError("Bluetooth profile(" + mProfileId + "): " +
+                    BluetoothProfile.getProfileName(mProfileId) +
+                    " isn't supported in adapter");
         }
-        doBind();
     }
 
     void disconnect() {
         mServiceListener = null;
-        IBluetoothManager mgr = BluetoothAdapter.getDefaultAdapter().getBluetoothManager();
-        if (mgr != null) {
-            try {
-                mgr.unregisterStateChangeCallback(mBluetoothStateChangeCallback);
-            } catch (RemoteException re) {
-                logError("Failed to unregister state change callback" + re);
-            }
+        if (mProfileSupported) {
+            unregisterStateChangeCallback(mBluetoothStateChangeCallback);
+            doUnbind();
         }
-        doUnbind();
     }
 
     T getService() {
@@ -213,6 +218,42 @@ public abstract class BluetoothProfileConnector<T> {
      */
     public abstract T getServiceInterface(IBinder service);
 
+    public boolean isEnabled() {
+        return mAdapter != null ? mAdapter.isEnabled() : false;
+    }
+
+    public boolean isDisabled() {
+        return mAdapter != null ?
+                mAdapter.getState() == BluetoothAdapter.STATE_OFF :
+                true;
+    }
+
+    protected void registerStateChangeCallback(IBluetoothStateChangeCallback callback) {
+        IBluetoothManager mgr = getBluetoothManager();
+        if (mgr != null) {
+            try {
+                mgr.registerStateChangeCallback(callback);
+            } catch (RemoteException re) {
+                logError("Failed to register state change callback: " + re);
+            }
+        }
+    }
+
+    protected void unregisterStateChangeCallback(IBluetoothStateChangeCallback callback) {
+        IBluetoothManager mgr = getBluetoothManager();
+        if (mgr != null) {
+            try {
+                mgr.unregisterStateChangeCallback(callback);
+            } catch (RemoteException re) {
+                logError("Failed to unregister state change callback: " + re);
+            }
+        }
+    }
+
+    private IBluetoothManager getBluetoothManager() {
+        return mAdapter != null ? mAdapter.getBluetoothManager() : null;
+    }
+
     private void logDebug(String log) {
         Log.d(mProfileName, log);
     }
@@ -220,4 +261,25 @@ public abstract class BluetoothProfileConnector<T> {
     private void logError(String log) {
         Log.e(mProfileName, log);
     }
+
+    @SuppressLint("AndroidFrameworkBluetoothPermission")
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_SERVICE_CONNECTED: {
+                    if (mServiceListener != null) {
+                        mServiceListener.onServiceConnected(mProfileId, mProfileProxy);
+                    }
+                    break;
+                }
+                case MESSAGE_SERVICE_DISCONNECTED: {
+                    if (mServiceListener != null) {
+                        mServiceListener.onServiceDisconnected(mProfileId);
+                    }
+                    break;
+                }
+            }
+        }
+    };
 }

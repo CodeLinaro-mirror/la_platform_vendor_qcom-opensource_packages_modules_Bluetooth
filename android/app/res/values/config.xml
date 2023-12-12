@@ -11,6 +11,11 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+   Changes from Qualcomm Innovation Center are provided under the following license:
+
+   Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+   SPDX-License-Identifier: BSD-3-Clause-Clear.
 -->
 <resources>
     <bool name="pbap_include_photos_in_vcard">true</bool>
@@ -32,6 +37,34 @@
     <integer name="gatt_balanced_priority_max_interval">40</integer>
     <integer name="gatt_low_power_min_interval">80</integer>
     <integer name="gatt_low_power_max_interval">100</integer>
+
+    <!-- min/max connection intervals/latencies for companion devices -->
+    <!-- Primary companion -->
+    <integer name="gatt_high_priority_min_interval_primary">6</integer>
+    <integer name="gatt_high_priority_max_interval_primary">8</integer>
+    <integer name="gatt_high_priority_latency_primary">45</integer>
+
+    <integer name="gatt_balanced_priority_min_interval_primary">6</integer>
+    <integer name="gatt_balanced_priority_max_interval_primary">10</integer>
+    <integer name="gatt_balanced_priority_latency_primary">120</integer>
+
+    <integer name="gatt_low_power_min_interval_primary">8</integer>
+    <integer name="gatt_low_power_max_interval_primary">10</integer>
+    <integer name="gatt_low_power_latency_primary">150</integer>
+
+    <!-- Secondary companion -->
+    <integer name="gatt_high_priority_min_interval_secondary">6</integer>
+    <integer name="gatt_high_priority_max_interval_secondary">6</integer>
+    <integer name="gatt_high_priority_latency_secondary">0</integer>
+
+    <integer name="gatt_balanced_priority_min_interval_secondary">12</integer>
+    <integer name="gatt_balanced_priority_max_interval_secondary">12</integer>
+    <integer name="gatt_balanced_priority_latency_secondary">30</integer>
+
+    <integer name="gatt_low_power_min_interval_secondary">80</integer>
+    <integer name="gatt_low_power_max_interval_secondary">100</integer>
+    <integer name="gatt_low_power_latency_secondary">15</integer>
+    <!-- ============================================================ -->
 
     <!-- Specifies latency parameters for high priority, balanced and low power
          GATT configurations. These values represents the number of packets a
@@ -56,17 +89,17 @@
     <!-- If true, device requests audio focus and start avrcp updates on source start or play -->
     <bool name="a2dp_sink_automatically_request_audio_focus">false</bool>
 
+    <!--For A2DP source set media player feature. -->
+    <bool name="a2dp_source_broadcast_set_media_player">true</bool>
+
     <!-- For enabling the AVRCP Controller Cover Artwork feature -->
     <bool name="avrcp_controller_enable_cover_art">true</bool>
 
     <!-- For enabling browsed cover art with the AVRCP Controller Cover Artwork feature -->
     <bool name="avrcp_controller_cover_art_browsed_images">false</bool>
 
-    <!-- For enabling the hfp client connection service -->
-    <bool name="hfp_client_connection_service_enabled">false</bool>
-
     <!-- For supporting emergency call through the hfp client connection service  -->
-    <bool name="hfp_client_connection_service_support_emergency_call">false</bool>
+    <bool name="hfp_client_connection_service_support_emergency_call">true</bool>
 
     <!-- Enabling autoconnect over pan -->
     <bool name="config_bluetooth_pan_enable_autoconnect">false</bool>
@@ -140,4 +173,7 @@
 
     <!-- Boolean indicating if current platform supports HFP inband ringing -->
     <bool name="config_bluetooth_hfp_inband_ringing_support">true</bool>
+
+    <!-- [Dual Bluetooth] Flag whether or not to filter local counterpart Bluetooth device -->
+    <bool name="filter_device">false</bool>
 </resources>

@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear.
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -432,7 +437,7 @@ static void bta_av_api_register(tBTA_AV_DATA* p_data) {
 
   uint16_t profile_initialized = p_data->api_reg.service_uuid;
   if (profile_initialized == UUID_SERVCLASS_AUDIO_SINK) {
-    p_bta_av_cfg = &bta_avk_cfg;
+    p_bta_av_cfg = get_bta_avk_cfg();
   } else if (profile_initialized == UUID_SERVCLASS_AUDIO_SOURCE) {
     p_bta_av_cfg = &bta_av_cfg;
 
@@ -699,7 +704,8 @@ static void bta_av_ci_data(tBTA_AV_DATA* p_data) {
   for (i = 0; i < BTA_AV_NUM_STRS; i++) {
     p_scb = bta_av_cb.p_scb[i];
 
-    if (p_scb && p_scb->chnl == chnl) {
+    if (p_scb && p_scb->chnl == chnl && p_scb->PeerAddress() == p_data->ci_src_data.peer_address) {
+      APPL_TRACE_DEBUG("%s: p_scb->PeerAddress: %s", __func__, p_scb->PeerAddress().ToString().c_str());
       bta_av_ssm_execute(p_scb, BTA_AV_SRC_DATA_READY_EVT, p_data);
     }
   }

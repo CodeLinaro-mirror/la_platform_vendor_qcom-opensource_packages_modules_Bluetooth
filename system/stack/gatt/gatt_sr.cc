@@ -21,6 +21,7 @@
  *  this file contains the GATT server functions
  *
  ******************************************************************************/
+#include <algorithm>
 #include <string.h>
 
 #include "bt_target.h"
@@ -142,7 +143,8 @@ void gatt_dequeue_sr_cmd(tGATT_TCB& tcb, uint16_t cid) {
 }
 
 static void build_read_multi_rsp(tGATT_SR_CMD* p_cmd, uint16_t mtu) {
-  uint16_t ii, total_len, len;
+  uint16_t ii;
+  size_t total_len, len;
   uint8_t* p;
   bool is_overflow = false;
 
@@ -177,31 +179,38 @@ static void build_read_multi_rsp(tGATT_SR_CMD* p_cmd, uint16_t mtu) {
     }
 
     if (p_rsp != NULL) {
-      total_len = (p_buf->len + p_rsp->attr_value.len);
+      total_len = p_buf->len;
       if (p_cmd->multi_req.variable_len) {
         total_len += 2;
       }
 
       if (total_len > mtu) {
-        /* just send the partial response for the overflow case */
-        len = p_rsp->attr_value.len - (total_len - mtu);
+        VLOG(1) << "Buffer space not enough for this data item, skipping";
+        break;
+      }
+
+      len = std::min((size_t) p_rsp->attr_value.len, mtu - total_len);
+
+      if (len == 0) {
+        VLOG(1) << "Buffer space not enough for this data item, skipping";
+        break;
+      }
+
+      if (len < p_rsp->attr_value.len) {
         is_overflow = true;
         VLOG(1) << StringPrintf(
-            "multi read overflow available len=%d val_len=%d", len,
+            "multi read overflow available len=%zu val_len=%d", len,
             p_rsp->attr_value.len);
-      } else {
-        len = p_rsp->attr_value.len;
       }
 
       if (p_cmd->multi_req.variable_len) {
-        UINT16_TO_STREAM(p, len);
+        UINT16_TO_STREAM(p, (uint16_t) len);
         p_buf->len += 2;
       }
 
       if (p_rsp->attr_value.handle == p_cmd->multi_req.handles[ii]) {
-        memcpy(p, p_rsp->attr_value.value, len);
-        if (!is_overflow) p += len;
-        p_buf->len += len;
+        ARRAY_TO_STREAM(p, p_rsp->attr_value.value, (uint16_t) len);
+        p_buf->len += (uint16_t) len;
       } else {
         p_cmd->status = GATT_NOT_FOUND;
         break;
@@ -363,7 +372,6 @@ void gatt_process_exec_write_req(tGATT_TCB& tcb, uint16_t cid, uint8_t op_code,
 #endif
 
   if (len < sizeof(flag)) {
-    android_errorWriteLog(0x534e4554, "73172115");
     LOG(ERROR) << __func__ << "invalid length";
     gatt_send_error_rsp(tcb, cid, GATT_INVALID_PDU, GATT_REQ_EXEC_WRITE, 0,
                         false);
@@ -1041,7 +1049,6 @@ static void gatts_process_read_req(tGATT_TCB& tcb, uint16_t cid,
     /* Error: packet length is too short */
     LOG(ERROR) << __func__ << ": packet length=" << len
                << " too short. min=" << sizeof(uint16_t);
-    android_errorWriteWithInfoLog(0x534e4554, "73172115", -1, NULL, 0);
     gatt_send_error_rsp(tcb, cid, GATT_INVALID_PDU, op_code, 0, false);
     return;
   }

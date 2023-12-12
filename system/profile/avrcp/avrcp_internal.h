@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #pragma once
@@ -93,7 +98,7 @@ class SdpInterface {
 
 class A2dpInterface {
  public:
-  virtual RawAddress active_peer() = 0;
+  virtual std::set<RawAddress> active_peers() = 0;
   virtual bool is_peer_in_silence_mode(const RawAddress& peer_address) = 0;
 
   virtual ~A2dpInterface() = default;

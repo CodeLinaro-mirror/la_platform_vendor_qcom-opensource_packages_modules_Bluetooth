@@ -69,11 +69,9 @@ cc_library_shared {
         "libbluetooth",
         "libc++fs",
     ],
-    cflags: [
-        "-Wall",
-        "-Werror",
-        "-Wextra",
-        "-Wno-unused-parameter",
+    shared_libs: [
+        "libbt-sbc-encoder",
+        "libbt-sbc-encoder2",
     ],
     sanitize: {
         scs: true,
@@ -102,6 +100,7 @@ android_app {
 
     jni_uses_platform_apis: true,
     libs: [
+        "android.car",
         "framework-bluetooth-pre-jarjar",
         "framework-statsd.stubs.module_lib",
         "framework-tethering.stubs.module_lib",
@@ -114,7 +113,7 @@ android_app {
     static_libs: [
         "android.hardware.radio-V1.0-java",
         "androidx.core_core",
-        "androidx.legacy_legacy-support-v4",
+        "androidx.media_media",
         "androidx.lifecycle_lifecycle-livedata",
         "androidx.room_room-runtime",
         "androidx.annotation_annotation",

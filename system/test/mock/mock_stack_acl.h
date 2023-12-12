@@ -751,15 +751,6 @@ struct acl_process_extended_features {
   };
 };
 extern struct acl_process_extended_features acl_process_extended_features;
-// Name: acl_process_num_completed_pkts
-// Params: uint8_t* p, uint8_t evt_len
-// Returns: void
-struct acl_process_num_completed_pkts {
-  std::function<void(uint8_t* p, uint8_t evt_len)> body{
-      [](uint8_t* p, uint8_t evt_len) { ; }};
-  void operator()(uint8_t* p, uint8_t evt_len) { body(p, evt_len); };
-};
-extern struct acl_process_num_completed_pkts acl_process_num_completed_pkts;
 // Name: acl_process_supported_features
 // Params: uint16_t handle, uint64_t features
 // Returns: void
@@ -1100,8 +1091,8 @@ extern struct btm_read_failed_contact_counter_timeout
 // Params: uint8_t* p
 // Returns: void
 struct btm_read_link_quality_complete {
-  std::function<void(uint8_t* p)> body{[](uint8_t* p) { ; }};
-  void operator()(uint8_t* p) { body(p); };
+  std::function<void(uint8_t* p, uint16_t evt_len)> body{[](uint8_t* p, uint16_t evt_len) { ; }};
+  void operator()(uint8_t* p, uint16_t evt_len) { body(p, evt_len); };
 };
 extern struct btm_read_link_quality_complete btm_read_link_quality_complete;
 // Name: btm_read_link_quality_timeout
@@ -1189,8 +1180,9 @@ extern struct btm_read_remote_version_complete btm_read_remote_version_complete;
 // Params: uint8_t* p
 // Returns: void
 struct btm_read_rssi_complete {
-  std::function<void(uint8_t* p)> body{[](uint8_t* p) { ; }};
-  void operator()(uint8_t* p) { body(p); };
+  std::function<void(uint8_t* p, uint16_t evt_len)> body{
+      [](uint8_t* pm, uint16_t evt_len) { ; }};
+  void operator()(uint8_t* p, uint16_t evt_len) { body(p, evt_len); };
 };
 extern struct btm_read_rssi_complete btm_read_rssi_complete;
 // Name: btm_read_rssi_timeout
@@ -1206,9 +1198,11 @@ extern struct btm_read_rssi_timeout btm_read_rssi_timeout;
 // Params: uint8_t* p, bool is_ble
 // Returns: void
 struct btm_read_tx_power_complete {
-  std::function<void(uint8_t* p, bool is_ble)> body{
-      [](uint8_t* p, bool is_ble) { ; }};
-  void operator()(uint8_t* p, bool is_ble) { body(p, is_ble); };
+  std::function<void(uint8_t* p, uint16_t evt_len, bool is_ble)> body{
+      [](uint8_t* p, uint16_t evt_len, bool is_ble) { ; }};
+  void operator()(uint8_t* p, uint16_t evt_len, bool is_ble) {
+    body(p, evt_len, is_ble);
+  };
 };
 extern struct btm_read_tx_power_complete btm_read_tx_power_complete;
 // Name: btm_read_tx_power_timeout

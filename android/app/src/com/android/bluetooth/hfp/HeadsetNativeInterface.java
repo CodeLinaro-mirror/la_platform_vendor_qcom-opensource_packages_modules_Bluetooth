@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.hfp;
@@ -33,7 +38,7 @@ import java.util.Objects;
 public class HeadsetNativeInterface {
     private static final String TAG = "HeadsetNativeInterface";
 
-    private final BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
+    private final BluetoothAdapter mAdapter = AdapterService.getAdapter();
 
     static {
         classInitNative();
@@ -69,7 +74,7 @@ public class HeadsetNativeInterface {
         } else {
             // Service must call cleanup() when quiting and native stack shouldn't send any event
             // after cleanup() -> cleanupNative() is called.
-            Log.wtf(TAG, "FATAL: Stack sent event while service is not available: " + event);
+            Log.w(TAG, "Stack sent event while service is not available: " + event);
         }
     }
 

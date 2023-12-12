@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.telephony;
@@ -47,6 +52,7 @@ import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.hfp.BluetoothHeadsetProxy;
 import com.android.bluetooth.tbs.BluetoothLeCallControlProxy;
 
@@ -57,6 +63,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -103,11 +110,18 @@ public class BluetoothInCallService extends InCallService {
     private BluetoothCall mOldHeldCall = null;
     private boolean mHeadsetUpdatedRecently = false;
     private boolean mIsDisconnectedTonePlaying = false;
-    private boolean mIsTerminatedByClient = false;
+    private AdapterService mAdapterService;
+
+    @VisibleForTesting
+    boolean mIsTerminatedByClient = false;
 
     private static final Object LOCK = new Object();
-    private BluetoothHeadsetProxy mBluetoothHeadset;
-    private BluetoothLeCallControlProxy mBluetoothLeCallControl;
+
+    @VisibleForTesting
+    BluetoothHeadsetProxy mBluetoothHeadset;
+
+    @VisibleForTesting
+    BluetoothLeCallControlProxy mBluetoothLeCallControl;
     private ExecutorService mExecutor;
 
     @VisibleForTesting
@@ -129,7 +143,11 @@ public class BluetoothInCallService extends InCallService {
 
     public CallInfo mCallInfo = new CallInfo();
 
+    private BluetoothAdapter mAdapter;
+
     protected boolean mOnCreateCalled = false;
+
+    private int mMaxNumberOfCalls = 0;
 
     /**
      * Listens to connections and disconnections of bluetooth headsets.  We need to save the current
@@ -336,6 +354,8 @@ public class BluetoothInCallService extends InCallService {
         Log.i(TAG, "BluetoothInCallService is created");
         sInstance = this;
         mExecutor = Executors.newSingleThreadExecutor();
+        mAdapterService = Objects.requireNonNull(AdapterService.getAdapterService(),
+                "AdapterService cannot be null when BluetoothInCallService init");
     }
 
     public static BluetoothInCallService getInstance() {
@@ -551,6 +571,9 @@ public class BluetoothInCallService extends InCallService {
             call.registerCallback(callback);
 
             mBluetoothCallHashMap.put(call.getId(), call);
+            if (!call.isConference()) {
+                mMaxNumberOfCalls = Integer.max(mMaxNumberOfCalls, mBluetoothCallHashMap.size());
+            }
             updateHeadsetWithCallState(false /* force */);
 
             BluetoothLeCall tbsCall = createTbsCall(call);
@@ -638,10 +661,9 @@ public class BluetoothInCallService extends InCallService {
     public void onCreate() {
         Log.d(TAG, "onCreate");
         super.onCreate();
-        BluetoothAdapter.getDefaultAdapter()
-                .getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
-        BluetoothAdapter.getDefaultAdapter().
-                getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
+        mAdapter = mAdapterService.getAdapter();
+        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
+        mAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.LE_CALL_CONTROL);
         mBluetoothAdapterReceiver = new BluetoothAdapterReceiver();
         IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mBluetoothAdapterReceiver, intentFilter);
@@ -656,7 +678,14 @@ public class BluetoothInCallService extends InCallService {
         super.onDestroy();
     }
 
-    private void clear() {
+    @Override
+    @VisibleForTesting
+    public void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+    }
+
+    @VisibleForTesting
+    void clear() {
         Log.d(TAG, "clear");
         if (mBluetoothAdapterReceiver != null) {
             unregisterReceiver(mBluetoothAdapterReceiver);
@@ -674,6 +703,7 @@ public class BluetoothInCallService extends InCallService {
         mCallbacks.clear();
         mBluetoothCallHashMap.clear();
         mClccIndexMap.clear();
+        mMaxNumberOfCalls = 0;
     }
 
     private static boolean isConferenceWithNoChildren(BluetoothCall call) {
@@ -689,7 +719,7 @@ public class BluetoothInCallService extends InCallService {
             // We do, however want to send conferences that have no children to the bluetooth
             // device (e.g. IMS Conference).
             boolean isConferenceWithNoChildren = isConferenceWithNoChildren(call);
-            Log.i(TAG, "sendListOfCalls isConferenceWithNoChildren " + isConferenceWithNoChildren 
+            Log.i(TAG, "sendListOfCalls isConferenceWithNoChildren " + isConferenceWithNoChildren
                 + ", call.getChildrenIds() size " + call.getChildrenIds().size());
             if (!call.isConference() || isConferenceWithNoChildren) {
                 sendClccForCall(call, shouldLog);
@@ -831,15 +861,20 @@ public class BluetoothInCallService extends InCallService {
         if (mClccIndexMap.containsKey(key)) {
             return mClccIndexMap.get(key);
         }
-
-        int i = 1;  // Indexes for bluetooth clcc are 1-based.
-        while (mClccIndexMap.containsValue(i)) {
-            i++;
+        int index = 1; // Indexes for bluetooth clcc are 1-based.
+        if (call.isConference()) {
+            index = mMaxNumberOfCalls + 1; // The conference call should have a higher index
+            Log.i(TAG,
+                  "getIndexForCall for conference call starting from "
+                  + mMaxNumberOfCalls);
+        }
+        while (mClccIndexMap.containsValue(index)) {
+            index++;
         }
 
         // NOTE: Indexes are removed in {@link #onCallRemoved}.
-        mClccIndexMap.put(key, i);
-        return i;
+        mClccIndexMap.put(key, index);
+        return index;
     }
 
     private boolean _processChld(int chld) {
@@ -1339,7 +1374,8 @@ public class BluetoothInCallService extends InCallService {
         return null;
     }
 
-    private int getTbsTerminationReason(BluetoothCall call) {
+    @VisibleForTesting
+    int getTbsTerminationReason(BluetoothCall call) {
         DisconnectCause cause = call.getDisconnectCause();
         if (cause == null) {
             Log.w(TAG, " termination cause is null");
@@ -1454,7 +1490,9 @@ public class BluetoothInCallService extends InCallService {
         mBluetoothLeCallControl.currentCallsList(tbsCalls);
     }
 
-    private final BluetoothLeCallControl.Callback mBluetoothLeCallControlCallback = new BluetoothLeCallControl.Callback() {
+    @VisibleForTesting
+    final BluetoothLeCallControl.Callback mBluetoothLeCallControlCallback =
+            new BluetoothLeCallControl.Callback() {
 
         @Override
         public void onAcceptCall(int requestId, UUID callId) {

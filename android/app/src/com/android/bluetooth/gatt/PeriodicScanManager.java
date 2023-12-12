@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.gatt;
@@ -28,6 +33,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.bluetooth.btservice.AdapterService;
+import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,7 +45,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @hide
  */
-class PeriodicScanManager {
+@VisibleForTesting(visibility = VisibleForTesting.Visibility.PACKAGE)
+public class PeriodicScanManager {
     private static final boolean DBG = GattServiceConfig.DBG;
     private static final String TAG = GattServiceConfig.TAG_PREFIX + "SyncManager";
 
@@ -56,7 +63,7 @@ class PeriodicScanManager {
         if (DBG) {
             Log.d(TAG, "advertise manager created");
         }
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapter = AdapterService.getAdapter();
     }
 
     void start() {

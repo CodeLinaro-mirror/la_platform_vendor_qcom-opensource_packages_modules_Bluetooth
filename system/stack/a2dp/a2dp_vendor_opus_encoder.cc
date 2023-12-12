@@ -231,7 +231,6 @@ static bool a2dp_vendor_opus_encoder_update(uint16_t peer_mtu,
   LOG_INFO("sample_rate=%u bits_per_sample=%u channel_count=%u",
            p_feeding_params->sample_rate, p_feeding_params->bits_per_sample,
            p_feeding_params->channel_count);
-  a2dp_vendor_opus_feeding_reset();
 
   // The codec parameters
   p_encoder_params->sample_rate =
@@ -240,6 +239,8 @@ static bool a2dp_vendor_opus_encoder_update(uint16_t peer_mtu,
       A2DP_VendorGetChannelModeCodeOpus(p_codec_info);
   p_encoder_params->framesize = A2DP_VendorGetFrameSizeOpus(p_codec_info);
   p_encoder_params->bitrate = A2DP_VendorGetBitRateOpus(p_codec_info);
+
+  a2dp_vendor_opus_feeding_reset();
 
   uint16_t mtu_size =
       BT_DEFAULT_BUFFER_SIZE - A2DP_OPUS_OFFSET - sizeof(BT_HDR);
@@ -372,7 +373,7 @@ static void a2dp_opus_encode_frames(uint8_t nb_frame) {
   tA2DP_OPUS_ENCODER_PARAMS* p_encoder_params =
       &a2dp_opus_encoder_cb.opus_encoder_params;
   unsigned char* packet;
-  uint8_t remain_nb_frame = nb_frame;
+  //uint8_t remain_nb_frame = nb_frame;
   uint16_t opus_frame_size = p_encoder_params->framesize;
   uint8_t read_buffer[p_encoder_params->framesize *
                       p_encoder_params->pcm_wlength *
@@ -441,13 +442,13 @@ static void a2dp_opus_encode_frames(uint8_t nb_frame) {
       *((uint32_t*)(p_buf + 1)) = a2dp_opus_encoder_cb.timestamp;
 
       a2dp_opus_encoder_cb.timestamp += p_buf->layer_specific * opus_frame_size;
-
+/*
       uint8_t done_nb_frame = remain_nb_frame - nb_frame;
       remain_nb_frame = nb_frame;
 
       if (!a2dp_opus_encoder_cb.enqueue_callback(p_buf, done_nb_frame,
                                                  bytes_read))
-        return;
+        return;*/
     } else {
       a2dp_opus_encoder_cb.stats.media_read_total_dropped_packets++;
       osi_free(p_buf);
@@ -462,7 +463,7 @@ static bool a2dp_opus_read_feeding(uint8_t* read_buffer, uint32_t* bytes_read) {
 
   a2dp_opus_encoder_cb.stats.media_read_total_expected_reads_count++;
   a2dp_opus_encoder_cb.stats.media_read_total_expected_read_bytes += read_size;
-
+#if 0
   /* Read Data from UIPC channel */
   uint32_t nb_byte_read =
       a2dp_opus_encoder_cb.read_callback(read_buffer, read_size);
@@ -478,6 +479,7 @@ static bool a2dp_opus_read_feeding(uint8_t* read_buffer, uint32_t* bytes_read) {
   a2dp_opus_encoder_cb.stats.media_read_total_actual_reads_count++;
 
   *bytes_read = nb_byte_read;
+#endif
   return true;
 }
 
