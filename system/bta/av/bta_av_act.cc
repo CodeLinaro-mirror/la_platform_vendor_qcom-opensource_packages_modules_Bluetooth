@@ -1971,6 +1971,11 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
   tBTA_AV_FEAT peer_features = 0; /* peer features mask */
   uint16_t cover_art_psm = 0x0000;
 
+  if (p_cb && p_cb->disabling) {
+    APPL_TRACE_WARNING("%s: AV is disabling, ignore");
+    return;
+  }
+
   APPL_TRACE_DEBUG("%s: bta_av_rc_disc_done disc:x%x", __func__, p_cb->disc);
   if (!p_cb->disc) {
     return;
