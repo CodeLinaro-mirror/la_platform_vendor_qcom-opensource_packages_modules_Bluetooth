@@ -161,7 +161,7 @@ system/btif/src/btif_rc.cc
 system/btif/src/btif_util.cc
 system/btif/test/btif_rc_test.cc
 system/device/include/interop_database.h
-system/embdrv/sbc/encoder/Android.bp.disable
+system/embdrv/sbc/encoder/Android.bp
 system/embdrv/sbc/encoder/include/sbc_encoder.h
 system/embdrv/sbc/encoder/srce/sbc_encoder.c
 system/gd/common/Android.bp
@@ -185,7 +185,7 @@ system/profile/avrcp/device.cc
 system/profile/avrcp/device.h
 system/profile/avrcp/tests/avrcp_device_fuzz/avrcp_device_fuzz.cc
 system/profile/avrcp/tests/avrcp_test_helper.h
-system/stack/Android.bp.disable
+system/stack/Android.bp
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_aac_encoder.cc
 system/stack/a2dp/a2dp_codec_config.cc
@@ -252,11 +252,11 @@ system/stack/test/a2dp/a2dp_sbc_unittest.cc
 system/stack/test/a2dp/mock_bta_av_codec.cc
 system/stack/test/btm/stack_btm_test.cc
 system/stack/test/eatt/eatt_test.cc
-system/stack/test/fuzzers/Android.bp.disable
+system/stack/test/fuzzers/Android.bp
 system/stack/test/fuzzers/a2dp/codec/a2dpCodecFuzzFunctions.h
 system/stack/test/fuzzers/a2dp/codec/a2dpCodecInfoFuzzFunctions.h
 system/stack/test/stack_a2dp_test.cc
-system/test/headless/Android.bp.disable
+system/test/headless/Android.bp
 system/test/mock/mock_btif_dm.cc
 system/test/mock/mock_main_shim_btm_api.cc
 system/test/mock/mock_stack_btm_sec.cc

@@ -51,7 +51,6 @@ rust_binary_host {
         "libbt-protos-lite",
         "libbte",
         "libbt-sbc-decoder",
-        "libbt-sbc-encoder",
         "libFraunhoferAAC",
         "libg722codec",
         "liblc3",
@@ -73,6 +72,7 @@ rust_binary_host {
         "libcutils",
         "libgrpc++",
         "libgrpc_wrap"
+        "libbt-sbc-encoder",
     ],
     proc_macros: [
         "libpaste",
