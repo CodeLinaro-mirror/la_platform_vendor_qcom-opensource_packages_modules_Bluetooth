@@ -77,11 +77,8 @@ public final class A2dpAudioZone {
         } else {
             audioZoneOffset = 2;
         }
+        debugLog("audioZoneOffset: " + audioZoneOffset);
         for (int audioZoneId: carAudioManager.getAudioZoneIds()) {
-            if (audioZoneOffset > 0) {
-                audioZoneOffset = audioZoneOffset-1;
-                continue;
-            }
             AudioDeviceInfo deviceInfo = carAudioManager
                     .getOutputDeviceForUsage(audioZoneId, AudioAttributes.USAGE_MEDIA);
             if (deviceInfo == null) {
@@ -93,9 +90,16 @@ public final class A2dpAudioZone {
                     ", id: " + deviceInfo.getId() +
                     ", address: " + address);
             if (isA2dpAudioZone(deviceInfo)) {
-                debugLog("Add A2DP audio zone " + audioZoneIndex);
+                // By pass the first 2 A2dp zone
+                if (audioZoneOffset > 0) {
+                    audioZoneOffset = audioZoneOffset-1;
+                    continue;
+                }
+                debugLog("Add A2DP audio zone index " + audioZoneIndex + " audioZoneId " + audioZoneId);
                 sCarAudioZone.put(audioZoneIndex, new CarAudioZone(audioZoneId, address));
                 ++audioZoneIndex;
+                if (audioZoneIndex >= MAX_A2DP_AUDIO_ZONE)
+                    break;
             }
         }
         debugLog("A2DP audio zone number: " + audioZoneIndex);
