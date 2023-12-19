@@ -52,6 +52,7 @@ package com.android.bluetooth.a2dp;
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
 
 import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothAdapterUtil;
 import android.bluetooth.BluetoothCodecConfig;
 import android.bluetooth.BluetoothCodecStatus;
 import android.bluetooth.BluetoothDevice;
@@ -789,8 +790,8 @@ final class A2dpStateMachine extends StateMachine {
         log("broadcastSetMediaPlayerRequest");
         Intent intent = new Intent(BluetoothA2dp.ACTION_SET_MEDIA_PLAYER);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mDevice);
-        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
-        intent.setPackage(CAR_SETTINGS_PACKAGE_NAME);
+        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT |
+            Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
         mA2dpService.sendBroadcast(intent, BLUETOOTH_CONNECT,
                 Utils.getTempAllowlistBroadcastOptions());
     }
