@@ -364,6 +364,10 @@ final class RemoteDevices {
          * @param btClass the btClass to set
          */
         void setBluetoothClass(BluetoothClass btClass) {
+            if (btClass == null) {
+                warnLog("btClass is null, return!");
+                return;
+            }
             int classInt = btClass.getClassOfDevice();
             this.mBluetoothClass = classInt;
             sAdapterService.setDevicePropertyNative(mAddress,
