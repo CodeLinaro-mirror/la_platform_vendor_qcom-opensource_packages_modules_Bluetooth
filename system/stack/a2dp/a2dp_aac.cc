@@ -802,7 +802,9 @@ A2dpCodecConfigAacSource::A2dpCodecConfigAacSource(
 A2dpCodecConfigAacSource::~A2dpCodecConfigAacSource() {}
 
 bool A2dpCodecConfigAacSource::init() {
-  if (!isValid()) return false;
+  if (!(isValid() && A2DP_IsCodecSupported(BTAV_A2DP_CODEC_INDEX_SOURCE_AAC))) {
+    return false;
+  }
 
   // Load the encoder
   if (!A2DP_LoadEncoderAac()) {
