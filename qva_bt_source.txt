@@ -183,7 +183,13 @@ system/include/hardware/avrcp/avrcp.h
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/internal_include/bt_target.h
+system/main/Android.bp
+system/main/shim/Android.bp
 system/main/shim/btm_api.h
+system/main/shim/BUILD.gn
+system/main/shim/le_advertising_manager.cc
+system/main/shim/utils.cc
+system/main/shim/utils.h
 system/service/hal/fake_bluetooth_interface.cc
 system/service/hal/bluetooth_av_interface.cc
 system/profile/avrcp/avrcp_internal.h
