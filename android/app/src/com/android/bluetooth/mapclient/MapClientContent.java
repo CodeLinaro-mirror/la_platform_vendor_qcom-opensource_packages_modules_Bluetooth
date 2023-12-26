@@ -231,7 +231,7 @@ class MapClientContent {
         ContentValues values = new ContentValues();
         long threadId = getThreadId(message);
         int readStatus = message.getStatus() == Bmessage.Status.READ ? 1 : 0;
-        if (threadId != -1)
+        if (threadId != -1) {
             values.put(Sms.THREAD_ID, threadId);
         }
         values.put(Sms.ADDRESS, recipients);
