@@ -193,9 +193,7 @@ final class A2dpStateMachine extends StateMachine {
                                         BluetoothA2dp.STATE_PLAYING);
                 }
             }
-            if (mA2dpAudioZone != null) {
-                mA2dpAudioZone.clearMediaPlayer();
-            }
+            mA2dpService.clearMediaPlayer(mDevice);
         }
 
         @Override
@@ -516,7 +514,6 @@ final class A2dpStateMachine extends StateMachine {
             broadcastAudioState(BluetoothA2dp.STATE_NOT_PLAYING,
                                 BluetoothA2dp.STATE_PLAYING);
             if (mA2dpAudioZone != null) {
-                mA2dpService.setMediaPlayer(mDevice, mA2dpService.getMediaPlayer(mDevice));
                 // Always notify app to set media player if needed
                 broadcastSetMediaPlayerRequest();
             }
@@ -642,7 +639,13 @@ final class A2dpStateMachine extends StateMachine {
             Log.i(TAG, "processSetMediaPlayer: media player " + mediaPlayer +
                     ", audio zone index " + audioZoneIndex);
             if (mA2dpAudioZone != null) {
-                mA2dpAudioZone.setMediaPlayer(mediaPlayer, audioZoneIndex);
+                BluetoothDevice device = mA2dpService.getMediaPlayerMappedDevice(mediaPlayer);
+                if (device != null) {
+                    mA2dpAudioZone.setMediaPlayer(mediaPlayer, audioZoneIndex,
+                            mA2dpService.getAudioZoneIndex(device));
+                } else {
+                    mA2dpAudioZone.setMediaPlayer(mediaPlayer, audioZoneIndex, audioZoneIndex);
+                }
             }
         }
     }

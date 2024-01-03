@@ -1013,18 +1013,28 @@ public class A2dpService extends ProfileService {
         // Get media player stored in DB
         String oldMediaPlayer = getMediaPlayer(device);
         if (oldMediaPlayer.isEmpty()) {
-            audioZoneIndex = A2dpAudioZone.getAudioZoneAvailable(mediaPlayer);
+            audioZoneIndex = A2dpAudioZone.getAudioZoneAvailable(device);
         } else {
             if (oldMediaPlayer.equals(mediaPlayer)) {
                 // Get audio zone index stored in DB
                 audioZoneIndex = getAudioZoneIndex(device);
             } else {
                 // Clear old media player
-                A2dpAudioZone.clearMediaPlayer(device);
-                audioZoneIndex = A2dpAudioZone.getAudioZoneAvailable(mediaPlayer);
+                clearMediaPlayer(device);
+                audioZoneIndex = A2dpAudioZone.getAudioZoneAvailable(device);
             }
         }
         return audioZoneIndex;
+    }
+
+    // The media player meapped a headset audio zone
+    BluetoothDevice getMediaPlayerMappedDevice(String mediaPlayer) {
+        for (BluetoothDevice device : getConnectedDevices()) {
+            if (A2dpAudioZone.isMediaPlayerMapped(device, mediaPlayer)) {
+                return device;
+            }
+        }
+        return null;
     }
 
     /**
@@ -1076,8 +1086,9 @@ public class A2dpService extends ProfileService {
                 Log.e(TAG, "Ignored setMediaPlayer for " + device + " : audio zone not available");
                 return false;
             }
-
-            if (!mDatabaseManager.setA2dpMediaPlayer(device, mediaPlayer, audioZoneIndex)) {
+            // Don't save media player for current device if media player has mapped with other device
+            if ((getMediaPlayerMappedDevice(mediaPlayer) == null) &&
+                !mDatabaseManager.setA2dpMediaPlayer(device, mediaPlayer, audioZoneIndex)) {
                 return false;
             }
 
