@@ -207,6 +207,8 @@ static bool enable_delay_reporting = false;
 static std::unordered_map<std::string, struct a2dp_stream_out*> device_stream_map;
 /* Get stream from bus address */
 static std::unordered_map<std::string, struct a2dp_stream_out*> bus_stream_map;
+/* Get group from address for same audio source */
+static std::unordered_map<std::string, std::string> device_group_map;
 
 /*****************************************************************************
  *  Static functions
@@ -1218,7 +1220,7 @@ static int bt_format_from_16_to_24(a2dp_stream_out *out, const void *buffer,
  *
  ****************************************************************************/
 
-static ssize_t out_write(struct audio_stream_out* stream, const void* buffer,
+static ssize_t out_write_ext(struct audio_stream_out* stream, const void* buffer,
                          size_t bytes) {
   struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
   int sent = -1;
@@ -1310,12 +1312,26 @@ finish:;
   lock.unlock();
 
   // If send didn't work out, sleep to emulate write delay.
-  if (sent == -1) {
+  if (sent == -1 && device_group_map.size() <= 1) {
     const int us_delay = calc_audiotime_usec(out->common.cfg, bytes);
     DEBUG("emulate a2dp write delay (%d us)", us_delay);
     usleep(us_delay);
   }
   return bytes;
+}
+
+static ssize_t out_write(struct audio_stream_out* stream, const void* buffer,
+                         size_t bytes) {
+  ssize_t ret;
+  struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
+
+  for (auto it : device_group_map) {
+    // Write data to all stream in this bus group
+    if (it.second.compare(out->common.bus_address) == 0) {
+      ret = out_write_ext((struct audio_stream_out*)device_stream_map.find(it.first)->second, buffer, bytes);
+    }
+  }
+  return ret;
 }
 
 static uint32_t out_get_sample_rate(const struct audio_stream* stream) {
@@ -1527,8 +1543,11 @@ static int out_set_parameters(struct audio_stream* stream,
   }
 
   if (params["A2dpSuspended"].compare("true") == 0) {
-    if (out->common.state == AUDIO_A2DP_STATE_STARTED)
-      status = suspend_audio_datapath(&out->common, false);
+    if (!IS_AUDIO_DEVICE_OUT_BUS(out->common.device_type)) {
+      if (out->common.state == AUDIO_A2DP_STATE_STARTED) {
+        status = suspend_audio_datapath(&out->common, false);
+      }
+    }
   } else {
     /* Do not start the streaming automatically. If the phone was streaming
      * prior to being suspended, the next out_write shall trigger the
@@ -1543,24 +1562,32 @@ static int out_set_parameters(struct audio_stream* stream,
   INFO("bdaddress %s", address.c_str());
   if (address.compare("") != 0) {
     // for BUS device
-    if (out->common.device_type == AUDIO_DEVICE_OUT_BUS) {
+    if (IS_AUDIO_DEVICE_OUT_BUS(out->common.device_type)) {
       if (out->common.bus_address.compare(params["bus"]) == 0) {
-        INFO("save bdaddress %s for bus device %s", address.c_str(),
-          out->common.bus_address.c_str());
-        out->common.bdaddress = address;
-        device_stream_map.erase(address);
-        device_stream_map.emplace(address, out);
-        btav_a2dp_codec_config_t codec_config;
-        btav_a2dp_codec_config_t codec_capability;
-        status = a2dp_read_output_audio_config(&out->common, &codec_config,
-                                          &codec_capability,
-                                          true /* update_stream_config */);
-        if (status < 0) {
-          ERROR("a2dp_read_output_audio_config failed");
-          return status;
+        if (params["map"].compare("true") == 0) {
+          INFO("save bdaddress %s for bus device %s", address.c_str(),
+            out->common.bus_address.c_str());
+          out->common.bdaddress = address;
+          device_stream_map.erase(address);
+          device_stream_map.emplace(address, out);
+          device_group_map.erase(address);
+          device_group_map.emplace(address, params["groupBus"]);
+          btav_a2dp_codec_config_t codec_config;
+          btav_a2dp_codec_config_t codec_capability;
+          status = a2dp_read_output_audio_config(&out->common, &codec_config,
+                                            &codec_capability,
+                                            true /* update_stream_config */);
+          if (status < 0) {
+            ERROR("a2dp_read_output_audio_config failed");
+            return status;
+          }
+        } else {
+          INFO("bdaddress %s disconnected", address.c_str());
+          device_stream_map.erase(address);
+          device_group_map.erase(address);
         }
       }
-     } else {
+    } else {
       // for A2DP device
       INFO("save bdaddress %s for A2DP OUT DEVICE", address.c_str());
       out->common.bdaddress = address;
