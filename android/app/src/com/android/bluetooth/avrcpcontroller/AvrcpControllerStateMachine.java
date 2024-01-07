@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.avrcpcontroller;
@@ -1266,7 +1271,10 @@ class AvrcpControllerStateMachine extends StateMachine {
                 logD("Received a stop while in a transient loss. Do not recover anymore.");
                 mShouldSendPlayOnFocusRecovery = false;
             }
-            sendMessage(MSG_AVRCP_PASSTHRU, AvrcpControllerService.PASS_THRU_CMD_ID_STOP);
+            // When media player is switched from Bluetooth Audio to other media player,
+            // This callback is invoked, and results the playback position of now playing
+            // track back to the very begining. Change the command to 'PAUSE'.
+            sendMessage(MSG_AVRCP_PASSTHRU, AvrcpControllerService.PASS_THRU_CMD_ID_PAUSE);
         }
 
         @Override
