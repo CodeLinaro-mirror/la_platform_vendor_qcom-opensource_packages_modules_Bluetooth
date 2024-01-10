@@ -41,6 +41,9 @@
 
 #include "a2dp_codec_api.h"
 
+// Length of data transmitted to aptxhddecStereoDecode() per calling
+#define TWO_24BIT_CODE_WORDS_SIZE 6
+
 // Loads the A2DP aptX HD decoder.
 // Return true on success, otherwise false.
 bool A2DP_VendorLoadDecoderAptxHd(void);
