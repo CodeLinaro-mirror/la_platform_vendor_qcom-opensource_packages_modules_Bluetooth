@@ -25,6 +25,7 @@ import android.bluetooth.IBluetoothAvrcpController;
 import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.content.pm.PackageManager;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.sysprop.BluetoothProperties;
@@ -175,7 +176,7 @@ public class AvrcpControllerService extends ProfileService {
         Intent stopIntent = new Intent(this, BluetoothMediaBrowserService.class);
         stopService(stopIntent);
         for (AvrcpControllerStateMachine stateMachine : mDeviceStateMap.values()) {
-            stateMachine.quitNow();
+            stateMachine.doQuit();
         }
         mDeviceStateMap.clear();
 
@@ -1013,6 +1014,10 @@ public class AvrcpControllerService extends ProfileService {
         }
 
         sb.append("\n  " + BluetoothMediaBrowserService.dump() + "\n");
+    }
+
+    boolean isAutomotive() {
+        return getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE);
     }
 
     /*JNI*/
