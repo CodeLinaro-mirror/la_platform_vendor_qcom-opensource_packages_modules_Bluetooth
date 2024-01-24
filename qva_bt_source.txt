@@ -193,6 +193,7 @@ system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
 system/gd/rust/topshim/btav_sink/btav_sink_shim.cc
+system/gd/storage/storage_module.cc
 system/include/hardware/avrcp/avrcp.h
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
