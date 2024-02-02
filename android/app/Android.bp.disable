@@ -175,6 +175,7 @@ android_app {
         "app-compat-annotations",
         "error_prone_annotations",
         "framework-annotations-lib",
+        "android.car",
         "framework-bluetooth-pre-jarjar",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
