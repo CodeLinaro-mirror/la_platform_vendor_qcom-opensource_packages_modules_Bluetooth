@@ -7,6 +7,7 @@ android/app/Android.bp
 android/app/AndroidManifest.xml
 android/app/jni/com_android_bluetooth_a2dp.cpp
 android/app/jni/com_android_bluetooth_a2dp_sink.cpp
+android/app/jni/com_android_bluetooth_avrcp_controller.cpp
 android/app/jni/com_android_bluetooth_avrcp_target.cpp
 android/app/jni/com_android_bluetooth_btservice_AdapterService.cpp
 android/app/res/values/config.xml
@@ -27,6 +28,8 @@ android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtProvider.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpPlayer.java
+android/app/src/com/android/bluetooth/avrcpcontroller/BrowseTree.java
 android/app/src/com/android/bluetooth/bass_client/BassClientService.java
 android/app/src/com/android/bluetooth/bass_client/BassClientStateMachine.java
 android/app/src/com/android/bluetooth/bass_client/BassUtils.java
@@ -183,6 +186,7 @@ system/gd/rust/topshim/btav_sink/btav_sink_shim.cc
 system/include/hardware/avrcp/avrcp.h
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
+system/include/hardware/bt_rc.h
 system/internal_include/bt_target.h
 system/main/Android.bp
 system/main/shim/Android.bp
@@ -226,7 +230,9 @@ system/stack/avdt/avdt_msg.cc
 system/stack/avdt/avdt_scb.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_api.cc
+system/stack/avrc/avrc_bld_ct.cc
 system/stack/avct/avct_ccb.cc
+system/stack/avrc/avrc_pars_ct.cc
 system/stack/btm/btm_ble.cc
 system/stack/btm/btm_ble_gap.cc
 system/stack/btm/btm_client_interface.cc
