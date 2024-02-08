@@ -240,6 +240,7 @@ system/stack/include/a2dp_vendor_aptx_hd_encoder.h
 system/stack/BUILD.gn
 system/stack/eatt/eatt.h
 system/stack/eatt/eatt_impl.h
+system/stack/gatt/att_protocol.cc
 system/stack/gatt/gatt_cl.cc
 system/stack/gatt/gatt_sr.cc
 system/stack/gap/gap_conn.cc
