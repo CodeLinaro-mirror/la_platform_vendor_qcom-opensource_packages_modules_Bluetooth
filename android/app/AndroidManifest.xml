@@ -417,7 +417,7 @@
         <receiver android:process="@string/process"
              android:name="com.android.bluetooth.opp.BluetoothOppReceiver"
              android:exported="true"
-             android:enabled="false">
+             android:enabled="true">
             <intent-filter>
                 <action android:name="android.btopp.intent.action.OPEN_RECEIVED_FILES"/>
             </intent-filter>
@@ -446,7 +446,7 @@
              android:process="@string/process"
              android:theme="@android:style/Theme.Material.Light.Dialog"
              android:label="@string/bt_share_picker_label"
-             android:enabled="false"
+             android:enabled="true"
              android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
@@ -488,7 +488,7 @@
              android:process="@string/process"
              android:excludeFromRecents="true"
              android:theme="@style/dialog"
-             android:enabled="false">
+             android:enabled="true">
         </activity>
         <activity android:name="com.android.bluetooth.opp.BluetoothOppBtErrorActivity"
              android:process="@string/process"
@@ -500,26 +500,26 @@
              android:process="@string/process"
              android:excludeFromRecents="true"
              android:theme="@style/dialog"
-             android:enabled="false">
+             android:enabled="true">
         </activity>
         <activity android:name="com.android.bluetooth.opp.BluetoothOppIncomingFileConfirmActivity"
              android:process="@string/process"
              android:excludeFromRecents="true"
              android:theme="@style/dialog"
-             android:enabled="false">
+             android:enabled="true">
         </activity>
         <activity android:name="com.android.bluetooth.opp.BluetoothOppTransferActivity"
              android:process="@string/process"
              android:excludeFromRecents="true"
              android:theme="@style/dialog"
-             android:enabled="false">
+             android:enabled="true">
         </activity>
         <activity android:name="com.android.bluetooth.opp.BluetoothOppTransferHistory"
              android:process="@string/process"
              android:label=""
              android:excludeFromRecents="true"
              android:configChanges="orientation|keyboardHidden"
-             android:enabled="false"
+             android:enabled="true"
              android:theme="@android:style/Theme.DeviceDefault.Settings"
              android:exported="true">
             <intent-filter>
