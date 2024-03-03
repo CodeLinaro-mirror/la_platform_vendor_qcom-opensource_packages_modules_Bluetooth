@@ -27,6 +27,7 @@ import android.os.Message;
 import android.util.Log;
 
 import com.android.bluetooth.R;
+import com.android.bluetooth.avrcpcontroller.BluetoothMediaBrowserService;
 import com.android.bluetooth.avrcpcontroller.AvrcpControllerService;
 import com.android.bluetooth.hfpclient.HeadsetClientStateMachine;
 
@@ -143,6 +144,11 @@ public class A2dpSinkStreamHandler extends Handler {
                 mStreamAvailable = true;
                 if (isTvDevice() || shouldRequestFocus()) {
                     requestAudioFocusIfNone();
+                }
+                // send pause when no audio focus
+                if (mAudioFocus == AudioManager.AUDIOFOCUS_NONE) {
+                    if (DBG) Log.d(TAG, " pause due to no audio focus");
+                    BluetoothMediaBrowserService.pause();
                 }
                 break;
 
