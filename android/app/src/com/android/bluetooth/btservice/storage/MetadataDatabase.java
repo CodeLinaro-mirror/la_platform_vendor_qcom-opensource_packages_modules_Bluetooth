@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -26,6 +31,7 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+import com.android.bluetooth.btservice.AdapterUtil;
 import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.List;
@@ -38,7 +44,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
     /**
      * The metadata database file name
      */
-    public static final String DATABASE_NAME = "bluetooth_db";
+    public static final String DATABASE_NAME = AdapterUtil.isAdapter1() ? "bluetooth_db1" : "bluetooth_db";
 
     static int sCurrentConnectionNumber = 0;
 
@@ -139,6 +145,8 @@ public abstract class MetadataDatabase extends RoomDatabase {
                     + "`address` TEXT NOT NULL, `migrated` INTEGER NOT NULL, "
                     + "`a2dpSupportsOptionalCodecs` INTEGER NOT NULL, "
                     + "`a2dpOptionalCodecsEnabled` INTEGER NOT NULL, "
+                    + "`a2dpMediaPlayer` TEXT NOT NULL, "
+                    + "`a2dpAudioZone` INTEGER, "
                     + "`a2dp_priority` INTEGER, `a2dp_sink_priority` INTEGER, "
                     + "`hfp_priority` INTEGER, `hfp_client_priority` INTEGER, "
                     + "`hid_host_priority` INTEGER, `pan_priority` INTEGER, "
@@ -156,6 +164,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
 
             database.execSQL("INSERT INTO metadata_tmp ("
                     + "address, migrated, a2dpSupportsOptionalCodecs, a2dpOptionalCodecsEnabled, "
+                    + "a2dpMediaPlayer, a2dpAudioZone, "
                     + "a2dp_priority, a2dp_sink_priority, hfp_priority, hfp_client_priority, "
                     + "hid_host_priority, pan_priority, pbap_priority, pbap_client_priority, "
                     + "map_priority, sap_priority, hearing_aid_priority, map_client_priority, "
@@ -167,6 +176,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
                     + "untethered_case_charging, enhanced_settings_ui_uri) "
                     + "SELECT "
                     + "address, migrated, a2dpSupportsOptionalCodecs, a2dpOptionalCodecsEnabled, "
+                    + "a2dpMediaPlayer, a2dpAudioZone, "
                     + "a2dp_priority, a2dp_sink_priority, hfp_priority, hfp_client_priority, "
                     + "hid_host_priority, pan_priority, pbap_priority, pbap_client_priority, "
                     + "map_priority, sap_priority, hearing_aid_priority, map_client_priority, "
@@ -203,6 +213,8 @@ public abstract class MetadataDatabase extends RoomDatabase {
                         + "`address` TEXT NOT NULL, `migrated` INTEGER NOT NULL, "
                         + "`a2dpSupportsOptionalCodecs` INTEGER NOT NULL, "
                         + "`a2dpOptionalCodecsEnabled` INTEGER NOT NULL, "
+                        + "`a2dpMediaPlayer` TEXT NOT NULL, "
+                        + "`a2dpAudioZone` INTEGER, "
                         + "`a2dp_connection_policy` INTEGER, "
                         + "`a2dp_sink_connection_policy` INTEGER, `hfp_connection_policy` INTEGER, "
                         + "`hfp_client_connection_policy` INTEGER, "
@@ -223,6 +235,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
 
                 database.execSQL("INSERT INTO metadata_tmp ("
                         + "address, migrated, a2dpSupportsOptionalCodecs, "
+                        + "a2dpMediaPlayer, a2dpAudioZone, "
                         + "a2dpOptionalCodecsEnabled, a2dp_connection_policy, "
                         + "a2dp_sink_connection_policy, hfp_connection_policy,"
                         + "hfp_client_connection_policy, hid_host_connection_policy,"
@@ -238,6 +251,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
                         + "untethered_case_charging, enhanced_settings_ui_uri) "
                         + "SELECT "
                         + "address, migrated, a2dpSupportsOptionalCodecs, "
+                        + "a2dpMediaPlayer, a2dpAudioZone, "
                         + "a2dpOptionalCodecsEnabled, a2dp_priority, a2dp_sink_priority, "
                         + "hfp_priority, hfp_client_priority, hid_host_priority, pan_priority, "
                         + "pbap_priority, pbap_client_priority, map_priority, sap_priority, "

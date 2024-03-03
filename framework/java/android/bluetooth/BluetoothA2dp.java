@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package android.bluetooth;
@@ -157,6 +162,23 @@ public final class BluetoothA2dp implements BluetoothProfile {
             "android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED";
 
     /**
+     * Intent used to broadcast setting media player request for the A2DP
+     * device.
+     *
+     * <p>This intent will have 1 extras:
+     * <ul>
+     * <li> {@link BluetoothDevice#EXTRA_DEVICE} - The remote device. </li>
+     * </ul>
+     */
+    @RequiresLegacyBluetoothPermission
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    @SuppressLint("ActionValue")
+    public static final String ACTION_SET_MEDIA_PLAYER =
+            "android.bluetooth.a2dp.profile.action.SET_MEDIA_PLAYER";
+
+    /**
      * A2DP sink device is streaming music. This state can be one of
      * {@link #EXTRA_STATE} or {@link #EXTRA_PREVIOUS_STATE} of
      * {@link #ACTION_PLAYING_STATE_CHANGED} intent.
@@ -273,14 +295,7 @@ public final class BluetoothA2dp implements BluetoothProfile {
 
     private final BluetoothAdapter mAdapter;
     private final AttributionSource mAttributionSource;
-    private final BluetoothProfileConnector<IBluetoothA2dp> mProfileConnector =
-            new BluetoothProfileConnector(this, BluetoothProfile.A2DP, "BluetoothA2dp",
-                    IBluetoothA2dp.class.getName()) {
-                @Override
-                public IBluetoothA2dp getServiceInterface(IBinder service) {
-                    return IBluetoothA2dp.Stub.asInterface(service);
-                }
-    };
+    private final BluetoothProfileConnector<IBluetoothA2dp> mProfileConnector;
 
     /**
      * Create a BluetoothA2dp proxy object for interacting with the local
@@ -290,7 +305,23 @@ public final class BluetoothA2dp implements BluetoothProfile {
             BluetoothAdapter adapter) {
         mAdapter = adapter;
         mAttributionSource = adapter.getAttributionSource();
-        mProfileConnector.connect(context, listener);
+        mProfileConnector =
+                    new BluetoothProfileConnector(this, BluetoothProfile.A2DP, "BluetoothA2dp",
+                            BluetoothAdapterUtil.isDefaultAdapter(mAdapter) ?
+                            IBluetoothA2dp.class.getName() :IBluetoothA2dpExt.class.getName()) {
+                        @Override
+                        public IBluetoothA2dp getServiceInterface(IBinder service) {
+                            try {
+                                return BluetoothAdapterUtil.isDefaultAdapter(mAdapter) ?
+                                    IBluetoothA2dp.Stub.asInterface(service) :
+                                    IBluetoothA2dpExt.Stub.asInterface(service).getBluetoothA2dp();
+                            } catch (RemoteException e) {
+                                Log.e(TAG, "RemoteException occurs in IBluetoothA2dpExt.getBluetoothA2dp", e);
+                                return null;
+                            }
+                        }
+            };
+        mProfileConnector.connect(context, adapter, listener);
     }
 
     @UnsupportedAppUsage
@@ -1040,6 +1071,83 @@ public final class BluetoothA2dp implements BluetoothProfile {
     }
 
     /**
+     * Get A2DP media player
+     *
+     * <p> The device should already be paired.
+     * Connection policy can be one of {@link #CONNECTION_POLICY_ALLOWED},
+     * {@link #CONNECTION_POLICY_FORBIDDEN}, {@link #CONNECTION_POLICY_UNKNOWN}
+     *
+     * @param device Paired bluetooth device
+     * @return media player's name
+     */
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(allOf = {
+            android.Manifest.permission.BLUETOOTH_CONNECT,
+            android.Manifest.permission.BLUETOOTH_PRIVILEGED,
+    })
+    @NonNull
+    public String getMediaPlayer(@NonNull BluetoothDevice device) {
+        if (DBG) log("getMediaPlayer(" + device + ")");
+        final IBluetoothA2dp service = getService();
+        final String defaultValue = null;
+        if (service == null) {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+        } else if (isEnabled() && isValidDevice(device)) {
+            try {
+                final SynchronousResultReceiver<String> recv = SynchronousResultReceiver.get();
+                service.getMediaPlayer(device, mAttributionSource, recv);
+                return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue);
+                /*return Attributable.setAttributionSource(
+                        recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue),
+                        mAttributionSource);*/
+            } catch (RemoteException | TimeoutException e) {
+                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Set A2DP media player
+     *
+     * <p> The device should already be paired.
+     * Connection policy can be one of {@link #CONNECTION_POLICY_ALLOWED},
+     * {@link #CONNECTION_POLICY_FORBIDDEN}, {@link #CONNECTION_POLICY_UNKNOWN}
+     *
+     * @param device Paired bluetooth device
+     * @param mediaPlayer media player's name
+     * @return true if success, false on error
+     */
+    @RequiresBluetoothConnectPermission
+    @RequiresPermission(allOf = {
+            android.Manifest.permission.BLUETOOTH_CONNECT,
+            android.Manifest.permission.BLUETOOTH_PRIVILEGED,
+    })
+    public boolean setMediaPlayer(@NonNull BluetoothDevice device,
+            @NonNull String mediaPlayer) {
+        if (DBG) log("setMediaPlayer(" + device + ", media player: " + mediaPlayer + ")");
+        final IBluetoothA2dp service = getService();
+        final boolean defaultValue = false;
+        if (service == null) {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+        } else if (isEnabled() && isValidDevice(device)) {
+            try {
+                final SynchronousResultReceiver<Boolean> recv = SynchronousResultReceiver.get();
+                service.setMediaPlayer(device, mediaPlayer, mAttributionSource, recv);
+                return recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue);
+                /*return Attributable.setAttributionSource(
+                        recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(defaultValue),
+                        mAttributionSource);*/
+            } catch (RemoteException | TimeoutException e) {
+                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
      * Get the supported type of the Dynamic Audio Buffer.
      * <p>Possible return values are
      * {@link #DYNAMIC_BUFFER_SUPPORT_NONE},
@@ -1178,8 +1286,7 @@ public final class BluetoothA2dp implements BluetoothProfile {
     }
 
     private boolean isEnabled() {
-        if (mAdapter.getState() == BluetoothAdapter.STATE_ON) return true;
-        return false;
+        return mProfileConnector.isEnabled();
     }
 
     private void verifyDeviceNotNull(BluetoothDevice device, String methodName) {

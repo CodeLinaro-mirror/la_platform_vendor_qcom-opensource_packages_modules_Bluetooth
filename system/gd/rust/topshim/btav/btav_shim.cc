@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include "gd/rust/topshim/btav/btav_shim.h"
@@ -61,6 +66,15 @@ class AvrcpMediaInterfaceImpl : public MediaInterface {
       [[maybe_unused]] std::string media_id) override {}
 
   void SetActiveDevice([[maybe_unused]] const RawAddress& address) override {}
+
+  void SendKeyEventExt(const RawAddress& address, uint8_t key, KeyState state) override {}
+
+  void GetSongInfoExt(const RawAddress& address, SongInfoCallback info_cb) override {}
+
+  void GetPlayStatusExt(const RawAddress& address, PlayStatusCallback status_cb) override {}
+
+  void GetNowPlayingListExt(const RawAddress& address, NowPlayingCallback now_playing_cb) override {}
+
 };
 
 class VolumeInterfaceImpl : public VolumeInterface {
@@ -90,6 +104,8 @@ class VolumeInterfaceImpl : public VolumeInterface {
 
     volumeCb.Run(volume);
   }
+
+ void SetVolumeExt(const RawAddress& bdaddr, int8_t volume) override {}
 
  private:
   VolumeInterface::VolumeChangedCb volumeCb;
@@ -141,7 +157,8 @@ static ::rust::Vec<A2dpCodecConfig> to_rust_codec_config_vec(const std::vector<b
   return rconfigs;
 }
 
-static void connection_state_cb(const RawAddress& bd_addr, btav_connection_state_t state) {
+static void connection_state_cb(
+    const RawAddress& bd_addr, btav_connection_state_t state, [[maybe_unused]] const btav_error_t& error) {
   RustRawAddress addr = rusty::CopyToRustAddress(bd_addr);
   rusty::connection_state_callback(addr, state);
 }
@@ -210,7 +227,7 @@ int A2dpIntf::set_silence_device(RustRawAddress bt_addr, bool silent) const {
 }
 int A2dpIntf::set_active_device(RustRawAddress bt_addr) const {
   RawAddress addr = rusty::CopyFromRustAddress(bt_addr);
-  return intf_->set_active_device(addr);
+  return intf_->set_active_device(addr, true);
 }
 int A2dpIntf::config_codec(RustRawAddress bt_addr, ::rust::Vec<A2dpCodecConfig> codec_preferences) const {
   RawAddress addr = rusty::CopyFromRustAddress(bt_addr);

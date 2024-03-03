@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 /*****************************************************************************
@@ -583,20 +588,26 @@ void handle_rc_features(btif_rc_device_cb_t* p_dev) {
   CHECK(bt_rc_callbacks);
 
   btrc_remote_features_t rc_features = BTRC_FEAT_NONE;
-  RawAddress avdtp_source_active_peer_addr = btif_av_source_active_peer();
+  std::set<RawAddress> avdtp_source_active_peer_addr = btif_av_source_active_peers();
   RawAddress avdtp_sink_active_peer_addr = btif_av_sink_active_peer();
 
+  for (auto it : avdtp_source_active_peer_addr) {
+    BTIF_TRACE_DEBUG(
+        "%s: AVDTP Source Active Peer Address: %s "
+        "AVCTP address: %s",
+        __func__, it.ToString().c_str(),
+        p_dev->rc_addr.ToString().c_str());
+  }
+
   BTIF_TRACE_DEBUG(
-      "%s: AVDTP Source Active Peer Address: %s "
-      "AVDTP Sink Active Peer Address: %s "
+      "%s: AVDTP Sink Active Peer Address: %s "
       "AVCTP address: %s",
-      __func__, avdtp_source_active_peer_addr.ToString().c_str(),
-      avdtp_sink_active_peer_addr.ToString().c_str(),
+      __func__, avdtp_sink_active_peer_addr.ToString().c_str(),
       p_dev->rc_addr.ToString().c_str());
 
   if (interop_match_addr(INTEROP_DISABLE_ABSOLUTE_VOLUME, &p_dev->rc_addr) ||
       absolute_volume_disabled() ||
-      (avdtp_source_active_peer_addr != p_dev->rc_addr &&
+      (!btif_av_source_is_active_peer(p_dev->rc_addr) &&
        avdtp_sink_active_peer_addr != p_dev->rc_addr)) {
     p_dev->rc_features &= ~BTA_AV_FEAT_ADV_CTRL;
   }
@@ -813,7 +824,7 @@ void handle_rc_passthrough_cmd(tBTA_AV_REMOTE_CMD* p_remote_cmd) {
 
   /* If AVRC is open and peer sends PLAY but there is no AVDT, then we queue-up
    * this PLAY */
-  if ((p_remote_cmd->rc_id == AVRC_ID_PLAY) && (!btif_av_is_connected())) {
+  if ((p_remote_cmd->rc_id == AVRC_ID_PLAY) && (!btif_av_is_connected(p_dev->rc_addr))) {
     if (p_remote_cmd->key_state == AVRC_STATE_PRESS) {
       APPL_TRACE_WARNING("%s: AVDT not open, queuing the PLAY command",
                          __func__);
@@ -831,7 +842,7 @@ void handle_rc_passthrough_cmd(tBTA_AV_REMOTE_CMD* p_remote_cmd) {
   }
 
   if ((p_remote_cmd->rc_id == AVRC_ID_STOP) &&
-      (!btif_av_stream_started_ready())) {
+      (!btif_av_stream_started_ready(p_dev->rc_addr))) {
     APPL_TRACE_WARNING("%s: Stream suspended, ignore STOP cmd", __func__);
     return;
   }
@@ -2001,7 +2012,7 @@ static bt_status_t register_notification_rsp(
       case BTRC_EVT_PLAY_STATUS_CHANGED:
         avrc_rsp.reg_notif.param.play_status = p_param->play_status;
         if (avrc_rsp.reg_notif.param.play_status == PLAY_STATUS_PLAYING)
-          btif_av_clear_remote_suspend_flag();
+          btif_av_clear_remote_suspend_flag(btif_rc_cb.rc_multi_cb[idx].rc_addr);
         break;
       case BTRC_EVT_TRACK_CHANGE:
         memcpy(&(avrc_rsp.reg_notif.param.track), &(p_param->track),
@@ -3441,7 +3452,9 @@ static void handle_notification_response(tBTA_AV_META_MSG* pmeta_msg,
        */
       p_dev->rc_app_settings.query_started = true;
       if (p_dev->rc_features & BTA_AV_FEAT_APP_SETTING) {
-        list_player_app_setting_attrib_cmd(p_dev);
+        if (!p_dev->br_connected) {
+          list_player_app_setting_attrib_cmd(p_dev);
+        }
       } else {
         BTIF_TRACE_DEBUG("%s: App setting not supported, complete procedure",
                          __func__);
@@ -4172,6 +4185,32 @@ static void handle_get_folder_items_response(tBTA_AV_META_MSG* pmeta_msg,
                    (btrc_status_t)p_rsp->status, nullptr, 0));
   }
 }
+
+/***************************************************************************
+ *
+ * Function         handle_search_response
+ *
+ * Description      handles the search response, calls HAL callback to
+ *                  send the result.
+ * Returns          None
+ *
+ **************************************************************************/
+static void handle_search_response(tBTA_AV_META_MSG* pmeta_msg,
+                                   tAVRC_SEARCH_RSP* p_rsp) {
+
+  btif_rc_device_cb_t* p_dev =
+      btif_rc_get_device_by_handle(pmeta_msg->rc_handle);
+
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return;
+  }
+
+  do_in_jni_thread(FROM_HERE,
+                     base::Bind(bt_rc_ctrl_callbacks->search_rsp_cb, p_dev->rc_addr,
+                                p_rsp->status, p_rsp->uid_counter, p_rsp->num_items));
+}
+
 /***************************************************************************
  *
  * Function         cleanup_btrc_folder_items
@@ -4547,6 +4586,9 @@ static void handle_avk_rc_metamsg_rsp(tBTA_AV_META_MSG* pmeta_msg) {
         break;
       case AVRC_PDU_GET_ITEM_ATTRIBUTES:
         handle_get_metadata_attr_response(pmeta_msg, &avrc_response.get_attrs);
+        break;
+      case AVRC_PDU_SEARCH:
+        handle_search_response(pmeta_msg, &avrc_response.search);
         break;
       default:
         BTIF_TRACE_ERROR("%s cannot handle browse pdu %d", __func__,
@@ -5006,6 +5048,10 @@ static bt_status_t get_folder_items_cmd(const RawAddress& bd_addr,
                                         uint32_t end_item) {
   /* Check that both avrcp and browse channel are connected. */
   btif_rc_device_cb_t* p_dev = btif_rc_get_device_by_bda(bd_addr);
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return BT_STATUS_FAIL;
+  }
   BTIF_TRACE_DEBUG("%s", __func__);
   CHECK_RC_CONNECTED(p_dev);
   CHECK_BR_CONNECTED(p_dev);
@@ -5023,6 +5069,77 @@ static bt_status_t get_folder_items_cmd(const RawAddress& bd_addr,
   avrc_cmd.get_items.attr_count = 0; /* p_attr_list does not matter hence */
 
   return build_and_send_browsing_cmd(&avrc_cmd, p_dev);
+}
+
+/***************************************************************************
+ *
+ * Function         search
+ *
+ * Description      Send search command
+ *
+ * Returns          BT_STATUS_SUCCESS if command issued successfully otherwise
+ *                  BT_STATUS_FAIL.
+ *
+ **************************************************************************/
+static bt_status_t search_cmd(const RawAddress &bd_addr, uint16_t charset_id, uint16_t len, uint8_t *str) {
+  /* Check that both avrcp and browse channel are connected. */
+  btif_rc_device_cb_t* p_dev = btif_rc_get_device_by_bda(bd_addr);
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return BT_STATUS_FAIL;
+  }
+  BTIF_TRACE_DEBUG("%s", __func__);
+  CHECK_RC_CONNECTED(p_dev);
+  CHECK_BR_CONNECTED(p_dev);
+
+  tAVRC_COMMAND avrc_cmd = {0};
+
+  avrc_cmd.search.pdu = AVRC_PDU_SEARCH;
+  avrc_cmd.search.status = AVRC_STS_NO_ERROR;
+  avrc_cmd.search.string.charset_id = charset_id;
+  avrc_cmd.search.string.str_len = len;
+  avrc_cmd.search.string.p_str = str;  // not duplicate str, because it'll be copied into p_msg with enough buffer
+
+  BT_HDR* p_msg = NULL;
+  tAVRC_STS status = AVRC_BldCommand(&avrc_cmd, &p_msg);
+  if (status != AVRC_STS_NO_ERROR) {
+    BTIF_TRACE_ERROR("%s failed to build command status %d", __func__, status);
+    return BT_STATUS_FAIL;
+  }
+
+  rc_transaction_t* p_transaction = NULL;
+  bt_status_t tran_status = get_transaction(p_dev, &p_transaction);
+  if (tran_status != BT_STATUS_SUCCESS || p_transaction == NULL) {
+    osi_free(p_msg);
+    BTIF_TRACE_ERROR("%s: failed to obtain transaction details. status: 0x%02x",
+                     __func__, tran_status);
+    return BT_STATUS_FAIL;
+  }
+
+  BTIF_TRACE_DEBUG("%s msgreq being sent out with label %d", __func__,
+                   p_transaction->lbl);
+  BTA_AvMetaCmd(p_dev->rc_handle, p_transaction->lbl, AVRC_CMD_CTRL, p_msg);
+  return BT_STATUS_SUCCESS;
+}
+
+/***************************************************************************
+ *
+ * Function         get_search_list_cmd
+ *
+ * Description      Fetch the search list
+ *
+ * Paramters        start_item: First item to fetch (0 to fetch from beganning)
+ *                  end_item: Last item to fetch (0xffffffff to fetch until end)
+ *
+ * Returns          BT_STATUS_SUCCESS if command issued successfully otherwise
+ *                  BT_STATUS_FAIL.
+ *
+ **************************************************************************/
+static bt_status_t get_search_list_cmd(const RawAddress &bd_addr, uint32_t start_item,
+                                       uint32_t num_items) {
+  BTIF_TRACE_DEBUG("%s start, end: (%d, %d)", __func__, start_item, num_items);
+  return get_folder_items_cmd(bd_addr, AVRC_SCOPE_SEARCH, start_item,
+                              num_items);
 }
 
 /***************************************************************************
@@ -5199,7 +5316,12 @@ static bt_status_t get_metadata_attribute_cmd(uint8_t num_attribute,
                    num_attribute, p_attr_ids[0]);
 
   // If browsing is connected then send the command out that channel
-  if (p_dev->br_connected) {
+  // Call get_element_attribute_cmd when uid is 0.
+  // Avrcp spec v1.6, 6.10.3 UIDs:
+  // The value of UID=0x0 is a special value used only to request the metadata
+  // for the currently playing media using the GetElementAttributes command and
+  // shall not be used for any item in a folder.
+  if (p_dev->br_connected && p_dev->rc_playing_uid != 0) {
     return get_item_attribute_cmd(p_dev->rc_playing_uid,
                                    AVRC_SCOPE_NOW_PLAYING, num_attribute,
                                    p_attr_ids, p_dev);
@@ -5471,6 +5593,8 @@ static const btrc_ctrl_interface_t bt_rc_ctrl_interface = {
     change_folder_path_cmd,
     set_browsed_player_cmd,
     set_addressed_player_cmd,
+    search_cmd,
+    get_search_list_cmd,
     set_volume_rsp,
     volume_change_notification_rsp,
     cleanup_ctrl,

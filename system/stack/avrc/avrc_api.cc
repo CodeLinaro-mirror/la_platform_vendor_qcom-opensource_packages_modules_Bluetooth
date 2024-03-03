@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -31,6 +36,7 @@
 
 #include "avrc_int.h"
 #include "btif/include/btif_config.h"
+#include "gd/common/utils.h"
 #include "osi/include/allocator.h"
 #include "osi/include/fixed_queue.h"
 #include "osi/include/log.h"
@@ -95,6 +101,19 @@ bool avrcp_absolute_volume_is_enabled() {
 #else
   return true;
 #endif
+}
+
+/******************************************************************************
+ *
+ * Function         is_new_avrcp_enabled
+ *
+ * Description      Check whether new AVRCP(TG) is enabled
+ *
+ * Returns          true: enabled, false: disabled.
+ *
+ *****************************************************************************/
+static bool is_new_avrcp_enabled() {
+  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false);
 }
 
 /******************************************************************************
@@ -1163,7 +1182,7 @@ uint16_t AVRC_MsgReq(uint8_t handle, uint8_t label, uint8_t ctype,
   AVRC_TRACE_DEBUG("%s handle = %u label = %u ctype = %u len = %d", __func__,
                    handle, label, ctype, p_pkt->len);
   /* Handle for AVRCP fragment */
-  bool is_new_avrcp = osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false);
+  bool is_new_avrcp = is_new_avrcp_enabled();
   if (ctype >= AVRC_RSP_NOT_IMPL) cr = AVCT_RSP;
 
   if (p_pkt->event == AVRC_OP_VENDOR) {

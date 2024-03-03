@@ -15,6 +15,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear.
+ *
  ******************************************************************************/
 
 #define LOG_TAG "bt_btif_a2dp_sink"
@@ -42,6 +47,7 @@
 #include "osi/include/fixed_queue.h"
 #include "osi/include/log.h"
 #include "osi/include/osi.h"  // UNUSED_ATTR
+#include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 #include "stack/include/bt_types.h"
 #include "types/raw_address.h"
@@ -270,7 +276,7 @@ bool btif_a2dp_sink_restart_session(const RawAddress& old_peer_address,
     btif_a2dp_sink_end_session(old_peer_address);
   }
 
-  if (!bta_av_co_set_active_peer(new_peer_address)) {
+  if (!bta_av_co_set_active_peer(new_peer_address, true)) {
     LOG(ERROR) << __func__
                << ": Cannot stream audio: cannot set active peer to "
                << new_peer_address;
@@ -539,7 +545,7 @@ static void btif_a2dp_sink_on_decode_complete(uint8_t* data, uint32_t len) {
 
 // Must be called while locked.
 static void btif_a2dp_sink_handle_inc_media(BT_HDR* p_msg) {
-  if ((btif_av_get_peer_sep() == AVDT_TSEP_SNK) ||
+  if ((btif_av_sink_get_peer_sep() == AVDT_TSEP_SNK) ||
       (btif_a2dp_sink_cb.rx_flush)) {
     APPL_TRACE_DEBUG("%s: state changed happened in this tick", __func__);
     return;
@@ -702,6 +708,11 @@ void btif_handle_incoming_encoded_data(BT_HDR *p_msg) {
   }
 }
 
+static size_t btif_a2dp_sink_get_delayed_start_frame_count() {
+  return (size_t)osi_property_get_int32("persist.bluetooth.a2dp.max_start_count",
+                                         MAX_A2DP_DELAYED_START_FRAME_COUNT);
+}
+
 uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   LockGuard lock(g_mutex);
   /* Flush enabled or audio track is nullptr, do not enqueue */
@@ -724,7 +735,7 @@ uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   memcpy(p_msg->data, p_pkt->data + p_pkt->offset, p_pkt->len);
   fixed_queue_enqueue(btif_a2dp_sink_cb.rx_audio_queue, p_msg);
   if (fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue) ==
-      MAX_A2DP_DELAYED_START_FRAME_COUNT) {
+      btif_a2dp_sink_get_delayed_start_frame_count()) {
     BTIF_TRACE_DEBUG("%s: Initiate decoding", __func__);
     btif_a2dp_sink_audio_handle_start_decoding();
   }
@@ -772,6 +783,14 @@ static void btif_a2dp_sink_set_focus_state_event(
   if (btif_a2dp_sink_cb.rx_focus_state == BTIF_A2DP_SINK_FOCUS_NOT_GRANTED) {
     fixed_queue_flush(btif_a2dp_sink_cb.rx_audio_queue, osi_free);
     btif_a2dp_sink_cb.rx_flush = true;
+    APPL_TRACE_DEBUG("%s: re-init decoder to clear the buffer", __func__);
+    if (btif_a2dp_sink_cb.decoder_interface &&
+      (btif_a2dp_sink_cb.decoder_interface->decoder_init)) {
+      if (!btif_a2dp_sink_cb.decoder_interface->decoder_init(
+              btif_a2dp_sink_on_decode_complete)) {
+          LOG_ERROR("%s: failed to initialize decoder", __func__);
+      }
+    }
   } else if (btif_a2dp_sink_cb.rx_focus_state == BTIF_A2DP_SINK_FOCUS_GRANTED) {
     btif_a2dp_sink_cb.rx_flush = false;
   }

@@ -56,7 +56,6 @@ cc_test {
         "lib-bt-packets-base",
         "libbt-protos-lite",
         "libbt-sbc-decoder",
-        "libbt-sbc-encoder",
         "libbt_shim_bridge",
         "libbt_shim_ffi",
         "libbt-stack",
@@ -90,6 +89,7 @@ cc_test {
         "liblog",  // __android_log_print
         "libprocessgroup",
         "libtinyxml2",
+        "libbt-sbc-encoder",
         "libutils",
     ],
     ldflags: ["-rdynamic"],

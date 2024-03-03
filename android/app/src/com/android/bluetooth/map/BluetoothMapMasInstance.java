@@ -11,6 +11,11 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
+*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+*
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 package com.android.bluetooth.map;
 
@@ -25,6 +30,7 @@ import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.bluetooth.BluetoothObexTransport;
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.bluetooth.IObexConnectionHandler;
 import com.android.bluetooth.ObexServerSockets;
 import com.android.bluetooth.map.BluetoothMapContentObserver.Msg;
@@ -160,7 +166,7 @@ public class BluetoothMapMasInstance implements IObexConnectionHandler {
     }
 
     private void init() {
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
+        mAdapter = AdapterService.getAdapter();
     }
 
     /**

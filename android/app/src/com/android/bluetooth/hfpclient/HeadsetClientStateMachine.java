@@ -2358,4 +2358,13 @@ public class HeadsetClientStateMachine extends StateMachine {
     public int getAudioPolicyRemoteSupported() {
         return mAudioPolicyRemoteSupported;
     }
+
+    /**
+     * gets the SCO state
+     *
+     * @return boolean sAudioIsRouted
+     */
+    public static boolean isAudioRouted() {
+        return sAudioIsRouted;
+    }
 }

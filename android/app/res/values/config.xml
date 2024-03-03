@@ -11,6 +11,11 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+   Changes from Qualcomm Innovation Center are provided under the following license:
+
+   Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+   SPDX-License-Identifier: BSD-3-Clause-Clear.
 -->
 <resources>
     <bool name="pbap_include_photos_in_vcard">true</bool>
@@ -83,6 +88,9 @@
     <integer name="a2dp_sink_duck_percent">25</integer>
     <!-- If true, device requests audio focus and start avrcp updates on source start or play -->
     <bool name="a2dp_sink_automatically_request_audio_focus">false</bool>
+
+    <!--For A2DP source set media player feature. -->
+    <bool name="a2dp_source_broadcast_set_media_player">true</bool>
 
     <!-- For enabling the AVRCP Controller Cover Artwork feature -->
     <bool name="avrcp_controller_enable_cover_art">true</bool>
@@ -165,4 +173,7 @@
 
     <!-- Boolean indicating if current platform supports HFP inband ringing -->
     <bool name="config_bluetooth_hfp_inband_ringing_support">true</bool>
+
+    <!-- [Dual Bluetooth] Flag whether or not to filter local counterpart Bluetooth device -->
+    <bool name="filter_device">false</bool>
 </resources>

@@ -23,6 +23,8 @@
 #include <base/logging.h>
 #include <utils/StrongPointer.h>
 
+#include <algorithm>
+
 #include "bt_target.h"
 #include "osi/include/log.h"
 #include "stack/include/a2dp_constants.h"
@@ -44,7 +46,7 @@ char outputFilename[50] = "/data/misc/bluedroid/output_sample.pcm";
 
 void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
                                 int channelCount) {
-  LOG_VERBOSE("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ",
+  LOG_INFO("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ",
               __func__, trackFreq, bitsPerSample, channelCount);
 
   AAudioStreamBuilder* builder;
@@ -54,8 +56,10 @@ void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
   AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
   AAudioStreamBuilder_setChannelCount(builder, channelCount);
   AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
-  AAudioStreamBuilder_setPerformanceMode(builder,
-                                         AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+  aaudio_performance_mode_t mode = (bitsPerSample >= 24) ?
+      AAUDIO_PERFORMANCE_MODE_NONE : AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
+  LOG_DEBUG("%s: mode:%d", __func__, mode);
+  AAudioStreamBuilder_setPerformanceMode(builder, mode);
   result = AAudioStreamBuilder_openStream(builder, &stream);
   CHECK(result == AAUDIO_OK);
   AAudioStreamBuilder_delete(builder);
@@ -156,7 +160,7 @@ static size_t transcodeQ15ToFloat(uint8_t* buffer, size_t length,
                                   BtifAvrcpAudioTrack* trackHolder) {
   size_t sampleSize = sampleSizeFor(trackHolder);
   size_t i = 0;
-  for (; i <= length / sampleSize; i++) {
+  for (; i < std::min(trackHolder->bufferLength, length / sampleSize); i++) {
     trackHolder->buffer[i] = ((int16_t*)buffer)[i] * kScaleQ15ToFloat;
   }
   return i * sampleSize;
@@ -166,9 +170,10 @@ static size_t transcodeQ23ToFloat(uint8_t* buffer, size_t length,
                                   BtifAvrcpAudioTrack* trackHolder) {
   size_t sampleSize = sampleSizeFor(trackHolder);
   size_t i = 0;
-  for (; i <= length / sampleSize; i++) {
+  for (; i < std::min(trackHolder->bufferLength, length / sampleSize); i++) {
     size_t offset = i * sampleSize;
-    int32_t sample = *((int32_t*)(buffer + offset - 1)) & 0x00FFFFFF;
+    int32_t sample = *((int32_t*)(buffer + offset - 1)) & 0xFFFFFF00;
+    sample = sample >> 8;
     trackHolder->buffer[i] = sample * kScaleQ23ToFloat;
   }
   return i * sampleSize;
@@ -178,7 +183,7 @@ static size_t transcodeQ31ToFloat(uint8_t* buffer, size_t length,
                                   BtifAvrcpAudioTrack* trackHolder) {
   size_t sampleSize = sampleSizeFor(trackHolder);
   size_t i = 0;
-  for (; i <= length / sampleSize; i++) {
+  for (; i < std::min(trackHolder->bufferLength, length / sampleSize); i++) {
     trackHolder->buffer[i] = ((int32_t*)buffer)[i] * kScaleQ31ToFloat;
   }
   return i * sampleSize;

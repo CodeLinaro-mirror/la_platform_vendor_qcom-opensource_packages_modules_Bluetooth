@@ -11,6 +11,11 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
+*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+*
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved
+* SPDX-License-Identifier: BSD-3-Clause-Clear.
 */
 package com.android.bluetooth;
 
@@ -20,6 +25,7 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
+import com.android.bluetooth.btservice.AdapterService;
 import com.android.obex.ResponseCodes;
 import com.android.obex.ServerSession;
 
@@ -57,6 +63,7 @@ public class ObexServerSockets {
     /* Handles to the accept threads. Needed for shutdown. */
     private SocketAcceptThread mRfcommThread;
     private SocketAcceptThread mL2capThread;
+    private BluetoothAdapter mAdapter;
 
     private static volatile int sInstanceCounter;
 
@@ -66,6 +73,7 @@ public class ObexServerSockets {
         mRfcommSocket = rfcommSocket;
         mL2capSocket = l2capSocket;
         mTag = "ObexServerSockets" + sInstanceCounter++;
+        mAdapter = AdapterService.getAdapter();
     }
 
     /**
@@ -114,7 +122,7 @@ public class ObexServerSockets {
         if (D) {
             Log.d(STAG, "create(rfcomm = " + rfcommChannel + ", l2capPsm = " + l2capPsm + ")");
         }
-        BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+        BluetoothAdapter bt = AdapterService.getAdapter();
         if (bt == null) {
             throw new RuntimeException("No bluetooth adapter...");
         }
@@ -235,7 +243,6 @@ public class ObexServerSockets {
      */
     private synchronized void onAcceptFailed() {
         shutdown(false);
-        BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
         if ((mAdapter != null) && (mAdapter.getState() == BluetoothAdapter.STATE_ON)) {
             Log.d(mTag, "onAcceptFailed() calling shutdown...");
             mConHandler.onAcceptFailed();

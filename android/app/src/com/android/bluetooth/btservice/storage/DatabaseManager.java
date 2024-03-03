@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -63,6 +68,7 @@ public class DatabaseManager {
     private static final String TAG = "BluetoothDatabase";
 
     private AdapterService mAdapterService = null;
+    private BluetoothAdapter mAdapter = null;
     private HandlerThread mHandlerThread = null;
     private Handler mHandler = null;
     private MetadataDatabase mDatabase = null;
@@ -113,6 +119,7 @@ public class DatabaseManager {
      */
     public DatabaseManager(AdapterService service) {
         mAdapterService = service;
+        mAdapter = mAdapterService.getAdapter();
         mMetadataChangedLog = EvictingQueue.create(METADATA_CHANGED_LOG_MAX_SIZE);
     }
 
@@ -583,6 +590,102 @@ public class DatabaseManager {
     }
 
     /**
+     * Set the A2DP media player
+     *
+     * @param device {@link BluetoothDevice} wish to set
+     * @param mediaPlayer media player's name
+     * @param audioZoneIndex audio zone's index in
+     * {@link A2dpAudioZone#sCarAudioZone}
+     */
+    @VisibleForTesting
+    public boolean setA2dpMediaPlayer(BluetoothDevice device, String mediaPlayer, int audioZoneIndex) {
+        synchronized (mMetadataCache) {
+            if (device == null) {
+                Log.e(TAG, "setA2dpMediaPlayer: device is null");
+                return false;
+            }
+            if (mediaPlayer == null) {
+                Log.e(TAG, "setA2dpMediaPlayer: invalid mediaPlayer");
+                return false;
+            }
+
+            String address = device.getAddress();
+
+            if (!mMetadataCache.containsKey(address)) {
+                return false;
+            }
+            Metadata data = mMetadataCache.get(address);
+            String oldMediaPlayer = data.a2dpMediaPlayer;
+            int oldAudioZoneIndex = data.a2dpAudioZone;
+            if (oldMediaPlayer.equals(mediaPlayer) &&
+                (oldAudioZoneIndex == audioZoneIndex)) {
+                return true;
+            }
+            logMetadataChange(address, "A2DP media player changed: "
+                    + oldMediaPlayer + " -> " + mediaPlayer
+                    + ", audio zone changed: " + oldAudioZoneIndex
+                    + " -> " + audioZoneIndex);
+
+            data.a2dpMediaPlayer = mediaPlayer;
+            data.a2dpAudioZone = audioZoneIndex;
+            updateDatabase(data);
+            return true;
+        }
+    }
+
+    /**
+     * Get the A2DP media player
+     *
+     * @param device {@link BluetoothDevice} wish to get
+     * @return the A2DP media player
+     */
+    @VisibleForTesting
+    public String getA2dpMediaPlayer(BluetoothDevice device) {
+        synchronized (mMetadataCache) {
+            if (device == null) {
+                Log.e(TAG, "getA2dpMediaPlayer: device is null");
+                return "";
+            }
+
+            String address = device.getAddress();
+
+            if (!mMetadataCache.containsKey(address)) {
+                Log.d(TAG, "getA2dpMediaPlayer: device " + address + " is not in cache");
+                return "";
+            }
+
+            Metadata data = mMetadataCache.get(address);
+            return data.a2dpMediaPlayer;
+        }
+    }
+
+    /**
+     * Get the A2DP audio zone
+     *
+     * @param device {@link BluetoothDevice} wish to get
+     * @return the A2DP audio zone index
+     */
+    @VisibleForTesting
+    public int getA2dpAudioZone(BluetoothDevice device) {
+        synchronized (mMetadataCache) {
+            if (device == null) {
+                Log.e(TAG, "getA2dpAudioZone: device is null");
+                return -1;
+            }
+
+            String address = device.getAddress();
+
+            if (!mMetadataCache.containsKey(address)) {
+                Log.d(TAG, "getA2dpAudioZone: device " + address + " is not in cache");
+                return -1;
+            }
+
+            Metadata data = mMetadataCache.get(address);
+            return data.a2dpAudioZone;
+        }
+    }
+
+    /**
      * Updates the time this device was last connected
      *
      * @param device is the remote bluetooth device for which we are setting the connection time
@@ -681,8 +784,7 @@ public class DatabaseManager {
             sortedMetadata.sort((o1, o2) -> Long.compare(o2.last_active_time, o1.last_active_time));
             for (Metadata metadata : sortedMetadata) {
                 try {
-                    mostRecentlyConnectedDevices.add(BluetoothAdapter.getDefaultAdapter()
-                            .getRemoteDevice(metadata.getAddress()));
+                    mostRecentlyConnectedDevices.add(mAdapter.getRemoteDevice(metadata.getAddress()));
                 } catch (IllegalArgumentException ex) {
                     Log.d(TAG, "getBondedDevicesOrdered: Invalid address for "
                             + "device " + metadata.getAddress());
@@ -735,8 +837,7 @@ public class DatabaseManager {
                 Metadata metadata = entry.getValue();
                 if (metadata.is_active_a2dp_device) {
                     try {
-                        return BluetoothAdapter.getDefaultAdapter().getRemoteDevice(
-                                metadata.getAddress());
+                        return mAdapter.getRemoteDevice(metadata.getAddress());
                     } catch (IllegalArgumentException ex) {
                         Log.d(TAG, "getMostRecentlyConnectedA2dpDevice: Invalid address for "
                                 + "device " + metadata.getAddress());
