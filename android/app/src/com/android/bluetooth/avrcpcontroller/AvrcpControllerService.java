@@ -669,6 +669,20 @@ public class AvrcpControllerService extends ProfileService {
         }
     }
 
+    @VisibleForTesting
+    void onUidsChanged(byte[] address, int uidCounter) {
+        if (DBG) {
+            Log.d(TAG, "onUidsChanged uidCounter: " + uidCounter);
+        }
+        BluetoothDevice device = mAdapter.getRemoteDevice(address);
+        AvrcpControllerStateMachine stateMachine = getStateMachine(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MESSAGE_PROCESS_UIDS_CHANGED,
+                    uidCounter, 0, device);
+        }
+    }
+
     // Called by JNI to report remote Player's capabilities
     @VisibleForTesting
     synchronized void handlePlayerAppSetting(byte[] address, byte[] playerAttribRsp,
@@ -1131,10 +1145,12 @@ public class AvrcpControllerService extends ProfileService {
     /**
      * Change the current browsed folder
      *
-     * @param direction up/down
-     * @param uid       folder unique id
+     * @param uidCounter uid counter
+     * @param direction  up/down
+     * @param uid        folder unique id
      */
-    public native void changeFolderPathNative(byte[] address, byte direction, long uid);
+    public native void changeFolderPathNative(byte[] address, int uidCounter,
+            byte direction, long uid);
 
     /**
      * Play item with provided uid
