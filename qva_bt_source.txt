@@ -124,6 +124,7 @@ system/binder/Android.bp
 system/binder/android/bluetooth/IBluetooth.aidl
 system/binder/android/bluetooth/IBluetoothA2dp.aidl
 system/binder/android/bluetooth/IBluetoothA2dpExt.aidl
+system/binder/android/bluetooth/IBluetoothAvrcpController.aidl
 system/binder/android/bluetooth/IBluetoothAvrcpTargetExt.aidl
 system/binder/android/bluetooth/IBluetoothExt.aidl
 system/binder/android/bluetooth/IBluetoothGattExt.aidl

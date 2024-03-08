@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.avrcpcontroller;
@@ -96,6 +101,7 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int MESSAGE_PROCESS_AVAILABLE_PLAYER_CHANGED = 219;
     static final int MESSAGE_PROCESS_RECEIVED_COVER_ART_PSM = 220;
     static final int MESSAGE_PROCESS_SEARCH_RESP = 221;
+    static final int MESSAGE_PROCESS_RC_FEATURES = 222;
 
     //300->399 Events for Browsing
     static final int MESSAGE_GET_FOLDER_ITEMS = 300;
@@ -153,6 +159,7 @@ class AvrcpControllerStateMachine extends StateMachine {
 
     private int mVolumeChangedNotificationsToIgnore = 0;
     private int mVolumeNotificationLabel = -1;
+    private int mRemoteFeatures;
 
     /**
      * Custom action to search.
@@ -224,6 +231,7 @@ class AvrcpControllerStateMachine extends StateMachine {
         mDevice = device;
         mDeviceAddress = Utils.getByteAddress(mDevice);
         mService = service;
+        mRemoteFeatures = BluetoothAvrcpController.BTRC_FEAT_NONE;
         mCoverArtPsm = 0;
         mCoverArtManager = service.getCoverArtManager();
         logD(device.toString());
@@ -305,6 +313,14 @@ class AvrcpControllerStateMachine extends StateMachine {
      */
     public BluetoothDevice getDevice() {
         return mDevice;
+    }
+
+    public synchronized void setRemoteFeatures(int remoteFeatures) {
+        mRemoteFeatures = remoteFeatures;
+    }
+
+    public synchronized int getRemoteFeatures() {
+        return mRemoteFeatures;
     }
 
     /**
@@ -651,6 +667,10 @@ class AvrcpControllerStateMachine extends StateMachine {
                     refreshSearchNode(false);
 
                     processSearchReq((String) msg.obj);
+                    return true;
+
+                case MESSAGE_PROCESS_RC_FEATURES:
+                    setRemoteFeatures(msg.arg1);
                     return true;
 
                 case MSG_AVRCP_SET_REPEAT:
