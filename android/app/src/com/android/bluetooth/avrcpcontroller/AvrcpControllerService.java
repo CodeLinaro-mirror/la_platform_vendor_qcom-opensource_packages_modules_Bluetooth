@@ -1205,4 +1205,13 @@ public class AvrcpControllerService extends ProfileService {
      */
     public native static void getItemAttributesNative(byte[] address, byte scope, long uid,
             int uidCounter, byte numAttributes, int[] attribIds);
+
+    /**
+     * Get element attributes
+     *
+     * @param numAttributes  number of attributes
+     * @param attribIds      list of attributes
+     */
+    public native static void getElementAttributesNative(byte[] address, byte numAttributes,
+            int[] attribIds);
 }

@@ -113,6 +113,7 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int MSG_AVRCP_SET_REPEAT = 304;
     static final int MSG_AVRCP_SEARCH = 305;
     static final int MSG_AVRCP_GET_ITEM_ATTR = 306;
+    static final int MSG_AVRCP_GET_ELEMENT_ATTR = 307;
 
     //400->499 Events for Cover Artwork
     static final int MESSAGE_PROCESS_IMAGE_DOWNLOADED = 400;
@@ -211,6 +212,27 @@ class AvrcpControllerStateMachine extends StateMachine {
         "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_GET_ITEM_ATTR";
     public static final String KEY_BROWSE_SCOPE = "scope";
     public static final String KEY_ATTRIBUTE_ID = "attribute_id";
+
+    /**
+     * Custom action to get element attributes.
+     *
+     * <p>This is called in {@link MediaController.TransportControls.sendCustomAction}
+     *
+     * <p>This is an asynchronous call: it will return immediately.
+     *
+     * <p>Intent {@link AvrcpControllerService.ACTION_TRACK_EVENT} will be broadcast.
+     * to notify the item attributes retrieved.
+     *
+     * @param Bundle wrapped with KEY_ATTRIBUTE_ID
+     *
+     * @return void
+     *
+     * @See {@link android.media.session.MediaController}
+     *      {@link android.media.MediaMetadata}
+     *      {@link com.android.bluetooth.avrcpcontroller.AvrcpControllerService}
+     */
+    public static final String CUSTOM_ACTION_GET_ELEMENT_ATTR =
+        "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_GET_ELEMENT_ATTR";
 
     // Intent used to broadcast A2DP/AVRCP custom action result
     // Requires {@link android.Manifest.permission#BLUETOOTH} permission to receive
@@ -714,6 +736,10 @@ class AvrcpControllerStateMachine extends StateMachine {
                     getItemAttributes((Bundle) msg.obj);
                     return true;
 
+                case MSG_AVRCP_GET_ELEMENT_ATTR:
+                    getElementAttributes((Bundle) msg.obj);
+                    return true;
+
                 case MESSAGE_PROCESS_TRACK_CHANGED:
                     AvrcpItem track = (AvrcpItem) msg.obj;
                     AvrcpItem previousTrack = mAddressedPlayer.getCurrentTrack();
@@ -974,6 +1000,12 @@ class AvrcpControllerStateMachine extends StateMachine {
             } else {
                 logD("processGetItemAttrReq GetElementAttributes");
             }
+        }
+
+        private synchronized void getElementAttributes(Bundle extras) {
+            int [] attributeId = extras.getIntArray(KEY_ATTRIBUTE_ID);
+            AvrcpControllerService.getElementAttributesNative(
+                mDeviceAddress, (byte) attributeId.length, attributeId);
         }
 
         private void processAvailablePlayerChanged() {
@@ -1644,6 +1676,8 @@ class AvrcpControllerStateMachine extends StateMachine {
                 handleCustomActionSearch(extras);
             } else if (CUSTOM_ACTION_GET_ITEM_ATTR.equals(action)) {
                 handleCustomActionGetItemAttributes(extras);
+            } else if (CUSTOM_ACTION_GET_ELEMENT_ATTR.equals(action)) {
+                handleCustomActionGetElementAttributes(extras);
             }
         }
 
@@ -1715,6 +1749,15 @@ class AvrcpControllerStateMachine extends StateMachine {
         }
 
         sendMessage(MSG_AVRCP_GET_ITEM_ATTR, extras);
+    }
+
+    public void handleCustomActionGetElementAttributes(Bundle extras) {
+        logD("handleCustomActionGetElementAttributes extras" + extras);
+        if (extras == null) {
+            return;
+        }
+
+        sendMessage(MSG_AVRCP_GET_ELEMENT_ATTR, extras);
     }
 
     private void broadcastNumOfItems(String cmd, int status, int items) {
