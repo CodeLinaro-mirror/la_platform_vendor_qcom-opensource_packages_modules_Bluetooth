@@ -1230,6 +1230,7 @@ public class AvrcpControllerService extends ProfileService {
      * @param pattern      pattern
      */
     public native static void searchNative(byte[] address, int charset, int strLen, String pattern);
+
     /**
      * Get Search List
      *
@@ -1238,4 +1239,16 @@ public class AvrcpControllerService extends ProfileService {
      * @param strLen       end
      */
     public native static void getSearchListNative(byte[] address, int start, int end);
+
+    /**
+     * Get item attributes with provided uid
+     *
+     * @param scope          scope of item to played
+     * @param uid            song unique id
+     * @param uidCounter     counter
+     * @param numAttributes  number of attributes
+     * @param attribIds      list of attributes
+     */
+    public native static void getItemAttributesNative(byte[] address, byte scope, long uid,
+            int uidCounter, byte numAttributes, int[] attribIds);
 }
