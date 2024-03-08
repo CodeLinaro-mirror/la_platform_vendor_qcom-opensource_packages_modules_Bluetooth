@@ -23,6 +23,7 @@ package com.android.bluetooth.avrcpcontroller;
 
 import android.annotation.RequiresPermission;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.BluetoothAvrcpPlayerSettings;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
@@ -499,6 +500,21 @@ public class AvrcpControllerService extends ProfileService {
                 receiver.propagateException(e);
             }
         }
+
+        @Override
+        public void getSupportedFeatures(BluetoothDevice device,
+                AttributionSource source, SynchronousResultReceiver receiver) {
+            try {
+                AvrcpControllerService service = getService(source);
+                int defaultValue = BluetoothAvrcpController.BTRC_FEAT_NONE;
+                if (service != null) {
+                    defaultValue = service.getSupportedFeatures(device);
+                }
+                receiver.send(defaultValue);
+            } catch (RuntimeException e) {
+                receiver.propagateException(e);
+            }
+        }
     }
 
 
@@ -550,7 +566,13 @@ public class AvrcpControllerService extends ProfileService {
     // Called by JNI to notify Avrcp of features supported by the Remote device.
     @VisibleForTesting
     void getRcFeatures(byte[] address, int features) {
-        /* Do Nothing. */
+        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+        if (DBG) Log.d(TAG, "getRcFeatures(device=" + features + ", features=" + features + ")");
+        AvrcpControllerStateMachine stateMachine = getOrCreateStateMachine(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MESSAGE_PROCESS_RC_FEATURES, features);
+        }
     }
 
     // Called by JNI to notify Avrcp of a remote device's Cover Art PSM
@@ -1037,6 +1059,16 @@ public class AvrcpControllerService extends ProfileService {
         AvrcpControllerStateMachine stateMachine = mDeviceStateMap.get(device);
         return (stateMachine == null) ? BluetoothProfile.STATE_DISCONNECTED
                 : stateMachine.getState();
+    }
+
+    /*Java API*/
+    public synchronized int getSupportedFeatures(BluetoothDevice device) {
+        if (DBG) Log.d(TAG,"getSupportedFeatures device " + device);
+        AvrcpControllerStateMachine stateMachine = mDeviceStateMap.get(device);
+        if (stateMachine != null) {
+            return stateMachine.getRemoteFeatures();
+        }
+        return BluetoothAvrcpController.BTRC_FEAT_NONE;
     }
 
     @Override
