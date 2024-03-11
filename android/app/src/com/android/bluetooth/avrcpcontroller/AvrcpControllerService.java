@@ -946,6 +946,19 @@ public class AvrcpControllerService extends ProfileService {
         }
     }
 
+    private void handleAddToNowPlayingRsp(byte[] address, int status) {
+        if (DBG) {
+            Log.d(TAG, "handleAddToNowPlayingRsp status" + status);
+        }
+        BluetoothDevice device = mAdapter.getRemoteDevice(address);
+
+        AvrcpControllerStateMachine stateMachine = getStateMachine(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MESSAGE_PROCESS_ADD_TO_NOW_PLAYING, status, 0);
+        }
+    }
+
     /* Generic Profile Code */
 
     /**
@@ -1210,6 +1223,15 @@ public class AvrcpControllerService extends ProfileService {
      * @param pattern      pattern
      */
     public native static void searchNative(byte[] address, int charset, int strLen, String pattern);
+
+    /**
+     * add folder into now playing list
+     *
+     * @param scope          scope of item to played
+     * @param uid            song unique id
+     * @param uidCounter     counter
+     */
+    public native static void addToNowPlayingNative(byte[] address, byte scope, long uid, int uidCounter);
 
     /**
      * Get Search List

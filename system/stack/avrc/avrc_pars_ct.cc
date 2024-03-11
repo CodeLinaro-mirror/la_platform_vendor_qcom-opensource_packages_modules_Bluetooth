@@ -857,6 +857,12 @@ static tAVRC_STS avrc_ctrl_pars_vendor_rsp(tAVRC_MSG_VENDOR* p_msg,
       BE_STREAM_TO_UINT8(p_result->rsp.status, p);
       break;
 
+    case AVRC_PDU_ADD_TO_NOW_PLAYING:
+      min_len += 1;
+      if (len < min_len) goto length_error;
+      BE_STREAM_TO_UINT8(p_result->rsp.status, p);
+      break;
+
     default:
       return AVRC_STS_BAD_CMD;
   }
