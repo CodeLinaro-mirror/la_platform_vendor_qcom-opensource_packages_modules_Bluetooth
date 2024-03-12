@@ -1308,8 +1308,6 @@ public final class OobData implements Parcelable {
             // Classic
             + "OobData Length: " +  toHexString(mClassicLength) + "\n\t"
             + "Class of Device: " +  toHexString(mClassOfDevice) + "\n\t"
-            + "Confirmation_ext: " + toHexString(mConfirmationExtendedHash) + "\n\t"
-            + "Randomizer_ext: " + toHexString(mRandomizerExtendedHash) + "\n\t"
             // LE
             + "LE Device Role: " + toHexString(mLeDeviceRole) + "\n\t"
             + "LE Temporary Key: " + toHexString(mLeTemporaryKey) + "\n\t"
