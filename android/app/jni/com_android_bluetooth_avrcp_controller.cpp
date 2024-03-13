@@ -1563,6 +1563,53 @@ static void addToNowPlayingNative(JNIEnv* env, jobject object, jbyteArray addres
   env->ReleaseByteArrayElements(address, addr, 0);
 }
 
+static void requestContinuingResponseNative(JNIEnv* env, jobject object,
+                                   jbyteArray address, jbyte pduId) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->request_continuing_response_cmd(
+      rawAddress, (uint8_t)pduId);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending requestContinuingResponseNative command, status: %d", status);
+  }
+
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void abortContinuingResponseNative(JNIEnv* env, jobject object,
+                                   jbyteArray address, jbyte pduId) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->abort_continuing_response_cmd(
+      rawAddress, (uint8_t)pduId);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending abortContinuingResponseNative command, status: %d", status);
+  }
+
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+
 static JNINativeMethod sMethods[] = {
     {"classInitNative", "()V", (void*)classInitNative},
     {"initNative", "()V", (void*)initNative},
@@ -1591,6 +1638,8 @@ static JNINativeMethod sMethods[] = {
     {"getElementAttributesNative", "([BB[I)V",(void *) getElementAttributesNative},
     {"getFolderItemsNative", "([BBBBB[I)V", (void *) getFolderItemsNative},
     {"addToNowPlayingNative", "([BBJI)V",(void*)addToNowPlayingNative},
+    {"requestContinuingResponseNative", "([BB)V",(void *) requestContinuingResponseNative},
+    {"abortContinuingResponseNative", "([BB)V",(void *) abortContinuingResponseNative},
 };
 
 int register_com_android_bluetooth_avrcp_controller(JNIEnv* env) {

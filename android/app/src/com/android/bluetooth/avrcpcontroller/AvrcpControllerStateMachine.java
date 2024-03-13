@@ -118,6 +118,8 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int MSG_AVRCP_GET_FOLDER_ITEMS_PTS = 308;
     static final int MSG_AVRCP_ADD_TO_NOW_PLAYING = 309;
     static final int MSG_AVRCP_SET_ADDRESSED_PLAYER_PTS = 310;
+    static final int MSG_AVRCP_REQUEST_CONTINUING_RESPONSE = 311;
+    static final int MSG_AVRCP_ABORT_CONTINUING_RESPONSE = 312;
 
     //400->499 Events for Cover Artwork
     static final int MESSAGE_PROCESS_IMAGE_DOWNLOADED = 400;
@@ -312,6 +314,39 @@ class AvrcpControllerStateMachine extends StateMachine {
     public static final String CUSTOM_ACTION_SET_ADDRESSED_PLAYER =
         "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_SET_ADDRESSED_PLAYER";
     public static final String KEY_PLAYER_ID = "player_id";
+
+    /**
+     * Custom action to request for continuing response packets.
+     *
+     * <p>This is called in {@link MediaController.TransportControls.sendCustomAction}
+     *
+     * <p>This is an asynchronous call: it will return immediately.
+     *
+     * @param Bundle wrapped with {@link #KEY_PDU_ID}
+     *
+     * @return void
+     *
+     * @See {@link android.media.session.MediaController}
+     */
+    public static final String CUSTOM_ACTION_REQUEST_CONTINUING_RESPONSE =
+        "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_REQUEST_CONTINUING_RESPONSE";
+    public static final String KEY_PDU_ID = "pdu_id";
+
+    /**
+     * Custom action to abort continuing response.
+     *
+     * <p>This is called in {@link MediaController.TransportControls.sendCustomAction}
+     *
+     * <p>This is an asynchronous call: it will return immediately.
+     *
+     * @param Bundle wrapped with {@link #KEY_PDU_ID}
+     *
+     * @return void
+     *
+     * @See {@link android.media.session.MediaController}
+     */
+    public static final String CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE =
+        "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE";
 
     // Result code
     public static final int RESULT_SUCCESS = 0;
@@ -825,6 +860,14 @@ class AvrcpControllerStateMachine extends StateMachine {
                     setAddressedPlayer(playerId);
                     return true;
 
+                case MSG_AVRCP_REQUEST_CONTINUING_RESPONSE:
+                    RequestContinuingResponse(msg.arg1);
+                    return true;
+
+                case MSG_AVRCP_ABORT_CONTINUING_RESPONSE:
+                    AbortContinuingResponse(msg.arg1);
+                    return true;
+
                 case MESSAGE_PROCESS_TRACK_CHANGED:
                     AvrcpItem track = (AvrcpItem) msg.obj;
                     AvrcpItem previousTrack = mAddressedPlayer.getCurrentTrack();
@@ -1105,6 +1148,18 @@ class AvrcpControllerStateMachine extends StateMachine {
             AvrcpControllerService.getFolderItemsNative(
                 mDeviceAddress, (byte) scope, (byte) start, (byte) end,
                 (byte) attributeId.length, attributeId);
+        }
+
+        private void RequestContinuingResponse(int pduId) {
+            logD("processRequestContinuingResponse pduId=" + pduId);
+            AvrcpControllerService.requestContinuingResponseNative(
+                mDeviceAddress, (byte) pduId);
+        }
+
+        private void AbortContinuingResponse(int pduId) {
+            logD("processAbortContinuingResponse pduId=" + pduId);
+            AvrcpControllerService.abortContinuingResponseNative(
+                mDeviceAddress, (byte) pduId);
         }
 
         private void processAvailablePlayerChanged() {
@@ -1941,6 +1996,10 @@ class AvrcpControllerStateMachine extends StateMachine {
                 handleCustomActionAddToNowPlaying(extras);
             } else if (CUSTOM_ACTION_SET_ADDRESSED_PLAYER.equals(action)) {
                 handleCustomActionSetAddressedPlayer(extras);
+            } else if (CUSTOM_ACTION_REQUEST_CONTINUING_RESPONSE.equals(action)) {
+                handleCustomActionRequestContinuingResponse(extras);
+            } else if (CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE.equals(action)) {
+                handleCustomActionAbortContinuingResponse(extras);
             } else {
                 Log.w(TAG, "Custom action " + action + " not supported.");
             }
@@ -2050,6 +2109,26 @@ class AvrcpControllerStateMachine extends StateMachine {
         }
 
         sendMessage(MSG_AVRCP_SET_ADDRESSED_PLAYER_PTS, extras);
+    }
+
+    public void handleCustomActionRequestContinuingResponse(Bundle extras) {
+        logD("handleCustomActionRequestContinuingResponse extras: " + extras);
+        if (extras == null) {
+            return;
+        }
+
+        int pduId = extras.getInt(KEY_PDU_ID, 0);
+        sendMessage(MSG_AVRCP_REQUEST_CONTINUING_RESPONSE, pduId, 0);
+    }
+
+    public void handleCustomActionAbortContinuingResponse(Bundle extras) {
+        logD("handleCustomActionAbortContinuingResponse extras: " + extras);
+        if (extras == null) {
+            return;
+        }
+
+        int pduId = extras.getInt(KEY_PDU_ID, 0);
+        sendMessage(MSG_AVRCP_ABORT_CONTINUING_RESPONSE, pduId, 0);
     }
 
     private void broadcastNumOfItems(String cmd, int status, int items) {
