@@ -59,7 +59,11 @@
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_AAC) | \
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_APTX)| \
    (1 << BTAV_A2DP_CODEC_INDEX_SINK_APTX_HD)| \
-   (1 << BTAV_A2DP_CODEC_INDEX_SINK_OPUS))
+   (1 << BTAV_A2DP_CODEC_INDEX_SINK_OPUS) | \
+   (1 << BTAV_A2DP_CODEC_INDEX_SOURCE_SBC) | \
+   (1 << BTAV_A2DP_CODEC_INDEX_SOURCE_AAC) | \
+   (1 << BTAV_A2DP_CODEC_INDEX_SOURCE_APTX) | \
+   (1 << BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD))
 
 static bool A2DP_CheckCodecLocation(btav_a2dp_codec_index_t codec_index,
                                     int32_t default_codecs,
@@ -157,7 +161,7 @@ A2dpCodecConfig* A2dpCodecConfig::createCodec(
       codec_config = new A2dpCodecConfigAptxSink(codec_priority);
       break;
     case BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD:
-      //codec_config = new A2dpCodecConfigAptxHdSource(codec_priority);
+      codec_config = new A2dpCodecConfigAptxHdSource(codec_priority);
       break;
     case BTAV_A2DP_CODEC_INDEX_SINK_APTX_HD:
       codec_config = new A2dpCodecConfigAptxHdSink(codec_priority);
@@ -1555,7 +1559,7 @@ bool A2DP_IsCodecSupported(btav_a2dp_codec_index_t codec_index) {
     codec_supported = default_codec_supported;
   }
 
-  LOG_DEBUG("%s: codec_supported %d", __func__, codec_supported);
+  LOG_DEBUG("%s: codec_supported 0x%x", __func__, codec_supported);
   return (codec_flag & codec_supported) == codec_flag ? true : false;
 }
 

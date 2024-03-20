@@ -231,8 +231,9 @@ class MapClientContent {
         ContentValues values = new ContentValues();
         long threadId = getThreadId(message);
         int readStatus = message.getStatus() == Bmessage.Status.READ ? 1 : 0;
-
-        values.put(Sms.THREAD_ID, threadId);
+        if (threadId != -1) {
+            values.put(Sms.THREAD_ID, threadId);
+        }
         values.put(Sms.ADDRESS, recipients);
         values.put(Sms.BODY, message.getBodyContent());
         values.put(Sms.SUBSCRIPTION_ID, mSubscriptionId);
@@ -469,7 +470,12 @@ class MapClientContent {
         }
 
         logV("Contacts = " + messageContacts.toString());
-        return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        try {
+            return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        } catch (Exception e) {
+            Log.e(TAG, "getOrCreateThreadId failed: " + e.toString());
+            return -1;
+        }
     }
 
     private void getRecipientsFromMessage(Bmessage message, Set<String> messageContacts) {

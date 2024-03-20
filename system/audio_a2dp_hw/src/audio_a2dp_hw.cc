@@ -21,6 +21,13 @@
  *
  ******************************************************************************/
 
+/******************************************************************************
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *****************************************************************************/
+
 /*****************************************************************************
  *
  *  Filename:      audio_a2dp_hw.c
@@ -31,6 +38,7 @@
 
 #define LOG_TAG "bt_a2dp_hw"
 
+#include <audio_utils/format.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -75,6 +83,8 @@
 
 #define MIN_DELAY_MS 100
 #define MAX_DELAY_MS 1000
+
+#define DEFAULT_BUF_SIZE 6144
 
 // set WRITE_POLL_MS to 0 for blocking sockets, nonzero for polled non-blocking
 // sockets
@@ -157,11 +167,14 @@ struct a2dp_stream_common {
   int ctrl_fd;
   int audio_fd;
   size_t buffer_sz;
+  struct audio_config in_config;
   struct a2dp_config cfg;
   a2dp_state_t state;
   std::string bdaddress;
   audio_devices_t device_type;
   std::string bus_address;
+  void * data;
+  size_t data_sz;
 };
 
 struct a2dp_stream_out {
@@ -1058,6 +1071,11 @@ static void a2dp_stream_common_destroy(struct a2dp_stream_common* common) {
 
   delete common->mutex;
   common->mutex = NULL;
+  common->data_sz = 0;
+  if (common->data != NULL) {
+    free(common->data);
+    common->data = NULL;
+  }
 }
 
 static int start_audio_datapath(struct a2dp_stream_common* common) {
@@ -1140,6 +1158,62 @@ static int suspend_audio_datapath(struct a2dp_stream_common* common,
   return 0;
 }
 
+static int bt_format_from_24_to_16(a2dp_stream_out *out, const void *buffer,
+                                   size_t in_size, size_t *out_size)
+{
+  /* The value of src_count and des_size refer to
+   * memcpy_to_i16_from_p24 API
+   */
+  size_t src_count = in_size/3;
+  size_t des_size = src_count*2;
+  *out_size = des_size;
+  DEBUG("src_count = %zu, des_size = %zu, data_sz = %zu",
+        src_count, des_size, out->common.data_sz);
+  if (des_size > out->common.data_sz) {
+    out->common.data = realloc(out->common.data, des_size);
+    out->common.data_sz = des_size;
+    if (out->common.data == NULL) {
+      ERROR("%s: Memory Allocation failed!", __func__);
+      out->common.data_sz = 0;
+      return -1;
+    }
+  }
+  memcpy_by_audio_format((int16_t*)out->common.data,
+                         (audio_format_t)out->common.cfg.format,
+                         (uint8_t*)buffer,
+                         out->common.in_config.format,
+                         src_count);
+  return 0;
+}
+
+static int bt_format_from_16_to_24(a2dp_stream_out *out, const void *buffer,
+                                   size_t in_size, size_t *out_size)
+{
+  /* The value of src_count and des_size refer to
+   * memcpy_to_p24_from_i16 API
+   */
+  size_t src_count = in_size/2;
+  size_t des_size = src_count*3;
+  *out_size = des_size;
+  DEBUG("src_count = %zu, des_size = %zu, data_sz = %zu",
+        src_count, des_size, out->common.data_sz);
+  if (des_size > out->common.data_sz) {
+    out->common.data = realloc(out->common.data, des_size);
+    out->common.data_sz = des_size;
+    if (out->common.data == NULL) {
+      ERROR("%s: Memory Allocation failed!", __func__);
+      out->common.data_sz = 0;
+      return -1;
+    }
+  }
+  memcpy_by_audio_format((uint8_t*)out->common.data,
+                         (audio_format_t)out->common.cfg.format,
+                         (int16_t*)buffer,
+                         out->common.in_config.format,
+                         src_count);
+  return 0;
+}
+
 /*****************************************************************************
  *
  *  audio output callbacks
@@ -1151,6 +1225,7 @@ static ssize_t out_write_ext(struct audio_stream_out* stream, const void* buffer
   struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
   int sent = -1;
   size_t write_bytes = bytes;
+  size_t write_reformat_bytes = 0;
 
   DEBUG("bdaddress:%s, bus:%s", out->common.bdaddress.c_str(), out->common.bus_address.c_str());
 
@@ -1188,7 +1263,34 @@ static ssize_t out_write_ext(struct audio_stream_out* stream, const void* buffer
   }
 
   lock.unlock();
-  sent = skt_write(out->common.audio_fd, buffer, write_bytes);
+  if ((audio_format_t)out->common.cfg.format != out->common.in_config.format) {
+    if (((audio_format_t)out->common.cfg.format == AUDIO_FORMAT_PCM_16_BIT) &&
+        (out->common.in_config.format == AUDIO_FORMAT_PCM_24_BIT_PACKED)) {
+      /* Do re-format, Source bitrate is AUDIO_FORMAT_PCM_24_BIT_PACKED,
+       * Destination bitrate is AUDIO_FORMAT_PCM_16_BIT
+       */
+      bt_format_from_24_to_16(out, buffer, write_bytes,
+                              &write_reformat_bytes);
+      sent = skt_write(out->common.audio_fd,
+                       (int16_t*)out->common.data,
+                       write_reformat_bytes);
+    } else if (((audio_format_t)out->common.cfg.format == AUDIO_FORMAT_PCM_24_BIT_PACKED) &&
+               (out->common.in_config.format == AUDIO_FORMAT_PCM_16_BIT)) {
+      /* Do re-format, Source bitrate is AUDIO_FORMAT_PCM_16_BIT,
+       * Destination bitrate is AUDIO_FORMAT_PCM_24_BIT_PACKED
+       */
+      bt_format_from_16_to_24(out, buffer, write_bytes,
+                              &write_reformat_bytes);
+      sent = skt_write(out->common.audio_fd,
+                       (int16_t*)out->common.data,
+                       write_reformat_bytes);
+    } else {
+      ERROR("%s: Not support re-format for bitrate", __func__);
+      goto finish;
+    }
+  } else {
+    sent = skt_write(out->common.audio_fd, buffer, write_bytes);
+  }
   lock.lock();
 
   if (sent == -1) {
@@ -1470,6 +1572,15 @@ static int out_set_parameters(struct audio_stream* stream,
           device_stream_map.emplace(address, out);
           device_group_map.erase(address);
           device_group_map.emplace(address, params["groupBus"]);
+          btav_a2dp_codec_config_t codec_config;
+          btav_a2dp_codec_config_t codec_capability;
+          status = a2dp_read_output_audio_config(&out->common, &codec_config,
+                                            &codec_capability,
+                                            true /* update_stream_config */);
+          if (status < 0) {
+            ERROR("a2dp_read_output_audio_config failed");
+            return status;
+          }
         } else {
           INFO("bdaddress %s disconnected", address.c_str());
           device_stream_map.erase(address);
@@ -1962,6 +2073,8 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
     config->channel_mask =
         out_get_channels((const struct audio_stream*)&out->stream);
 
+    out->common.in_config = *config;
+
     INFO(
         "Output stream config: format=0x%x sample_rate=%d channel_mask=0x%x "
         "buffer_sz=%zu",
@@ -1974,6 +2087,13 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
   if (devices == AUDIO_DEVICE_OUT_BUS) {
     INFO("stream %p, busaddress= %s", out,address);
     bus_stream_map.emplace(address, out);
+    out->common.data = malloc(DEFAULT_BUF_SIZE);
+    out->common.data_sz = DEFAULT_BUF_SIZE;
+    if (out->common.data == NULL) {
+      ERROR("%s: Memory Allocation failed!", __func__);
+      out->common.data_sz = 0;
+      goto err_open;
+    }
   }
 
   DEBUG("success");

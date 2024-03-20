@@ -381,8 +381,9 @@ bool A2DP_VendorCodecEqualsAptxHd(const uint8_t* p_codec_info_a,
          (aptx_hd_cie_a.channelMode == aptx_hd_cie_b.channelMode);
 }
 
-int A2DP_VendorGetBitRateAptxHd(const uint8_t* p_codec_info) {
-  A2dpCodecConfig* CodecConfig = bta_av_get_a2dp_current_codec();
+int A2DP_VendorGetBitRateAptxHd(const RawAddress& peer_address,
+                                         const uint8_t* p_codec_info) {
+  A2dpCodecConfig* CodecConfig = bta_av_get_a2dp_peer_current_codec(peer_address);
   tA2DP_BITS_PER_SAMPLE bits_per_sample = CodecConfig->getAudioBitsPerSample();
   uint16_t samplerate = A2DP_GetTrackSampleRate(p_codec_info);
   return (samplerate * bits_per_sample * 2) / 4;
@@ -514,12 +515,17 @@ std::string A2DP_VendorCodecInfoStringAptxHd(const uint8_t* p_codec_info) {
   return res.str();
 }
 
-/*const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterfaceAptxHd(
+A2dpEncoderInterface* A2DP_VendorGetEncoderInterfaceAptxHd(
+    const RawAddress& peer_address,
     const uint8_t* p_codec_info) {
+  LOG_DEBUG("%s: peer_address:%s", __func__, peer_address.ToString().c_str());
   if (!A2DP_IsVendorSourceCodecValidAptxHd(p_codec_info)) return NULL;
 
-  return &a2dp_encoder_interface_aptx_hd;
-}*/
+  A2dpEncoderInterface* encoder =
+    (A2dpEncoderInterface*)new A2dpAptxHdEncoder(peer_address);
+  setA2dpSourceEncoders(peer_address, encoder);
+  return encoder;
+}
 
 const tA2DP_DECODER_INTERFACE* A2DP_VendorGetDecoderInterfaceAptxHd(
     const uint8_t* p_codec_info) {
@@ -616,7 +622,9 @@ A2dpCodecConfigAptxHdSource::A2dpCodecConfigAptxHdSource(
 A2dpCodecConfigAptxHdSource::~A2dpCodecConfigAptxHdSource() {}
 
 bool A2dpCodecConfigAptxHdSource::init() {
-  if (!isValid()) return false;
+  if (!(isValid() && A2DP_IsCodecSupported(BTAV_A2DP_CODEC_INDEX_SOURCE_APTX_HD))) {
+    return false;
+  }
 
   // Load the encoder
   if (A2DP_VendorLoadEncoderAptxHd() != LOAD_SUCCESS) {
