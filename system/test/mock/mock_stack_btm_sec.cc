@@ -228,9 +228,15 @@ void BTM_PasskeyReqReply(tBTM_STATUS res, const RawAddress& bd_addr,
   inc_func_call_count(__func__);
 }
 void BTM_ReadLocalOobData(void) { inc_func_call_count(__func__); }
+void BTM_ReadLocalOobExtendData(void) { inc_func_call_count(__func__); }
 void BTM_RemoteOobDataReply(tBTM_STATUS res, const RawAddress& bd_addr,
                             const Octet16& c, const Octet16& r) {
   inc_func_call_count(__func__);
+}
+void BTM_RemoteOobExtendedDataReply(tBTM_STATUS res, const RawAddress& bd_addr,
+                            const Octet16& c, const Octet16& r,
+                            const Octet16& c_ext, const Octet16& r_ext) {
+  mock_function_count_map[__func__]++;
 }
 void BTM_SetPinType(uint8_t pin_type, PIN_CODE pin_code, uint8_t pin_code_len) {
   inc_func_call_count(__func__);

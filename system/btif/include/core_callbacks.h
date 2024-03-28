@@ -43,8 +43,8 @@ struct EventCallbacks {
                                 uint32_t cod, bt_ssp_variant_t pairing_variant,
                                 uint32_t pass_key);
   void (*invoke_oob_data_request_cb)(tBT_TRANSPORT t, bool valid, Octet16 c,
-                                     Octet16 r, RawAddress raw_address,
-                                     uint8_t address_type);
+                                     Octet16 r, Octet16 c_ext, Octet16 r_ext,
+                                     RawAddress raw_address, uint8_t address_type);
   void (*invoke_bond_state_changed_cb)(bt_status_t status, RawAddress bd_addr,
                                        bt_bond_state_t state, int fail_reason);
   void (*invoke_address_consolidate_cb)(RawAddress main_bd_addr,

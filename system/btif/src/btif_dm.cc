@@ -1122,6 +1122,48 @@ static void btif_dm_ssp_key_notif_evt(tBTA_DM_SP_KEY_NOTIF* p_ssp_key_notif) {
       bd_addr, bd_name, cod, BT_SSP_VARIANT_PASSKEY_NOTIFICATION,
       p_ssp_key_notif->passkey);
 }
+
+static void btif_dm_oob_req_evt(tBTA_DM_SP_RMT_OOB* p_rmt_oob_req)
+{
+  uint32_t cod = COD_UNCLASSIFIED;
+  int dev_type = BT_DEVICE_TYPE_BREDR;
+
+  BTIF_TRACE_DEBUG("%s", __func__);
+
+  if ((pairing_cb.state == BT_BOND_STATE_BONDING && p_rmt_oob_req->bd_addr != pairing_cb.bd_addr)
+      || (is_empty_128bit(oob_cb.p192_data.c))) {
+    BTIF_TRACE_WARNING("%s(): already in bonding state or lack of oob data, reject request",
+                       __FUNCTION__);
+    return;
+  }
+
+  /* Remote properties update */
+  if (!btif_get_device_type(p_rmt_oob_req->bd_addr, &dev_type)) {
+    dev_type = BT_DEVICE_TYPE_BREDR;
+  }
+
+  btif_update_remote_properties(p_rmt_oob_req->bd_addr, p_rmt_oob_req->bd_name,
+                                p_rmt_oob_req->dev_class,
+                                (tBT_DEVICE_TYPE)dev_type);
+
+  /* bond_state_changed to BONDING */
+  bond_state_changed(BT_STATUS_SUCCESS, p_rmt_oob_req->bd_addr, BT_BOND_STATE_BONDING);
+
+  /* bond_type is PERSISTENT by default in OOB bond */
+  pairing_cb.bond_type = tBTM_SEC_DEV_REC::BOND_TYPE_PERSISTENT;
+
+  btm_set_bond_type_dev(p_rmt_oob_req->bd_addr, pairing_cb.bond_type);
+
+  cod = devclass2uint(p_rmt_oob_req->dev_class);
+
+  if (cod == 0) {
+    BTIF_TRACE_DEBUG("%s cod is 0, set as unclassified", __func__);
+    cod = COD_UNCLASSIFIED;
+  }
+
+  pairing_cb.sdp_attempts = 0;
+  pairing_cb.is_ssp = false;
+}
 /*******************************************************************************
  *
  * Function         btif_dm_auth_cmpl_evt
@@ -1188,7 +1230,10 @@ static void btif_dm_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
     // derivation to allow bond state change notification for the BR/EDR
     // transport so that the subsequent BR/EDR connections to the remote can use
     // the derived link key.
+    // For OOB incoming bond, bond state change from NONE to Bonding directly.
+    // In above case, shall NOT return.
     if (p_auth_cmpl->bd_addr != pairing_cb.bd_addr &&
+        pairing_cb.state != BT_BOND_STATE_NONE &&
         (!pairing_cb.ble.is_penc_key_rcvd)) {
       LOG(INFO) << __func__
                 << " skipping SDP since we did not initiate pairing to "
@@ -1264,6 +1309,11 @@ static void btif_dm_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
           GetInterfaceToProfiles()->events->invoke_address_consolidate_cb(
               pairing_cb.bd_addr, bd_addr);
         } else {
+          /* Incoming OOB bond
+           * Previous state is BOND_NONE, change it to bonding first */
+          if (pairing_cb.state == BT_BOND_STATE_NONE) {
+            bond_state_changed(BT_STATUS_SUCCESS, bd_addr, BT_BOND_STATE_BONDING);
+          }
           bond_state_changed(BT_STATUS_SUCCESS, bd_addr, BT_BOND_STATE_BONDED);
         }
 
@@ -2339,7 +2389,8 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
       BTIF_TRACE_DEBUG("BTA_DM_BLE_SC_CR_LOC_OOB_EVT");
       btif_dm_proc_loc_oob(BT_TRANSPORT_LE, true,
                            p_data->local_oob_data.local_oob_c,
-                           p_data->local_oob_data.local_oob_r);
+                           p_data->local_oob_data.local_oob_r,
+                           {0},{0});
       break;
 
     case BTA_DM_BLE_LOCAL_IR_EVT:
@@ -2376,6 +2427,12 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
       GetInterfaceToProfiles()->events->invoke_le_address_associate_cb(
           p_data->proc_id_addr.pairing_bda, p_data->proc_id_addr.id_addr);
       break;
+
+    case BTA_DM_SP_RMT_OOB_EVT: {
+      BTIF_TRACE_WARNING("%s: BTA_DM_SP_RMT_OOB_EVT", __func__);
+      btif_dm_oob_req_evt(&p_data->rmt_oob);
+      break;
+    }
 
     default:
       BTIF_TRACE_WARNING("%s: unhandled event (%d)", __func__, event);
@@ -2489,6 +2546,10 @@ bool btif_dm_pairing_is_busy() {
  *
  ******************************************************************************/
 void btif_dm_create_bond(const RawAddress bd_addr, int transport) {
+  if (!pairing_cb.is_local_initiated) {
+    /* Not Bond initiator, clean OOB data and use in-band Bond */
+    memset(&oob_cb, 0, sizeof(oob_cb));
+  }
   BTIF_TRACE_EVENT("%s: bd_addr=%s, transport=%d", __func__,
                    ADDRESS_TO_LOGGABLE_CSTR(bd_addr), transport);
 
@@ -2571,10 +2632,7 @@ void btif_dm_create_bond_out_of_band(const RawAddress bd_addr,
   uint8_t empty[] = {0, 0, 0, 0, 0, 0, 0};
   switch (transport) {
     case BT_TRANSPORT_BR_EDR:
-      // TODO(182162589): Flesh out classic impl in legacy BTMSec
-      // Nothing to do yet, but not an error
 
-      // The controller only supports P192
       switch (oob_cb.data_present) {
         case BTM_OOB_PRESENT_192_AND_256:
           LOG_INFO("Have both P192 and  P256");
@@ -2598,8 +2656,7 @@ void btif_dm_create_bond_out_of_band(const RawAddress bd_addr,
           return;
       }
       pairing_cb.is_local_initiated = true;
-      LOG_ERROR("Classic not implemented yet");
-      bond_state_changed(BT_STATUS_UNSUPPORTED, bd_addr, BT_BOND_STATE_NONE);
+      btif_dm_create_bond(bd_addr, transport);
       return;
     case BT_TRANSPORT_LE: {
       // Guess default RANDOM for address type for LE
@@ -3035,10 +3092,26 @@ void btif_dm_proc_io_rsp(UNUSED_ATTR const RawAddress& bd_addr,
 }
 
 void btif_dm_set_oob_for_io_req(tBTM_OOB_DATA* p_has_oob_data) {
+   /*
+  ** 0x00 OOB authentication data not present
+  ** 0x01 P-192 OOB authentication data from remote device present
+  ** 0x02 P-256 OOB authentication data from remote device present
+  ** 0x03 P-192 and P-256 OOB authentication data from remote device present
+  */
+
   if (is_empty_128bit(oob_cb.p192_data.c)) {
-    *p_has_oob_data = false;
+    *p_has_oob_data = BTM_OOB_NONE;
+  } else if (!(is_empty_128bit(oob_cb.p192_data.c)) &&
+             (is_empty_128bit(oob_cb.p256_data.c))){
+    *p_has_oob_data = BTM_OOB_PRESENT_192;
+  } else if ((is_empty_128bit(oob_cb.p192_data.c)) &&
+             !(is_empty_128bit(oob_cb.p256_data.c))){
+    *p_has_oob_data = BTM_OOB_PRESENT_256;
+  } else if (!(is_empty_128bit(oob_cb.p192_data.c)) &&
+             ! (is_empty_128bit(oob_cb.p256_data.c))){
+    *p_has_oob_data = BTM_OOB_PRESENT_192_AND_256;
   } else {
-    *p_has_oob_data = true;
+    *p_has_oob_data = BTM_OOB_UNKNOWN;
   }
   BTIF_TRACE_DEBUG("%s: *p_has_oob_data=%d", __func__, *p_has_oob_data);
 }
@@ -3163,32 +3236,75 @@ void btif_dm_generate_local_oob_data(tBT_TRANSPORT transport) {
       if (!SMP_CrLocScOobData()) {
         waiting_on_oob_advertiser_start = false;
         GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-            transport, false, Octet16{}, Octet16{}, RawAddress{}, 0x00);
+            transport, false, Octet16{}, Octet16{},
+	    Octet16{0}, Octet16{0}, RawAddress{}, 0x00);
       }
     } else {
       GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-          transport, false, Octet16{}, Octet16{}, RawAddress{}, 0x00);
+          transport, false, Octet16{}, Octet16{},
+          Octet16{0}, Octet16{0}, RawAddress{}, 0x00);
     }
   }
 }
 
+/*******************************************************************************
+ *
+ * Function         btif_dm_load_remote_oob_data
+ *
+ * Description      Load remote OOB data to Fluoride stack
+ *
+ * Parameters       transport; Classic or LE
+ *
+ ******************************************************************************/
+void btif_dm_load_remote_oob_data(const RawAddress bd_addr,
+                                  tBT_TRANSPORT transport,
+                                  const bt_oob_data_t p192_data,
+                                  const bt_oob_data_t p256_data) {
+  LOG_DEBUG("Transport %s", bt_transport_text(transport).c_str());
+  bt_oob_data_t empty_data;
+  memset(&empty_data, 0, sizeof(empty_data));
+
+  oob_cb.bdaddr = bd_addr;
+  oob_cb.transport = transport;
+  oob_cb.data_present = (int)BTM_OOB_NONE;
+  if (memcmp(&p192_data, &empty_data, sizeof(p192_data)) != 0) {
+    memcpy(&oob_cb.p192_data, &p192_data, sizeof(bt_oob_data_t));
+    oob_cb.data_present = (int)BTM_OOB_PRESENT_192;
+  }
+
+  if (memcmp(&p256_data, &empty_data, sizeof(p256_data)) != 0) {
+    memcpy(&oob_cb.p256_data, &p256_data, sizeof(bt_oob_data_t));
+    if (oob_cb.data_present == (int)BTM_OOB_PRESENT_192) {
+      oob_cb.data_present = (int)BTM_OOB_PRESENT_192_AND_256;
+    } else {
+      oob_cb.data_present = (int)BTM_OOB_PRESENT_256;
+    }
+  }
+  /* Set is_local_initiated to false*/
+  if (oob_cb.data_present) pairing_cb.is_local_initiated = false;
+  return;
+}
 // Step Four: CallBack from Step Three
 static void get_address_callback(tBT_TRANSPORT transport, bool is_valid,
                                  const Octet16& c, const Octet16& r,
+                                 const Octet16& c_ext, const Octet16& r_ext,
                                  uint8_t address_type, RawAddress address) {
   GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-      transport, is_valid, c, r, address, address_type);
+      transport, is_valid, c, r,
+      c_ext, r_ext, address, address_type);
   waiting_on_oob_advertiser_start = false;
 }
 
 // Step Three: CallBack from Step Two, advertise and get address
 static void start_advertising_callback(uint8_t id, tBT_TRANSPORT transport,
-                                       bool is_valid, const Octet16& c,
-                                       const Octet16& r, tBTM_STATUS status) {
+                                  bool is_valid, const Octet16& c, const Octet16& r,
+                                  const Octet16& c_ext, const Octet16& r_ext,
+                                  tBTM_STATUS status) {
   if (status != 0) {
     LOG_INFO("OOB get advertiser ID failed with status %hhd", status);
     GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-        transport, false, c, r, RawAddress{}, 0x00);
+        transport, false, c, r,
+        c_ext, r_ext, RawAddress{}, 0x00);
     SMP_ClearLocScOobData();
     waiting_on_oob_advertiser_start = false;
     oob_advertiser_id_ = {};
@@ -3197,7 +3313,7 @@ static void start_advertising_callback(uint8_t id, tBT_TRANSPORT transport,
   LOG_DEBUG("OOB advertiser with id %hhd", id);
   auto advertiser = get_ble_advertiser_instance();
   advertiser->GetOwnAddress(
-      id, base::Bind(&get_address_callback, transport, is_valid, c, r));
+      id, base::Bind(&get_address_callback, transport, is_valid, c, r, c_ext, r_ext));
 }
 
 static void timeout_cb(uint8_t id, tBTM_STATUS status) {
@@ -3212,12 +3328,14 @@ static void timeout_cb(uint8_t id, tBTM_STATUS status) {
 
 // Step Two: CallBack from Step One, advertise and get address
 static void id_status_callback(tBT_TRANSPORT transport, bool is_valid,
-                               const Octet16& c, const Octet16& r, uint8_t id,
-                               tBTM_STATUS status) {
+                                    const Octet16& c, const Octet16& r,
+                                    const Octet16& c_ext, const Octet16& r_ext,
+                                    uint8_t id, tBTM_STATUS status) {
   if (status != 0) {
     LOG_INFO("OOB get advertiser ID failed with status %hhd", status);
     GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-        transport, false, c, r, RawAddress{}, 0x00);
+        transport, false, c, r,
+        c_ext, r_ext, RawAddress{}, 0x00);
     SMP_ClearLocScOobData();
     waiting_on_oob_advertiser_start = false;
     oob_advertiser_id_ = {};
@@ -3246,34 +3364,38 @@ static void id_status_callback(tBT_TRANSPORT transport, bool is_valid,
 
   advertiser->StartAdvertising(
       id,
-      base::Bind(&start_advertising_callback, id, transport, is_valid, c, r),
+      base::Bind(&start_advertising_callback, id, transport, is_valid, c, r, c_ext, r_ext),
       parameters, advertisement, scan_data, 120 /* timeout_s */,
       base::Bind(&timeout_cb, id));
 }
 
 // Step One: Start the advertiser
 static void start_oob_advertiser(tBT_TRANSPORT transport, bool is_valid,
-                                 const Octet16& c, const Octet16& r) {
+                                 const Octet16& c, const Octet16& r,
+                                 const Octet16& c_ext, const Octet16& r_ext) {
   auto advertiser = get_ble_advertiser_instance();
   advertiser->RegisterAdvertiser(
-      base::Bind(&id_status_callback, transport, is_valid, c, r));
+      base::Bind(&id_status_callback, transport, is_valid, c, r, c_ext, r_ext));
 }
 
 void btif_dm_proc_loc_oob(tBT_TRANSPORT transport, bool is_valid,
-                          const Octet16& c, const Octet16& r) {
+                              const Octet16& c, const Octet16& r,
+                              const Octet16& c_ext, const Octet16& r_ext) {
   // is_valid is important for deciding which OobDataCallback function to use
   if (!is_valid) {
     GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-        transport, false, c, r, RawAddress{}, 0x00);
+        transport, false, c, r,
+        c_ext, r_ext, RawAddress{}, 0x00);
     waiting_on_oob_advertiser_start = false;
     return;
   }
   if (transport == BT_TRANSPORT_LE) {
     // Now that we have the data, lets start advertising and get the address.
-    start_oob_advertiser(transport, is_valid, c, r);
+    start_oob_advertiser(transport, is_valid, c, r, c_ext, r_ext);
   } else {
     GetInterfaceToProfiles()->events->invoke_oob_data_request_cb(
-        transport, is_valid, c, r, *controller_get_interface()->get_address(),
+        transport, is_valid, c, r, c_ext, r_ext,
+        *controller_get_interface()->get_address(),
         0x00);
   }
 }
@@ -3342,32 +3464,12 @@ bool btif_dm_get_smp_config(tBTE_APPL_CFG* p_cfg) {
 }
 
 bool btif_dm_proc_rmt_oob(const RawAddress& bd_addr, Octet16* p_c,
-                          Octet16* p_r) {
-  const char* path_a = "/data/misc/bluedroid/LOCAL/a.key";
-  const char* path_b = "/data/misc/bluedroid/LOCAL/b.key";
-  const char* path = NULL;
-  char prop_oob[PROPERTY_VALUE_MAX];
-  osi_property_get("service.brcm.bt.oob", prop_oob, "3");
-  BTIF_TRACE_DEBUG("%s: prop_oob = %s", __func__, prop_oob);
-  if (prop_oob[0] == '1')
-    path = path_b;
-  else if (prop_oob[0] == '2')
-    path = path_a;
-  if (!path) {
-    BTIF_TRACE_DEBUG("%s: can't open path!", __func__);
-    return false;
-  }
+                          Octet16* p_r, Octet16* p_c_ext, Octet16* p_r_ext) {
 
-  FILE* fp = fopen(path, "rb");
-  if (fp == NULL) {
-    BTIF_TRACE_DEBUG("%s: failed to read OOB keys from %s", __func__, path);
-    return false;
-  }
-
-  BTIF_TRACE_DEBUG("%s: read OOB data from %s", __func__, path);
-  (void)fread(p_c->data(), 1, OCTET16_LEN, fp);
-  (void)fread(p_r->data(), 1, OCTET16_LEN, fp);
-  fclose(fp);
+  memcpy(p_c->data(), oob_cb.p192_data.c, OCTET16_LEN);
+  memcpy(p_r->data(), oob_cb.p192_data.r, OCTET16_LEN);
+  memcpy(p_c_ext->data(), oob_cb.p256_data.c, OCTET16_LEN);
+  memcpy(p_r_ext->data(), oob_cb.p256_data.r, OCTET16_LEN);
 
   bond_state_changed(BT_STATUS_SUCCESS, bd_addr, BT_BOND_STATE_BONDING);
   return true;
