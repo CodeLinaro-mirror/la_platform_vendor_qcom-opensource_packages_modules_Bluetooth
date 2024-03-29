@@ -1541,8 +1541,7 @@ public final class BluetoothDevice implements Parcelable, Attributable {
     public static final @android.annotation.NonNull Parcelable.Creator<BluetoothDevice> CREATOR =
             new Parcelable.Creator<BluetoothDevice>() {
                 public BluetoothDevice createFromParcel(Parcel in) {
-                    String address = in.readString();
-                    return new BluetoothDevice(address, in.readInt());
+                    return new BluetoothDevice(in.readInt(), in.readString());
                 }
 
                 public BluetoothDevice[] newArray(int size) {
@@ -1552,8 +1551,8 @@ public final class BluetoothDevice implements Parcelable, Attributable {
 
     @Override
     public void writeToParcel(Parcel out, int flags) {
-        out.writeString(mAddress);
         out.writeInt(mAdapterIndex);
+        out.writeString(mAddress);
     }
 
     /**
