@@ -120,6 +120,7 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int MSG_AVRCP_SET_ADDRESSED_PLAYER_PTS = 310;
     static final int MSG_AVRCP_REQUEST_CONTINUING_RESPONSE = 311;
     static final int MSG_AVRCP_ABORT_CONTINUING_RESPONSE = 312;
+    static final int MSG_AVRCP_PLAY_ITEM_PTS = 313;
 
     //400->499 Events for Cover Artwork
     static final int MESSAGE_PROCESS_IMAGE_DOWNLOADED = 400;
@@ -347,6 +348,26 @@ class AvrcpControllerStateMachine extends StateMachine {
      */
     public static final String CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE =
         "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE";
+
+	 /**
+	 * Custom action to play item.
+	 *
+	 * <p>This is called in {@link MediaController.TransportControls.sendCustomAction}
+	 *
+	 * <p>This is an asynchronous call: it will return immediately.
+	 *
+	 * <p>Intent {@link #ACTION_CUSTOM_ACTION_RESULT} will be broadcast to notify the result.
+	 * {@link AvrcpControllerService} will update NowPlaying list if succeed.
+	 *
+	 * @param Bundle wrapped with {@link #MediaMetadata.METADATA_KEY_MEDIA_ID}
+	 *
+	 * @return void
+	 *
+	 * @See {@link android.media.session.MediaController}
+	 *      {@link com.android.bluetooth.avrcpcontroller.AvrcpControllerService}
+	 */
+	public static final String CUSTOM_ACTION_PLAY_ITEM =
+		"android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_PLAY_ITEM";
 
     // Result code
     public static final int RESULT_SUCCESS = 0;
@@ -868,6 +889,15 @@ class AvrcpControllerStateMachine extends StateMachine {
                     AbortContinuingResponse(msg.arg1);
                     return true;
 
+                case MSG_AVRCP_PLAY_ITEM_PTS: {
+                    String mediaId = ((Bundle) msg.obj).getString(
+                            MediaMetadata.METADATA_KEY_MEDIA_ID);
+                    BrowseTree.BrowseNode node = mBrowseTree.findBrowseNodeByID(mediaId);
+                    int scope = ((Bundle) msg.obj).getInt(KEY_BROWSE_SCOPE, 0);
+                    playItemPTS(scope, node);
+                    return true;
+                }
+
                 case MESSAGE_PROCESS_TRACK_CHANGED:
                     AvrcpItem track = (AvrcpItem) msg.obj;
                     AvrcpItem previousTrack = mAddressedPlayer.getCurrentTrack();
@@ -1004,7 +1034,7 @@ class AvrcpControllerStateMachine extends StateMachine {
                     processUIDSChange(msg);
                     return true;
 
-                case MESSAGE_PROCESS_IMAGE_DOWNLOADED:
+                case MESSAGE_PROCESS_IMAGE_DOWNLOADED: {
                     AvrcpCoverArtManager.DownloadEvent event =
                             (AvrcpCoverArtManager.DownloadEvent) msg.obj;
                     String uuid = event.getUuid();
@@ -1033,6 +1063,7 @@ class AvrcpControllerStateMachine extends StateMachine {
                     }
 
                     return true;
+                }
 
                 case DISCONNECT:
                     transitionTo(mDisconnecting);
@@ -1056,6 +1087,23 @@ class AvrcpControllerStateMachine extends StateMachine {
 
         private void setAddressedPlayer(int playerId) {
             mService.setAddressedPlayerNative(mDeviceAddress, playerId);
+        }
+
+        private void playItemPTS(int scope, BrowseTree.BrowseNode node) {
+            if(scope == AvrcpControllerService.BROWSE_SCOPE_NOW_PLAYING) {
+                node = mBrowseTree.mNowPlayingNode;
+
+                if(node.getChildrenCount() == 0) {
+                    nowPlayingContentChanged();
+                    return;
+                }
+
+                node = node.getChild(0);
+            }
+
+            mService.playItemNative(
+                mDeviceAddress, node.getScope(),
+                node.getBluetoothID(), mUidCounter);
         }
 
         private synchronized void passThru(int cmd) {
@@ -2000,6 +2048,8 @@ class AvrcpControllerStateMachine extends StateMachine {
                 handleCustomActionRequestContinuingResponse(extras);
             } else if (CUSTOM_ACTION_ABORT_CONTINUING_RESPONSE.equals(action)) {
                 handleCustomActionAbortContinuingResponse(extras);
+            } else if (CUSTOM_ACTION_PLAY_ITEM.equals(action)) {
+                handleCustomActionPlayItem(extras);
             } else {
                 Log.w(TAG, "Custom action " + action + " not supported.");
             }
@@ -2129,6 +2179,15 @@ class AvrcpControllerStateMachine extends StateMachine {
 
         int pduId = extras.getInt(KEY_PDU_ID, 0);
         sendMessage(MSG_AVRCP_ABORT_CONTINUING_RESPONSE, pduId, 0);
+    }
+
+    public void handleCustomActionPlayItem(Bundle extras) {
+        logD("handleCustomActionPlayItem extras: " + extras);
+        if (extras == null) {
+            return;
+        }
+
+        sendMessage(MSG_AVRCP_PLAY_ITEM_PTS, extras);
     }
 
     private void broadcastNumOfItems(String cmd, int status, int items) {
