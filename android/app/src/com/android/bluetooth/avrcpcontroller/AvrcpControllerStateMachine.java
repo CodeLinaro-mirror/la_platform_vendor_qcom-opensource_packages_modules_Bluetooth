@@ -121,6 +121,7 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int MSG_AVRCP_SET_ADDRESSED_PLAYER_PTS = 310;
     static final int MSG_AVRCP_REQUEST_CONTINUING_RESPONSE = 311;
     static final int MSG_AVRCP_ABORT_CONTINUING_RESPONSE = 312;
+    static final int MSG_AVRCP_PASSTHRU_EXT = 313;
 
     //400->499 Events for Cover Artwork
     static final int MESSAGE_PROCESS_IMAGE_DOWNLOADED = 400;
@@ -197,6 +198,12 @@ class AvrcpControllerStateMachine extends StateMachine {
     public static final String CUSTOM_ACTION_SEARCH =
         "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_SEARCH";
     public static final String KEY_SEARCH = "search";
+
+    // Send pass through command (with key state)
+    public static final String CUSTOM_ACTION_SEND_PASS_THRU_CMD =
+        "android.bluetooth.avrcp-controller.profile.action.CUSTOM_ACTION_SEND_PASS_THRU_CMD";
+    public static final String KEY_CMD = "cmd";
+    public static final String KEY_STATE = "state";
 
     /**
      * Custom action to get item attributes.
@@ -876,6 +883,10 @@ class AvrcpControllerStateMachine extends StateMachine {
                     processSearchReq((String) msg.obj);
                     return true;
 
+                case MSG_AVRCP_PASSTHRU_EXT:
+                    passThru(msg.arg1, msg.arg2);
+                    return true;
+
                 case MESSAGE_PROCESS_RC_FEATURES:
                     setRemoteFeatures(msg.arg1);
                     return true;
@@ -1141,6 +1152,13 @@ class AvrcpControllerStateMachine extends StateMachine {
         private boolean isHoldableKey(int cmd) {
             return (cmd == AvrcpControllerService.PASS_THRU_CMD_ID_REWIND)
                     || (cmd == AvrcpControllerService.PASS_THRU_CMD_ID_FF);
+        }
+
+        private synchronized void passThru(int cmd, int state) {
+            logD("msgPassThru " + cmd + ", key state " + state);
+            mService.sendPassThroughCommandNative(
+                    mDeviceAddress, cmd,
+                    state);
         }
 
         private void setRepeat(int repeatMode) {
@@ -2072,6 +2090,8 @@ class AvrcpControllerStateMachine extends StateMachine {
             logD("onCustomAction:" + action);
             if (CUSTOM_ACTION_SEARCH.equals(action)) {
                 handleCustomActionSearch(extras);
+            } else if (CUSTOM_ACTION_SEND_PASS_THRU_CMD.equals(action)) {
+                handleCustomActionSendPassThruCmd(extras);
             } else if (CUSTOM_ACTION_GET_ITEM_ATTR.equals(action)) {
                 handleCustomActionGetItemAttributes(extras);
             } else if (CUSTOM_ACTION_GET_ELEMENT_ATTR.equals(action)) {
@@ -2224,6 +2244,17 @@ class AvrcpControllerStateMachine extends StateMachine {
 
         String searchQuery = extras.getString(KEY_SEARCH);
         sendMessage(MSG_AVRCP_SEARCH, searchQuery);
+    }
+
+    public void handleCustomActionSendPassThruCmd(Bundle extras) {
+        logD("handleCustomActionSendPassThruCmd extras: " + extras);
+        if (extras == null) {
+            return;
+        }
+
+        int cmd = extras.getInt(KEY_CMD);
+        int state = extras.getInt(KEY_STATE);
+        sendMessage(MSG_AVRCP_PASSTHRU_EXT, cmd, state);
     }
 
     private void handleCustomActionGetItemAttributes(Bundle extras) {
