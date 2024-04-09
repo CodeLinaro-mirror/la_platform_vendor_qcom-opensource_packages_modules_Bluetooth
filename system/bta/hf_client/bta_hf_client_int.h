@@ -227,9 +227,9 @@ void bta_hf_client_app_callback(uint16_t event, tBTA_HF_CLIENT* data);
 void bta_hf_client_collision_cback(tBTA_SYS_CONN_STATUS status, uint8_t id,
                                    uint8_t app_id, const RawAddress& peer_addr);
 void bta_hf_client_resume_open(tBTA_HF_CLIENT_CB* client_cb);
-tBTA_STATUS bta_hf_client_api_enable(tBTA_HF_CLIENT_CBACK* p_cback,
-                                     tBTA_HF_CLIENT_FEAT features,
-                                     const char* p_service_name);
+void bta_hf_client_api_enable(tBTA_HF_CLIENT_CBACK* p_cback,
+                              tBTA_HF_CLIENT_FEAT features,
+                              const char* p_service_name);
 
 void bta_hf_client_api_disable(void);
 void bta_hf_client_dump_statistics(int fd);
