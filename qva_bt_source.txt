@@ -9,6 +9,7 @@ android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.jav
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/btservice/AdapterService.java
+android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/mapclient/MnsService.java

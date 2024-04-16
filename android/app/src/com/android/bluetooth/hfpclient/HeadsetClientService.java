@@ -15,7 +15,7 @@
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
  *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
@@ -33,6 +33,8 @@ import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
@@ -90,6 +92,7 @@ public class HeadsetClientService extends ProfileService {
     private final Object mStartStopLock = new Object();
 
     public static final String HFP_CLIENT_STOP_TAG = "hfp_client_stop_tag";
+    private HeadsetClientHandler mHandler = null;
 
     public static boolean isEnabled() {
         return BluetoothProperties.isProfileHfpHfEnabled().orElse(false);
@@ -135,10 +138,14 @@ public class HeadsetClientService extends ProfileService {
             }
 
             IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+            filter.addAction(BluetoothHeadsetClient.ACTION_VENDOR_SPECIFIC_HEADSETCLIENT_EVENT);
             if (!isAutomotive()) {
                 filter.addAction(AudioManager.ACTION_VOLUME_CHANGED);
             }
-            registerReceiver(mBroadcastReceiver, filter);
+            // For apps targeting Build.VERSION_CODES.UPSIDE_DOWN_CAKE, either RECEIVER_EXPORTED
+            // or RECEIVER_NOT_EXPORTED must be specified if the receiver is not being registered
+            // for system broadcasts or a SecurityException will be thrown.
+            registerReceiver(mBroadcastReceiver, filter, Context.RECEIVER_EXPORTED);
 
             // Start the HfpClientConnectionService to create connection with telecom when HFP
             // connection is available.
@@ -153,6 +160,9 @@ public class HeadsetClientService extends ProfileService {
             AdapterService.getAdapterService().notifyActivityAttributionInfo(
                     getAttributionSource(),
                     AdapterService.ACTIVITY_ATTRIBUTION_NO_ACTIVE_DEVICE_ADDRESS);
+            mHandler = new HeadsetClientHandler.Builder()
+                            .setContext(this)
+                            .build();
             return true;
         }
     }
@@ -256,7 +266,15 @@ public class HeadsetClientService extends ProfileService {
                         }
                     }
                 }
+            } else if (action.equals(
+                        BluetoothHeadsetClient.ACTION_VENDOR_SPECIFIC_HEADSETCLIENT_EVENT)) {
+                if (DBG) Log.d(TAG, "Handle SPECIFIC HEADSETCLIENT EVENT");
+                Bundle extras = intent.getBundleExtra(HeadsetClientHandler.EXTRA_CUSTOM_ACTION);
+                mHandler.obtainMessage(HeadsetClientHandler.MSG_CUSTOM_ACTION, extras).
+                    sendToTarget();
             }
+
+
         }
     };
 
@@ -1122,6 +1140,28 @@ public class HeadsetClientService extends ProfileService {
         Message msg = sm.obtainMessage(HeadsetClientStateMachine.ENTER_PRIVATE_MODE);
         msg.arg1 = index;
         sm.sendMessage(msg);
+        return true;
+    }
+
+    boolean releaseCall(BluetoothDevice device, int index) {
+        Log.d(TAG, "Enter releaseCall");
+        enforceCallingOrSelfPermission(BLUETOOTH_PERM, "Need BLUETOOTH permission");
+        HeadsetClientStateMachine sm = getStateMachine(device);
+        if (sm == null) {
+            Log.e(TAG, "Cannot allocate SM for device " + device);
+            return false;
+        }
+
+        int connectionState = sm.getConnectionState(device);
+        if (connectionState != BluetoothProfile.STATE_CONNECTED
+                && connectionState != BluetoothProfile.STATE_CONNECTING) {
+            return false;
+        }
+
+        Message msg = sm.obtainMessage(HeadsetClientStateMachine.RELEASE_CALL);
+        msg.arg1 = index;
+        sm.sendMessage(msg);
+        Log.d(TAG, "Exit releaseCall");
         return true;
     }
 
