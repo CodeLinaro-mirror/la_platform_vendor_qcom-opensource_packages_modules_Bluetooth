@@ -845,6 +845,12 @@ void bta_dm_ci_rmt_oob_act(std::unique_ptr<tBTA_DM_CI_RMT_OOB> msg) {
                          msg->bd_addr, msg->c, msg->r);
 }
 
+/** respond to the OOB extended data request for the remote device from BTM */
+void bta_dm_ci_rmt_oob_extended_act(std::unique_ptr<tBTA_DM_CI_RMT_OOB_EXTENDED> msg) {
+  BTM_RemoteOobExtendedDataReply(msg->accept ? BTM_SUCCESS : BTM_NOT_AUTHORIZED,
+                                 msg->bd_addr, msg->c192, msg->r192, msg->c256, msg->r256);
+}
+
 /*******************************************************************************
  *
  * Function         bta_dm_search_start
@@ -1109,7 +1115,9 @@ void bta_dm_disc_rmt_name(tBTA_DM_MSG* p_data) {
 static void store_avrcp_profile_feature(tSDP_DISC_REC* sdp_rec) {
   tSDP_DISC_ATTR* p_attr =
       SDP_FindAttributeInRec(sdp_rec, ATTR_ID_SUPPORTED_FEATURES);
-  if (p_attr == NULL) {
+  if (p_attr == NULL ||
+      SDP_DISC_ATTR_TYPE(p_attr->attr_len_type) != UINT_DESC_TYPE ||
+      SDP_DISC_ATTR_LEN(p_attr->attr_len_type) < 2) {
     return;
   }
 
@@ -2521,19 +2529,30 @@ static tBTM_STATUS bta_dm_sp_cback(tBTM_SP_EVT event,
 #ifdef BTIF_DM_OOB_TEST
       btif_dm_proc_loc_oob(BT_TRANSPORT_BR_EDR,
                            (bool)(p_data->loc_oob.status == BTM_SUCCESS),
-                           p_data->loc_oob.c, p_data->loc_oob.r);
+                           p_data->loc_oob.c, p_data->loc_oob.r, {0}, {0});
+#endif
+      break;
+
+    case BTM_SP_LOC_OOB_EXT_EVT:
+#ifdef BTIF_DM_OOB_TEST
+      btif_dm_proc_loc_oob(BT_TRANSPORT_BR_EDR,
+                           (bool)(p_data->loc_oob.status == BTM_SUCCESS),
+                           p_data->loc_oob.c, p_data->loc_oob.r,
+                           p_data->loc_oob.c_ext, p_data->loc_oob.r_ext);
 #endif
       break;
 
     case BTM_SP_RMT_OOB_EVT: {
-      Octet16 c;
-      Octet16 r;
+      Octet16 c192;
+      Octet16 r192;
+      Octet16 c256;
+      Octet16 r256;
       sp_rmt_result = false;
 #ifdef BTIF_DM_OOB_TEST
-      sp_rmt_result = btif_dm_proc_rmt_oob(p_data->rmt_oob.bd_addr, &c, &r);
+      sp_rmt_result = btif_dm_proc_rmt_oob(p_data->rmt_oob.bd_addr, &c192, &r192, &c256 ,&r256);
 #endif
       BTIF_TRACE_DEBUG("bta_dm_ci_rmt_oob: result=%d", sp_rmt_result);
-      bta_dm_ci_rmt_oob(sp_rmt_result, p_data->rmt_oob.bd_addr, c, r);
+      bta_dm_ci_rmt_oob_extended(sp_rmt_result, p_data->rmt_oob.bd_addr, c192, r192, c256, r256);
       break;
     }
 

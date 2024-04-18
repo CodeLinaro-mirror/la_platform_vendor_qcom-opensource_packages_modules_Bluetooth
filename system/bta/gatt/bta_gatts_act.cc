@@ -32,6 +32,7 @@
 #include "osi/include/allocator.h"
 #include "osi/include/osi.h"
 #include "stack/include/gatt_api.h"
+#include "stack/gatt/gatt_int.h"
 #include "types/raw_address.h"
 
 #include <base/logging.h>
@@ -587,9 +588,14 @@ static void bta_gatts_conn_cback(tGATT_IF gatt_if, const RawAddress& bdaddr,
   VLOG(1) << __func__ << "  bda=" << bdaddr << " gatt_if= " << gatt_if
           << ", conn_id=" << loghex(conn_id) << " connected=" << connected;
 
-  if (connected)
+  if (connected) {
     btif_debug_conn_state(bdaddr, BTIF_DEBUG_CONNECTED, GATT_CONN_OK);
-  else
+    /* Insert the app in p_tcb->app_hold_link when server connected
+     * If NOT, GATT server application can NOT drop connection ever
+     */
+    tGATT_TCB* p_tcb = gatt_find_tcb_by_addr(bdaddr, BT_TRANSPORT_LE);
+    if (p_tcb) gatt_update_app_use_link_flag(gatt_if, p_tcb, true, true);
+  } else
     btif_debug_conn_state(bdaddr, BTIF_DEBUG_DISCONNECTED, GATT_CONN_OK);
 
   p_reg = bta_gatts_find_app_rcb_by_app_if(gatt_if);

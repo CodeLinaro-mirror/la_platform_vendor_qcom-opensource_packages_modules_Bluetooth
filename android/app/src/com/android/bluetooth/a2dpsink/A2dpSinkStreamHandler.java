@@ -27,7 +27,9 @@ import android.os.Message;
 import android.util.Log;
 
 import com.android.bluetooth.R;
+import com.android.bluetooth.avrcpcontroller.BluetoothMediaBrowserService;
 import com.android.bluetooth.avrcpcontroller.AvrcpControllerService;
+import com.android.bluetooth.hfpclient.HeadsetClientStateMachine;
 
 /**
  * Bluetooth A2DP SINK Streaming Handler.
@@ -143,6 +145,11 @@ public class A2dpSinkStreamHandler extends Handler {
                 if (isTvDevice() || shouldRequestFocus()) {
                     requestAudioFocusIfNone();
                 }
+                // send pause when no audio focus
+                if (mAudioFocus == AudioManager.AUDIOFOCUS_NONE) {
+                    if (DBG) Log.d(TAG, " pause due to no audio focus");
+                    BluetoothMediaBrowserService.pause();
+                }
                 break;
 
             case SRC_STR_STOP:
@@ -242,6 +249,16 @@ public class A2dpSinkStreamHandler extends Handler {
      */
     private void requestAudioFocusIfNone() {
         if (DBG) Log.d(TAG, "requestAudioFocusIfNone()");
+
+        // Don't request audio focus when SCO is connected.
+        // Audio playing cannot be recovered after failure occurs in requesting audio focus.
+        // This is because AudioService cleans up focus owner upon requestAudioFocus failure.
+        // Thus A2dpSinkStreamHandler can't receive Audio focus change event to resume music
+        // playing after call is terminated.
+        if (HeadsetClientStateMachine.isAudioRouted()) {
+            return;
+        }
+
         if (mAudioFocus != AudioManager.AUDIOFOCUS_GAIN) {
             requestAudioFocus();
         }

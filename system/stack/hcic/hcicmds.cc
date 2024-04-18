@@ -307,6 +307,7 @@ void bte_main_hci_send(BT_HDR* p_msg, uint16_t event);
 
 /* Remote OOB Data Request Reply */
 #define HCIC_PARAM_SIZE_REM_OOB_REPLY 38
+#define HCIC_PARAM_SIZE_REM_OOB_EXTENDED_REPLY 70
 
 #define HCI_REM_OOB_DATA_BD_ADDR_OFF 0
 #define HCI_REM_OOB_DATA_C_OFF 6
@@ -1420,6 +1421,19 @@ void btsnd_hcic_read_local_oob_data(void) {
   btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
 }
 
+void btsnd_hcic_read_local_oob_ext_data(void) {
+  BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
+  uint8_t* pp = (uint8_t*)(p + 1);
+
+  p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_R_LOCAL_OOB;
+  p->offset = 0;
+
+  UINT16_TO_STREAM(pp, HCI_READ_LOCAL_OOB_EXTENDED_DATA);
+  UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_R_LOCAL_OOB);
+
+  btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
+}
+
 void btsnd_hcic_user_conf_reply(const RawAddress& bd_addr, bool is_yes) {
   BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
   uint8_t* pp = (uint8_t*)(p + 1);
@@ -1487,6 +1501,29 @@ void btsnd_hcic_rem_oob_reply(const RawAddress& bd_addr, const Octet16& c,
   BDADDR_TO_STREAM(pp, bd_addr);
   ARRAY16_TO_STREAM(pp, c.data());
   ARRAY16_TO_STREAM(pp, r.data());
+
+  btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
+}
+
+void btsnd_hcic_rem_oob_ext_reply(const RawAddress& bd_addr,
+                                       const Octet16& c192,
+                                       const Octet16& r192,
+                                       const Octet16& c256,
+                                       const Octet16& r256) {
+  BT_HDR* p = (BT_HDR*)osi_malloc(HCI_CMD_BUF_SIZE);
+  uint8_t* pp = (uint8_t*)(p + 1);
+
+  p->len = HCIC_PREAMBLE_SIZE + HCIC_PARAM_SIZE_REM_OOB_EXTENDED_REPLY;
+  p->offset = 0;
+
+  UINT16_TO_STREAM(pp, HCI_REM_OOB_EXTENDED_DATA_REQ_REPLY);
+  UINT8_TO_STREAM(pp, HCIC_PARAM_SIZE_REM_OOB_EXTENDED_REPLY);
+
+  BDADDR_TO_STREAM(pp, bd_addr);
+  ARRAY16_TO_STREAM(pp, c192.data());
+  ARRAY16_TO_STREAM(pp, r192.data());
+  ARRAY16_TO_STREAM(pp, c256.data());
+  ARRAY16_TO_STREAM(pp, r256.data());
 
   btu_hcif_send_cmd(LOCAL_BR_EDR_CONTROLLER_ID, p);
 }
@@ -1678,6 +1715,7 @@ bluetooth::legacy::hci::Interface interface_ = {
     .Disconnect = btsnd_hcic_disconnect,                  // OCF 0x0406
     .ChangeConnectionPacketType = btsnd_hcic_change_conn_type,  // OCF 0x040F,
     .StartRoleSwitch = btsnd_hcic_switch_role,               // OCF 0x080B,
+    .ReadLocalOobExtendData = btsnd_hcic_read_local_oob_ext_data,// OCF 0x0C7D,
 };
 
 const bluetooth::legacy::hci::Interface&

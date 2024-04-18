@@ -2,9 +2,13 @@
 # app
 android/app/Android.bp
 android/app/AndroidManifest.xml
+android/app/jni/com_android_bluetooth_btservice_AdapterService.cpp
 android/app/res/values/config.xml
+android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+android/app/src/com/android/bluetooth/btservice/AdapterService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 
@@ -13,18 +17,38 @@ apex/permissions/com.android.bluetooth.xml
 
 # framework
 framework/java/android/bluetooth/BluetoothDevice.java
+framework/java/android/bluetooth/OobData.java
 
 # system (bluetooth stack)
+system/bta/av/bta_av_aact.cc
+system/binder/android/bluetooth/IBluetooth.aidl
+system/bta/dm/bta_dm_act.cc
+system/bta/dm/bta_dm_ci.cc
+system/bta/dm/bta_dm_int.h
+system/bta/gatt/bta_gatts_act.cc
+system/bta/hf_client/bta_hf_client_int.h
+system/bta/include/bta_api.h
 system/bta/include/bta_av_co.h
+system/bta/include/bta_dm_ci.h
 system/btif/co/bta_av_co.cc
+system/btif/include/btif_common.h
+system/btif/include/btif_dm.h
+system/btif/include/core_callbacks.h
+system/btif/src/bluetooth.cc
 system/btif/src/btif_a2dp_sink.cc
 system/btif/src/btif_av.cc
 system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_gatt_server.cc
 system/btif/src/btif_dm.cc
+system/btif/src/btif_util.cc
 system/btif/Android.bp
+system/btif/src/btif_hf_client.cc
 system/gd/hci/hci_layer.cc
+system/btif/src/btif_rc.cc
+system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
+system/internal_include/bt_target.h
+system/main/shim/btm_api.h
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
 system/stack/a2dp/a2dp_sbc.cc
@@ -40,7 +64,12 @@ system/stack/a2dp/a2dp_vendor_ldac.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/Android.bp
 system/stack/avdt/avdt_scb_act.cc
+system/stack/btm/btm_client_interface.cc
+system/stack/btm/btm_sec.cc
+system/stack/btm/btm_sec.h
+system/stack/btu/btu_hcif.cc
 system/stack/BUILD.gn
+system/stack/hcic/hcicmds.cc
 system/stack/include/a2dp_codec_api.h
 system/stack/include/a2dp_vendor.h
 system/stack/include/a2dp_vendor_aptx.h
@@ -48,7 +77,17 @@ system/stack/include/a2dp_vendor_aptx_hd.h
 system/stack/include/a2dp_vendor_aptx_decoder.h
 system/stack/include/a2dp_vendor_aptx_hd_decoder.h
 system/stack/include/a2dp_vendor_aptx_decoder_auth.h
+system/stack/include/btm_api_types.h
+system/stack/include/btm_client_interface.h
+system/stack/include/hcidefs.h
+system/stack/include/hcimsgs.h
+system/stack/include/sec_hci_link_interface.h
 system/stack/test/stack_a2dp_test.cc
 system/test/suite/Android.bp
 system/test/mock/mock_a2dp_codec_config.cc
+system/test/mock/mock_btif_dm.cc
+system/test/mock/mock_main_shim_btm_api.cc
 system/test/mock/mock_stack_a2dp_codec_config.cc
+system/test/mock/mock_stack_btm_sec.cc
+system/test/mock/mock_stack_hcic_hcicmds.cc
+system/test/mock/mock_stack_hcic_hcicmds.h
