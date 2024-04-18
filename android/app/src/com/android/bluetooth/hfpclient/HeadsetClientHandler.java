@@ -55,7 +55,7 @@ class HeadsetClientHandler extends Handler {
     static final int MSG_CUSTOM_ACTION = 1;
 
     public static final String HEADSET_CLIENT_ENABLE_PTS_PROPERTY =
-        "persist.bt.headsetclient.enable_pts";
+        "vendor.bt.pts.headsetclient";
 
     // +++ Custom action definition for headset client
 
