@@ -47,4 +47,7 @@ oneway interface IBluetoothAvrcpController {
     void sendGroupNavigationCmd(in BluetoothDevice device, int keyCode, int keyState, in AttributionSource attributionSource, in SynchronousResultReceiver receiver);
     @JavaPassthrough(annotation="@android.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)")
     void getSupportedFeatures(in BluetoothDevice device, in AttributionSource attributionSource, in SynchronousResultReceiver receiver);
+    @JavaPassthrough(annotation="@android.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)")
+    void startFetchingAlbumArt(in BluetoothDevice device, String type, String scheme, String mimeType, int height,
+        int width, int maxSize, in AttributionSource attributionSource, in SynchronousResultReceiver receiver);
 }

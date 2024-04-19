@@ -6,9 +6,14 @@ android/app/jni/com_android_bluetooth_avrcp_controller.cpp
 android/app/jni/com_android_bluetooth_btservice_AdapterService.cpp
 android/app/res/values/config.xml
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpBipClient.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpPlayer.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipEncoding.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipRequest.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/RequestGetLinkedThumbnail.java
 android/app/src/com/android/bluetooth/avrcpcontroller/BrowseTree.java
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/btservice/AdapterService.java

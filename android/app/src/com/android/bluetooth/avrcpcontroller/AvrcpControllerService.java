@@ -36,6 +36,8 @@ import android.media.session.PlaybackState;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.sysprop.BluetoothProperties;
+import android.os.Message;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.bluetooth.BluetoothPrefs;
@@ -537,6 +539,22 @@ public class AvrcpControllerService extends ProfileService {
                     defaultValue = service.getSupportedFeatures(device);
                 }
                 receiver.send(defaultValue);
+            } catch (RuntimeException e) {
+                receiver.propagateException(e);
+            }
+        }
+
+        @Override
+        public void startFetchingAlbumArt(BluetoothDevice device, String type, String scheme,
+                String mimeType, int height, int width, int maxSize, AttributionSource source,
+                SynchronousResultReceiver receiver) {
+            try {
+                AvrcpControllerService service = getService(source);
+                if (service != null) {
+                    service.startFetchingAlbumArt(device, type, scheme, mimeType,
+                            height, width, maxSize);
+                }
+                receiver.send(null);
             } catch (RuntimeException e) {
                 receiver.propagateException(e);
             }
@@ -1108,6 +1126,20 @@ public class AvrcpControllerService extends ProfileService {
             return stateMachine.getRemoteFeatures();
         }
         return BluetoothAvrcpController.BTRC_FEAT_NONE;
+    }
+
+    public synchronized void startFetchingAlbumArt(BluetoothDevice device, String type,
+            String scheme, String mimeType, int height, int width, int maxSize) {
+        if (DBG) {
+            Log.d(TAG,"startFetchingAlbumArt mimeType " + mimeType + " pixel " + height + " * "
+                  + width + " maxSize: " + maxSize);
+        }
+
+        AvrcpControllerStateMachine stateMachine = mDeviceStateMap.get(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MSG_AVRCP_FETCH_COVER_ART);
+        }
     }
 
     @Override
