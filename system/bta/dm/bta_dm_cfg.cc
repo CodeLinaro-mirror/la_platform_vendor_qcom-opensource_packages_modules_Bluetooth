@@ -130,6 +130,9 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC* get_bta_dm_pm_spec() {
   static uint16_t hs_sniff_delay = uint16_t(
       osi_property_get_int32("bluetooth.bta_hs_sniff_delay_ms.config", 7000));
 
+  static uint16_t hs_sniff_sco_open_delay = uint16_t(
+      osi_property_get_int32("bluetooth.bta_hs_sniff_sco_open_delay_ms.config", 7000));
+
   static tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC
       bta_dm_pm_spec[BTA_DM_NUM_PM_SPEC] = {
           /* AG : 0 */
@@ -416,7 +419,7 @@ tBTA_DM_PM_TYPE_QUALIFIER tBTA_DM_PM_SPEC* get_bta_dm_pm_spec() {
                 {BTA_DM_PM_NO_ACTION, 0}}, /* app open */
                {{BTA_DM_PM_NO_ACTION, 0},
                 {BTA_DM_PM_NO_ACTION, 0}}, /* app close */
-               {{BTA_DM_PM_SNIFF3, 7000},
+               {{BTA_DM_PM_SNIFF3, hs_sniff_sco_open_delay},
                 {BTA_DM_PM_NO_ACTION, 0}}, /* sco open, active */
                {{BTA_DM_PM_SNIFF, 7000},
                 {BTA_DM_PM_NO_ACTION, 0}}, /* sco close sniff  */

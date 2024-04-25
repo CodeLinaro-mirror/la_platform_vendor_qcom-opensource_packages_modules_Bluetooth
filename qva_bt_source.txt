@@ -133,6 +133,7 @@ system/bta/av/bta_av_main.cc
 system/bta/av/bta_av_ssm.cc
 system/bta/av/bta_av_act.cc
 system/bta/dm/bta_dm_act.cc
+system/bta/dm/bta_dm_cfg.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/gatt/bta_gatts_act.cc
