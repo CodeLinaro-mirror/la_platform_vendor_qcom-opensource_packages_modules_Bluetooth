@@ -55,6 +55,7 @@ system/btif/src/btif_dm.cc
 system/btif/src/btif_util.cc
 system/btif/Android.bp
 system/btif/src/btif_hf_client.cc
+system/btif/src/stack_manager.cc
 system/gd/hci/hci_layer.cc
 system/btif/src/btif_rc.cc
 system/include/hardware/bluetooth.h
