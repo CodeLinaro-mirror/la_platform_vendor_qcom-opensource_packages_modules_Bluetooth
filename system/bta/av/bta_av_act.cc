@@ -1314,7 +1314,10 @@ void bta_av_disable(tBTA_AV_CB* p_cb, UNUSED_ATTR tBTA_AV_DATA* p_data) {
 
   bta_av_close_all_rc(p_cb);
 
-  osi_free_and_reset((void**)&p_cb->p_disc_db);
+  if (p_cb->p_disc_db) {
+    (void)SDP_CancelServiceSearch(p_cb->p_disc_db);
+    osi_free_and_reset((void**)&p_cb->p_disc_db);
+  }
 
   /* disable audio/video - de-register all channels,
    * expect BTA_AV_DEREG_COMP_EVT when deregister is complete */
@@ -1970,6 +1973,11 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
   uint8_t rc_handle;
   tBTA_AV_FEAT peer_features = 0; /* peer features mask */
   uint16_t cover_art_psm = 0x0000;
+
+  if (p_cb && p_cb->disabling) {
+    APPL_TRACE_WARNING("%s: AV is disabling, ignore");
+    return;
+  }
 
   APPL_TRACE_DEBUG("%s: bta_av_rc_disc_done disc:x%x", __func__, p_cb->disc);
   if (!p_cb->disc) {
