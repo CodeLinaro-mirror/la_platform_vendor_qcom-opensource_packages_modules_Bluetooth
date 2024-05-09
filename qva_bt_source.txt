@@ -58,6 +58,7 @@ android/app/src/com/android/bluetooth/gatt/GattService.java
 android/app/src/com/android/bluetooth/gatt/PeriodicScanManager.java
 android/app/src/com/android/bluetooth/hearingaid/HearingAidNativeInterface.java
 android/app/src/com/android/bluetooth/hfp/HeadsetNativeInterface.java
+android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/map/BluetoothMapContentObserver.java
