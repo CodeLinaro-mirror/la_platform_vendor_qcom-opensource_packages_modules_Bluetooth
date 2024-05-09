@@ -2106,6 +2106,10 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
        * we still need to send RC feature event. So we need to get BD
        * from Message.  Note that lidx is 1 based not 0 based
        */
+      if (p_cb->rcb[rc_handle].lidx == 0) {
+        APPL_TRACE_DEBUG("%s: RC is disconnected", __func__);
+        return;
+      }
       rc_feat.peer_addr = p_cb->lcb[p_cb->rcb[rc_handle].lidx - 1].addr;
     } else {
       rc_feat.peer_addr = p_scb->PeerAddress();
