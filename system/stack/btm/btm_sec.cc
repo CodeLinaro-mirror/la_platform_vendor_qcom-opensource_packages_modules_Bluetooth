@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************************
  *
  *  Copyright 1999-2012 Broadcom Corporation
  *
@@ -14,7 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ *****************************************************************************************/
 
 /******************************************************************************
  *
@@ -3502,6 +3507,8 @@ void btm_sec_encrypt_change(uint16_t handle, tHCI_STATUS status,
         /* BR/EDR is encrypted with LK that can be used to derive LE LTK */
         p_dev_rec->new_encryption_key_is_p256 = false;
 
+        BTM_TRACE_DEBUG("%s disable role switch", __func__);
+        BTM_block_role_switch_for(p_dev_rec->bd_addr);
         BTM_TRACE_DEBUG("%s start SM over BR/EDR", __func__);
         SMP_BR_PairWith(p_dev_rec->bd_addr);
       }
