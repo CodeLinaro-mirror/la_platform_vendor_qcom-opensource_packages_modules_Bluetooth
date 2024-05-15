@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -1307,6 +1312,30 @@ public final class DatabaseManagerTest {
             assertColumnBlobData(cursor, "gmcs_cccd", null);
             assertColumnBlobData(cursor, "gtbs_cccd", null);
         }
+    }
+
+    @Test
+    public void testDatabaseMigration_117_118() throws IOException {
+        String testString = "TEST STRING";
+
+        // Create a database with version 118
+        SupportSQLiteDatabase db = testHelper.createDatabase(DB_NAME, 118);
+
+        // insert a device to the database
+        ContentValues device = new ContentValues();
+        device.put("address", TEST_BT_ADDR);
+        device.put("migrated", false);
+        assertThat(db.insert("metadata", SQLiteDatabase.CONFLICT_IGNORE, device),
+                CoreMatchers.not(-1));
+
+        // Migrate database from 117 to 118
+        db.close();
+        db = testHelper.runMigrationsAndValidate(DB_NAME, 118, true,
+                MetadataDatabase.MIGRATION_117_118);
+        Cursor cursor = db.query("SELECT * FROM metadata");
+
+        assertHasColumn(cursor, "a2dpMediaPlayer", true);
+        assertHasColumn(cursor, "a2dpAudioZone", true);
     }
 
     /**
