@@ -1980,7 +1980,7 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
   uint16_t cover_art_psm = 0x0000;
 
   if (p_cb && p_cb->disabling) {
-    APPL_TRACE_WARNING("%s: AV is disabling, ignore");
+    APPL_TRACE_WARNING("%s: AV is disabling, ignore", __func__);
     return;
   }
 
