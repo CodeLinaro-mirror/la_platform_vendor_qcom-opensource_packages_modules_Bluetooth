@@ -1,4 +1,4 @@
-/******************************************************************************
+/******************************************************************************************
  *
  *  Copyright (C) 2016 The Linux Foundation
  *  Copyright 2009-2012 Broadcom Corporation
@@ -15,7 +15,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear.
+ *
+ ******************************************************************************************/
 
 /*******************************************************************************
  *
@@ -1085,6 +1090,11 @@ static void interop_database_add_remove_name(bool do_add,
   }
 }
 
+static void get_link_key(const RawAddress *bd_addr){
+  LOG_INFO("%s", __func__);
+  btif_dm_get_link_key(bd_addr);
+}
+
 EXPORT_SYMBOL bt_interface_t bluetoothInterface = {
     sizeof(bluetoothInterface),
     .init = init,
@@ -1104,6 +1114,7 @@ EXPORT_SYMBOL bt_interface_t bluetoothInterface = {
     .create_bond = create_bond,
     .create_bond_le = create_bond_le,
     .create_bond_out_of_band = create_bond_out_of_band,
+    .get_link_key = get_link_key,
     .remove_bond = remove_bond,
     .cancel_bond = cancel_bond,
     .get_connection_state = get_connection_state,
@@ -1440,4 +1451,18 @@ void invoke_switch_codec_cb(bool is_low_latency_buffer_size) {
                                               is_low_latency_buffer_size);
                                   },
                                   is_low_latency_buffer_size));
+}
+
+void invoke_get_linkkey_cb(
+    RawAddress* remote_bd_addr, bool key_found,
+    int key_type, Link_Key link_key) {
+  do_in_jni_thread(
+      FROM_HERE,
+      base::BindOnce(
+          [](RawAddress* remote_bd_addr,
+             bool key_found, int key_type, Link_Key link_key) {
+            HAL_CBACK(bt_hal_cbacks, get_link_key_cb,
+                      remote_bd_addr, key_found, link_key, key_type);
+          },
+          remote_bd_addr, key_found, key_type, link_key));
 }
