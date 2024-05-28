@@ -11,6 +11,7 @@ android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/btservice/AdapterService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
+android/app/src/com/android/bluetooth/mapclient/MnsService.java
 
 # apex
 apex/permissions/com.android.bluetooth.xml
@@ -21,12 +22,16 @@ framework/java/android/bluetooth/OobData.java
 
 # system (bluetooth stack)
 system/bta/av/bta_av_aact.cc
+system/bta/av/bta_av_act.cc
 system/binder/android/bluetooth/IBluetooth.aidl
 system/bta/dm/bta_dm_act.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/gatt/bta_gatts_act.cc
+system/bta/hf_client/bta_hf_client_api.cc
 system/bta/hf_client/bta_hf_client_int.h
+system/bta/hf_client/bta_hf_client_main.cc
+system/bta/hf_client/bta_hf_client_rfc.cc
 system/bta/include/bta_api.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
@@ -49,6 +54,7 @@ system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/internal_include/bt_target.h
 system/main/shim/btm_api.h
+system/stack/gap/gap_conn.cc
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
 system/stack/a2dp/a2dp_sbc.cc
