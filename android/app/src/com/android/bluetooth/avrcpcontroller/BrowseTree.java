@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.avrcpcontroller;
@@ -57,6 +62,7 @@ public class BrowseTree {
     public static final String UP = "__UP__";
     public static final String NOW_PLAYING_PREFIX = "NOW_PLAYING";
     public static final String PLAYER_PREFIX = "PLAYER";
+    public static final String SEARCH_PREFIX = "SEARCH";
 
     public static final int DEFAULT_FOLDER_SIZE = 255;
 
@@ -70,6 +76,7 @@ public class BrowseTree {
     final BrowseNode mRootNode;
     final BrowseNode mNavigateUpNode;
     final BrowseNode mNowPlayingNode;
+    protected BrowseNode mSearchNode;
 
     // In support of Cover Artwork, Cover Art URI <-> List of UUIDs using that artwork
     private final HashMap<String, ArrayList<String>> mCoverArtMap =
@@ -100,6 +107,14 @@ public class BrowseTree {
         mBrowseMap.put(mRootNode.getID(), mRootNode);
         mBrowseMap.put(NOW_PLAYING_PREFIX, mNowPlayingNode);
 
+        mSearchNode = new BrowseNode(new AvrcpItem.Builder()
+                .setUuid(BrowseTree.SEARCH_PREFIX).setTitle(BrowseTree.SEARCH_PREFIX)
+                .setDevice(device)
+                .setBrowsable(true).build());
+        mSearchNode.mBrowseScope = AvrcpControllerService.BROWSE_SCOPE_SEARCH;
+        mSearchNode.setExpectedChildren(255);
+        mBrowseMap.put(SEARCH_PREFIX, mSearchNode);
+
         mCurrentBrowseNode = mRootNode;
     }
 
@@ -116,6 +131,11 @@ public class BrowseTree {
 
     BrowseNode getTrackFromNowPlayingList(int trackNumber) {
         return mNowPlayingNode.getChild(trackNumber);
+    }
+
+    void updateSearchNode(BrowseNode node){
+        mSearchNode = node;
+        mBrowseMap.put(SEARCH_PREFIX, node);
     }
 
     // Each node of the tree is represented by Folder ID, Folder Name and the children.
@@ -187,6 +207,10 @@ public class BrowseTree {
         }
 
         synchronized <E> int addChildren(List<E> newChildren) {
+            return addChildren(newChildren, AvrcpControllerService.BROWSE_SCOPE_VFS);
+        }
+
+        synchronized <E> int addChildren(List<E> newChildren, byte scope) {
             for (E child : newChildren) {
                 BrowseNode currentNode = null;
                 if (child instanceof AvrcpItem) {
@@ -194,6 +218,7 @@ public class BrowseTree {
                 } else if (child instanceof AvrcpPlayer) {
                     currentNode = new BrowseNode((AvrcpPlayer) child);
                 }
+                currentNode.setScope(scope);
                 addChild(currentNode);
             }
             return newChildren.size();
@@ -220,6 +245,10 @@ public class BrowseTree {
         }
 
         synchronized void removeChild(BrowseNode node) {
+            if (node == null) {
+                return;
+            }
+
             mChildren.remove(node);
             mBrowseMap.remove(node.getID());
             indicateCoverArtUnused(node.getID(), node.getCoverArtUuid());
@@ -301,6 +330,10 @@ public class BrowseTree {
             return Integer.parseInt(getID().replace(PLAYER_PREFIX, ""));
         }
 
+        synchronized void setScope(byte scope) {
+            mBrowseScope = scope;
+        }
+
         synchronized byte getScope() {
             return mBrowseScope;
         }
@@ -328,6 +361,10 @@ public class BrowseTree {
             return getID().startsWith(NOW_PLAYING_PREFIX);
         }
 
+        synchronized boolean isSearch() {
+            return getID().startsWith(SEARCH_PREFIX);
+        }
+
         @Override
         public boolean equals(Object other) {
             if (!(other instanceof BrowseNode)) {
@@ -342,7 +379,7 @@ public class BrowseTree {
             if (VDBG) {
                 String serialized = "[ Name: " + mItem.getTitle()
                         + " Scope:" + mBrowseScope + " expected Children: "
-                        + mExpectedChildrenCount + "] ";
+                        + mExpectedChildrenCount + " ID: " + getID() +"] ";
                 for (BrowseNode node : mChildren) {
                     serialized += node.toString();
                 }
@@ -365,7 +402,7 @@ public class BrowseTree {
             return null;
         }
         if (VDBG) {
-            Log.d(TAG, "Size" + mBrowseMap.size());
+            Log.d(TAG, "Size " + mBrowseMap.size());
         }
         return bn;
     }
@@ -519,7 +556,8 @@ public class BrowseTree {
             return null;
         } else if (target.equals(mCurrentBrowseNode)
                 || target.equals(mNowPlayingNode)
-                || target.equals(mRootNode)) {
+                || target.equals(mRootNode)
+                || target.equals(mSearchNode)) {
             return target;
         } else if (target.isPlayer()) {
             if (mDepth > 0) {

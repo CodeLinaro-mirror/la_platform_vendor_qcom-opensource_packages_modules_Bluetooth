@@ -8,6 +8,8 @@ android/app/res/values/config.xml
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpPlayer.java
+android/app/src/com/android/bluetooth/avrcpcontroller/BrowseTree.java
 android/app/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
 android/app/src/com/android/bluetooth/btservice/AdapterService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
@@ -76,6 +78,7 @@ system/stack/a2dp/a2dp_vendor_ldac.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/Android.bp
 system/stack/avdt/avdt_scb_act.cc
+system/stack/avrc/avrc_bld_ct.cc
 system/stack/avrc/avrc_pars_ct.cc
 system/stack/btm/btm_client_interface.cc
 system/stack/btm/btm_sec.cc
