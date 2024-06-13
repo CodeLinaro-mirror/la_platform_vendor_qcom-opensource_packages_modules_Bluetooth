@@ -3188,9 +3188,19 @@ static void btif_dm_ble_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
           btif_dm_pairing_cb_t::ServiceDiscoveryState::NOT_STARTED) {
         LOG_INFO("scheduling GATT discovery over LE for %s",
                  PRIVATE_ADDRESS(bd_addr));
-        pairing_cb.gatt_over_le =
-            btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
-        btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_LE);
+        BTIF_TRACE_DEBUG("%s: smp_over_br %d", __func__, p_auth_cmpl->smp_over_br);
+        // Ensure inquiry is stopped before attempting service discovery
+        btif_dm_cancel_discovery();
+        // Discover service over BR transport if smp pair is over BR
+        if (p_auth_cmpl->smp_over_br) {
+          pairing_cb.sdp_over_classic =
+              btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
+          btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_BR_EDR);
+        } else {
+          pairing_cb.gatt_over_le =
+              btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
+          btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_LE);
+        }
       } else {
         LOG_INFO(
             "skipping GATT discovery over LE - was already scheduled or "

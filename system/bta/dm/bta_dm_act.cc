@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************************
  *
  *  Copyright 2003-2014 Broadcom Corporation
  *
@@ -14,7 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ *****************************************************************************************/
 
 /******************************************************************************
  *
@@ -3713,6 +3718,8 @@ static uint8_t bta_dm_ble_smp_cback(tBTM_LE_EVT event, const RawAddress& bda,
       else
         sec_event.auth_cmpl.bd_name[0] = 0;
 
+      APPL_TRACE_EVENT("%s smp_over_br %d", __func__, p_data->complt.smp_over_br);
+      sec_event.auth_cmpl.smp_over_br = p_data->complt.smp_over_br;
       if (p_data->complt.reason != HCI_SUCCESS) {
         // TODO This is not a proper use of this type
         sec_event.auth_cmpl.fail_reason =
