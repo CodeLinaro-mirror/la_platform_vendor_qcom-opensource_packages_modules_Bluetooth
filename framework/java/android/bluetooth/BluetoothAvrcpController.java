@@ -321,6 +321,39 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
         return defaultValue;
     }
 
+    /**
+     * Informs AvrcpControllerService to start fetching Album Art.
+     * Fetching will start only after this api is called.
+     * @device Bluetooth device
+     * @type Image type
+     * @scheme Image scheme
+     * @mimeType Image mime Type
+     * @height Image height
+     * @width Image width
+     * @maxSize Image maximum size
+     * if input parameters are null, 0, 0, 0: image in native encoding will be fetched.
+     * @hide
+     */
+    public void startFetchingAlbumArt(BluetoothDevice device, String type, String scheme,
+            String mimeType, int height, int width, int maxSize) {
+        if (DBG) Log.d(TAG, "startFetchingAlbumArt");
+        final IBluetoothAvrcpController service = getService();
+        if (service == null) {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) log(Log.getStackTraceString(new Throwable()));
+        } else if (isEnabled()) {
+            try {
+                final SynchronousResultReceiver recv = SynchronousResultReceiver.get();
+                service.startFetchingAlbumArt(device, type, scheme, mimeType, height,
+                        width, maxSize, mAttributionSource, recv);
+                recv.awaitResultNoInterrupt(getSyncTimeout()).getValue(null);
+                return;
+            } catch (RemoteException | TimeoutException e) {
+                Log.e(TAG, e.toString() + "\n" + Log.getStackTraceString(new Throwable()));
+            }
+        }
+    }
+
     private boolean isEnabled() {
         return mProfileConnector.isEnabled();
     }

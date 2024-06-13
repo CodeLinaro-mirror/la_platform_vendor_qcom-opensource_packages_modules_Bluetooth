@@ -25,11 +25,16 @@ android/app/src/com/android/bluetooth/avrcp/AvrcpNativeInterface.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetExtService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpBipClient.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtProvider.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpPlayer.java
 android/app/src/com/android/bluetooth/avrcpcontroller/BrowseTree.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipEncoding.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipRequest.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/RequestGetLinkedThumbnail.java
 android/app/src/com/android/bluetooth/bass_client/BassClientService.java
 android/app/src/com/android/bluetooth/bass_client/BassClientStateMachine.java
 android/app/src/com/android/bluetooth/bass_client/BassUtils.java
