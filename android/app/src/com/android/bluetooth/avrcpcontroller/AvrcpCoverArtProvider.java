@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
  *
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
@@ -136,6 +136,13 @@ public class AvrcpCoverArtProvider extends ContentProvider {
         }
 
         try {
+            /* Check mAdapter to avoid null ptr exception. mAdapter could be null if
+             * calling openFile() is executed before calling onCreate() or calling
+             * onCreate() is executed before calling AdapterUtil.init().
+             */
+            if (mAdapter == null) {
+                mAdapter = AdapterService.getAdapter();
+            }
             device = mAdapter.getRemoteDevice(address);
         } catch (IllegalArgumentException e) {
             throw new FileNotFoundException();
