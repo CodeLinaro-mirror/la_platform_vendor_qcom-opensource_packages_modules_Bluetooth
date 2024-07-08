@@ -36,6 +36,7 @@
 #include "bta/gatt/bta_gattc_int.h"
 #include "bta/include/bta_dm_ci.h"
 #include "bta_sdp_api.h"
+#include "btif/include/btif_common.h"
 #include "btif/include/btif_config.h"
 #include "btif/include/btif_dm.h"
 #include "btif/include/btif_storage.h"
@@ -590,19 +591,21 @@ bool BTA_DmSetVisibility(bt_scan_mode_t mode) {
   return true;
 }
 
-static void bta_dm_process_remove_device_no_callback(
+static bool bta_dm_process_remove_device_no_callback(
     const RawAddress& bd_addr) {
+  bool ret = false;
   /* need to remove all pending background connection before unpair */
   BTA_GATTC_CancelOpen(0, bd_addr, false);
 
-  BTM_SecDeleteDevice(bd_addr);
+  ret = BTM_SecDeleteDevice(bd_addr);
 
   /* remove all cached GATT information */
   BTA_GATTC_Refresh(bd_addr);
+  return ret;
 }
 
 void bta_dm_process_remove_device(const RawAddress& bd_addr) {
-  bta_dm_process_remove_device_no_callback(bd_addr);
+  bool ret = bta_dm_process_remove_device_no_callback(bd_addr);
 
   /* Conclude service search if it was pending */
   if (bta_dm_search_cb.state == BTA_DM_DISCOVER_ACTIVE &&
@@ -614,7 +617,12 @@ void bta_dm_process_remove_device(const RawAddress& bd_addr) {
                               (tGATT_STATUS)GATT_ERROR);
   }
 
-  if (bta_dm_cb.p_sec_cback) {
+  // If ret is false, this indicates there is an incoming pairing request.
+  // In such scenario, host firstly receives HCI_IO_Capability_Response,
+  // then receives HCI_IO_Capability_Request, refer to core spec
+  // Version 5.3 | Vol 2, Part F Chapter4.2.7. Send BTA_DM_DEV_UNPAIRED_EVT will
+  // cause removing just stored authentication requirement from the peer.
+  if (ret && bta_dm_cb.p_sec_cback) {
     tBTA_DM_SEC sec_event;
     sec_event.link_down.bd_addr = bd_addr;
     bta_dm_cb.p_sec_cback(BTA_DM_DEV_UNPAIRED_EVT, &sec_event);
@@ -1789,8 +1797,11 @@ static void bta_dm_find_services(const RawAddress& bd_addr) {
       } else {
         if (uuid == Uuid::From16Bit(UUID_PROTOCOL_L2CAP)) {
           if (!is_sdp_pbap_pce_disabled(bd_addr)) {
-            LOG_DEBUG("SDP search for PBAP Client ");
-            BTA_SdpSearch(bd_addr, Uuid::From16Bit(UUID_SERVCLASS_PBAP_PCE));
+            tBTA_SERVICE_MASK service_mask = btif_get_enabled_services_mask();
+            if(service_mask & (tBTA_SERVICE_MASK)(1 << BTA_PBAP_SERVICE_ID)) {
+              LOG_DEBUG("SDP search for PBAP Client ");
+              BTA_SdpSearch(bd_addr, Uuid::From16Bit(UUID_SERVCLASS_PBAP_PCE));
+            }
           }
         }
         bta_dm_search_cb.service_index++;
