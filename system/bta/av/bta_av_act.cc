@@ -15,10 +15,10 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-/************************************************************************************
- *  Changes from Qualcomm Innovation Center are provided under the following license:
+/******************************************************************************************
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
  *
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -50,7 +50,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
  *
- ***********************************************************************************/
+ ******************************************************************************************/
 
 /******************************************************************************
  *
@@ -1972,7 +1972,7 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
   uint16_t cover_art_psm = 0x0000;
 
   if (p_cb && p_cb->disabling) {
-    APPL_TRACE_WARNING("%s: AV is disabling, ignore");
+    APPL_TRACE_WARNING("%s: AV is disabling, ignore", __func__);
     return;
   }
 
@@ -2106,6 +2106,10 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
        * we still need to send RC feature event. So we need to get BD
        * from Message.  Note that lidx is 1 based not 0 based
        */
+      if (p_cb->rcb[rc_handle].lidx == 0) {
+        APPL_TRACE_DEBUG("%s: RC is disconnected", __func__);
+        return;
+      }
       rc_feat.peer_addr = p_cb->lcb[p_cb->rcb[rc_handle].lidx - 1].addr;
     } else {
       rc_feat.peer_addr = p_scb->PeerAddress();

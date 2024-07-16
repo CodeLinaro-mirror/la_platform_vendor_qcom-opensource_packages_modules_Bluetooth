@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.avrcpcontroller;
@@ -41,6 +46,7 @@ abstract class BipRequest {
     // Request types
     public static final int TYPE_GET_IMAGE_PROPERTIES = 0;
     public static final int TYPE_GET_IMAGE = 1;
+    public static final int TYPE_GET_LINKED_THUMBNAIL = 2;
 
     protected HeaderSet mHeaderSet;
     protected ClientOperation mOperation = null;
