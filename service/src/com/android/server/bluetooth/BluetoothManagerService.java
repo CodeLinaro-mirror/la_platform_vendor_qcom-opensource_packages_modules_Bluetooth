@@ -3087,6 +3087,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         return waitForState(states, true);
     }
     private boolean waitForState(Set<Integer> states, boolean failIfUnbind) {
+        int timeInMs = getTimeForStateChange();
         for (int i = 0; i < 10; i++) {
             mBluetoothLock.readLock().lock();
             try {
@@ -3106,7 +3107,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             } finally {
                 mBluetoothLock.readLock().unlock();
             }
-            SystemClock.sleep(300);
+            // Fix BT restart failure issue in switch-user case.
+            // When to switch user, Bluetooth process is forcibly terminated by AM(ActivityManager),
+            // just before Bluetooth shutdown and cleanup is completed.
+            // Bluetooth HAL service didn't detect Bluetooth process's at once and do Hci close.
+            // But newly started Bluetooth process sent Hci initialization very soon,
+            // this result in newly started Bluetooth process failed to enable Bluetooth.
+            SystemClock.sleep(timeInMs);
         }
         Log.e(TAG, "waitForState " + states + " time out");
         return false;
@@ -3707,5 +3714,13 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         return pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
                 || pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK);
     }
-}
 
+    /**
+     *  Get waiting time of adapter state change in each loop
+     * @return waiting time in msec
+     */
+
+    private int getTimeForStateChange() {
+        return SystemProperties.getInt("persist.bluetooth.wait_for_state", 200);
+    }
+}

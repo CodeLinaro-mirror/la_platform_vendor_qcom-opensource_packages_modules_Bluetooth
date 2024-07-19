@@ -20,6 +20,9 @@ apex/permissions/com.android.bluetooth.xml
 framework/java/android/bluetooth/BluetoothDevice.java
 framework/java/android/bluetooth/OobData.java
 
+# service
+service/src/com/android/server/bluetooth/BluetoothManagerService.java
+
 # system (bluetooth stack)
 system/bta/av/bta_av_aact.cc
 system/bta/av/bta_av_act.cc
