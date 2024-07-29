@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************************
  *
  *  Copyright 2009-2012 Broadcom Corporation
  *
@@ -14,7 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ *****************************************************************************************/
 
 /*******************************************************************************
  *
@@ -2088,6 +2093,8 @@ static void btif_dm_upstreams_evt(uint16_t event, char* p_param) {
 
     case BTA_DM_BLE_AUTH_CMPL_EVT:
       BTIF_TRACE_DEBUG("BTA_DM_BLE_AUTH_CMPL_EVT. ");
+      BTIF_TRACE_DEBUG("Restore link policy");
+      BTM_unblock_role_switch_for(p_data->auth_cmpl.bd_addr);
       btif_dm_ble_auth_cmpl_evt(&p_data->auth_cmpl);
       break;
 
@@ -3181,9 +3188,19 @@ static void btif_dm_ble_auth_cmpl_evt(tBTA_DM_AUTH_CMPL* p_auth_cmpl) {
           btif_dm_pairing_cb_t::ServiceDiscoveryState::NOT_STARTED) {
         LOG_INFO("scheduling GATT discovery over LE for %s",
                  PRIVATE_ADDRESS(bd_addr));
-        pairing_cb.gatt_over_le =
-            btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
-        btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_LE);
+        BTIF_TRACE_DEBUG("%s: smp_over_br %d", __func__, p_auth_cmpl->smp_over_br);
+        // Ensure inquiry is stopped before attempting service discovery
+        btif_dm_cancel_discovery();
+        // Discover service over BR transport if smp pair is over BR
+        if (p_auth_cmpl->smp_over_br) {
+          pairing_cb.sdp_over_classic =
+              btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
+          btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_BR_EDR);
+        } else {
+          pairing_cb.gatt_over_le =
+              btif_dm_pairing_cb_t::ServiceDiscoveryState::SCHEDULED;
+          btif_dm_get_remote_services(bd_addr, BT_TRANSPORT_LE);
+        }
       } else {
         LOG_INFO(
             "skipping GATT discovery over LE - was already scheduled or "
