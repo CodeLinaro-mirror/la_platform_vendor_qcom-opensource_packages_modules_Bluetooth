@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.avrcpcontroller;
@@ -26,6 +31,7 @@ import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.content.pm.PackageManager;
+import android.media.session.PlaybackState;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.sysprop.BluetoothProperties;
@@ -101,6 +107,16 @@ public class AvrcpControllerService extends ProfileService {
     public static final int PASS_THRU_CMD_ID_REWIND = 0x48;
     public static final int PASS_THRU_CMD_ID_FORWARD = 0x4B;
     public static final int PASS_THRU_CMD_ID_BACKWARD = 0x4C;
+
+    /*
+     * AVRCP Error types as defined in spec. Also they should be in sync with btrc_status_t
+     * NOTE: Not all may be defined.
+     */
+    public static final int JNI_AVRC_STS_INVALID_CMD = 0x00;
+    public static final int JNI_AVRC_STS_INVALID_PARAMETER = 0x01;
+    public static final int JNI_AVRC_STS_NO_ERROR = 0x04;
+    public static final int JNI_AVRC_STS_INVALID_SCOPE = 0x0a;
+    public static final int JNI_AVRC_INV_RANGE = 0x0b;
 
     /* Key State Variables */
     public static final int KEY_STATE_PRESSED = 0;
@@ -677,6 +693,20 @@ public class AvrcpControllerService extends ProfileService {
         }
     }
 
+    @VisibleForTesting
+    void onUidsChanged(byte[] address, int uidCounter) {
+        if (DBG) {
+            Log.d(TAG, "onUidsChanged uidCounter: " + uidCounter);
+        }
+        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+        AvrcpControllerStateMachine stateMachine = getStateMachine(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MESSAGE_PROCESS_UIDS_CHANGED,
+                    uidCounter, 0, device);
+        }
+    }
+
     // Called by JNI to report remote Player's capabilities
     @VisibleForTesting
     synchronized void handlePlayerAppSetting(byte[] address, byte[] playerAttribRsp,
@@ -900,6 +930,20 @@ public class AvrcpControllerService extends ProfileService {
         }
     }
 
+    private void handleSearchRsp(byte[] address, int status, int uid, int items) {
+        if (DBG) {
+            Log.d(TAG, "handleSearchRsp status: " + status + ", uid: " + uid + ", items: " + items);
+        }
+        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+
+        AvrcpControllerStateMachine stateMachine = getStateMachine(device);
+
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                AvrcpControllerStateMachine.MESSAGE_PROCESS_SEARCH_RESP, status, items);
+        }
+    }
+
     /* Generic Profile Code */
 
     /**
@@ -1115,10 +1159,12 @@ public class AvrcpControllerService extends ProfileService {
     /**
      * Change the current browsed folder
      *
-     * @param direction up/down
-     * @param uid       folder unique id
+     * @param uidCounter uid counter
+     * @param direction  up/down
+     * @param uid        folder unique id
      */
-    public native void changeFolderPathNative(byte[] address, byte direction, long uid);
+    public native void changeFolderPathNative(byte[] address, int uidCounter,
+            byte direction, long uid);
 
     /**
      * Play item with provided uid
@@ -1142,4 +1188,22 @@ public class AvrcpControllerService extends ProfileService {
      * @param playerId player number
      */
     public native void setAddressedPlayerNative(byte[] address, int playerId);
+
+    /**
+     * Search
+     *
+     * @param address      address
+     * @param address      charset
+     * @param strLen       strLen
+     * @param pattern      pattern
+     */
+    public native static void searchNative(byte[] address, int charset, int strLen, String pattern);
+    /**
+     * Get Search List
+     *
+     * @param address      address
+     * @param address      start
+     * @param strLen       end
+     */
+    public native static void getSearchListNative(byte[] address, int start, int end);
 }

@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************************
  *
  *  Copyright 2014 Google, Inc.
  *
@@ -14,7 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ *****************************************************************************************/
 
 #define LOG_TAG "bt_stack_manager"
 
@@ -391,6 +396,8 @@ static void event_shut_down_stack(ProfileStopCallback stopProfiles) {
 
   future_await(local_hack_future);
 
+  main_thread_shut_down();
+
   module_clean_up(get_local_module(BTE_LOGMSG_MODULE));
 
   gatt_free();
@@ -438,9 +445,6 @@ static void event_clean_up_stack(std::promise<void> promise,
   module_clean_up(get_local_module(OSI_MODULE));
   LOG_INFO("%s Gd shim module disabled", __func__);
   module_shut_down(get_local_module(GD_SHIM_MODULE));
-
-  main_thread_shut_down();
-
   module_management_stop();
   LOG_INFO("%s finished", __func__);
 

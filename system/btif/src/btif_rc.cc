@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 /*****************************************************************************
@@ -3090,6 +3095,11 @@ static void handle_get_capability_response(tBTA_AV_META_MSG* pmeta_msg,
   btif_rc_device_cb_t* p_dev =
       btif_rc_get_device_by_handle(pmeta_msg->rc_handle);
 
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return;
+  }
+
   /* Todo: Do we need to retry on command timeout */
   if (p_rsp->status != AVRC_STS_NO_ERROR) {
     BTIF_TRACE_ERROR("%s: Error capability response: 0x%02X", __func__,
@@ -3102,6 +3112,11 @@ static void handle_get_capability_response(tBTA_AV_META_MSG* pmeta_msg,
 
     /* Todo: Check if list can be active when we hit here */
     p_dev->rc_supported_event_list = list_new(osi_free);
+    if (p_dev->rc_supported_event_list == NULL) {
+      BTIF_TRACE_ERROR("%s: Failed to allocate memory", __func__);
+      return;
+    }
+
     for (xx = 0; xx < p_rsp->count; xx++) {
       /* Skip registering for Play position change notification */
       if ((p_rsp->param.event_id[xx] == AVRC_EVT_PLAY_STATUS_CHANGE) ||
@@ -3261,6 +3276,12 @@ static void handle_notification_response(tBTA_AV_META_MSG* pmeta_msg,
 
         break;
       case AVRC_EVT_UIDS_CHANGE:
+        // UIDS_CHANGED_EVENT should be handled on Interim. Otherwise, UID counter
+        // maintained in CT can't be intialized and synchronized correctly
+        do_in_jni_thread(
+            FROM_HERE,
+            base::Bind(bt_rc_ctrl_callbacks->uids_changed_cb,
+                       p_dev->rc_addr, p_rsp->param.uid_counter));
         break;
 
       case AVRC_EVT_TRACK_REACHED_END:
@@ -4027,6 +4048,32 @@ static void handle_get_folder_items_response(tBTA_AV_META_MSG* pmeta_msg,
                    (btrc_status_t)p_rsp->status, nullptr, 0));
   }
 }
+
+/***************************************************************************
+ *
+ * Function         handle_search_response
+ *
+ * Description      handles the search response, calls HAL callback to
+ *                  send the result.
+ * Returns          None
+ *
+ **************************************************************************/
+static void handle_search_response(tBTA_AV_META_MSG* pmeta_msg,
+                                   tAVRC_SEARCH_RSP* p_rsp) {
+
+  btif_rc_device_cb_t* p_dev =
+      btif_rc_get_device_by_handle(pmeta_msg->rc_handle);
+
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return;
+  }
+
+  do_in_jni_thread(FROM_HERE,
+                     base::Bind(bt_rc_ctrl_callbacks->search_rsp_cb, p_dev->rc_addr,
+                                p_rsp->status, p_rsp->uid_counter, p_rsp->num_items));
+}
+
 /***************************************************************************
  *
  * Function         cleanup_btrc_folder_items
@@ -4407,6 +4454,9 @@ static void handle_avk_rc_metamsg_rsp(tBTA_AV_META_MSG* pmeta_msg) {
       case AVRC_PDU_GET_ITEM_ATTRIBUTES:
         handle_get_metadata_attr_response(pmeta_msg, &avrc_response.get_attrs);
         break;
+      case AVRC_PDU_SEARCH:
+        handle_search_response(pmeta_msg, &avrc_response.search);
+        break;
       default:
         BTIF_TRACE_ERROR("%s cannot handle browse pdu %d", __func__,
                          pmeta_msg->p_msg->hdr.opcode);
@@ -4766,10 +4816,14 @@ static bt_status_t get_player_list_cmd(const RawAddress& bd_addr,
  *                  BT_STATUS_FAIL.
  *
  **************************************************************************/
-static bt_status_t change_folder_path_cmd(const RawAddress& bd_addr,
+static bt_status_t change_folder_path_cmd(const RawAddress& bd_addr, uint16_t uid_counter,
                                           uint8_t direction, uint8_t* uid) {
-  BTIF_TRACE_DEBUG("%s: direction %d", __func__, direction);
+  BTIF_TRACE_DEBUG("%s: uid_counter %d, direction %d", __func__, uid_counter, direction);
   btif_rc_device_cb_t* p_dev = btif_rc_get_device_by_bda(bd_addr);
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return BT_STATUS_FAIL;
+  }
   CHECK_RC_CONNECTED(p_dev);
   CHECK_BR_CONNECTED(p_dev);
 
@@ -4778,7 +4832,7 @@ static bt_status_t change_folder_path_cmd(const RawAddress& bd_addr,
   avrc_cmd.chg_path.pdu = AVRC_PDU_CHANGE_PATH;
   avrc_cmd.chg_path.status = AVRC_STS_NO_ERROR;
   // TODO(sanketa): Improve for database aware clients.
-  avrc_cmd.chg_path.uid_counter = 0;
+  avrc_cmd.chg_path.uid_counter = uid_counter;
   avrc_cmd.chg_path.direction = direction;
 
   memset(avrc_cmd.chg_path.folder_uid, 0, AVRC_UID_SIZE * sizeof(uint8_t));
@@ -4865,6 +4919,10 @@ static bt_status_t get_folder_items_cmd(const RawAddress& bd_addr,
                                         uint32_t end_item) {
   /* Check that both avrcp and browse channel are connected. */
   btif_rc_device_cb_t* p_dev = btif_rc_get_device_by_bda(bd_addr);
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return BT_STATUS_FAIL;
+  }
   BTIF_TRACE_DEBUG("%s", __func__);
   CHECK_RC_CONNECTED(p_dev);
   CHECK_BR_CONNECTED(p_dev);
@@ -4882,6 +4940,66 @@ static bt_status_t get_folder_items_cmd(const RawAddress& bd_addr,
   avrc_cmd.get_items.attr_count = 0; /* p_attr_list does not matter hence */
 
   return build_and_send_browsing_cmd(&avrc_cmd, p_dev);
+}
+
+/***************************************************************************
+ *
+ * Function         search
+ *
+ * Description      Send search command
+ *
+ * Returns          BT_STATUS_SUCCESS if command issued successfully otherwise
+ *                  BT_STATUS_FAIL.
+ *
+ **************************************************************************/
+static bt_status_t search_cmd(const RawAddress &bd_addr, uint16_t charset_id, uint16_t len, uint8_t *str) {
+  /* Check that both avrcp and browse channel are connected. */
+  btif_rc_device_cb_t* p_dev = btif_rc_get_device_by_bda(bd_addr);
+  if (p_dev == NULL) {
+    BTIF_TRACE_ERROR("%s: p_dev NULL", __func__);
+    return BT_STATUS_FAIL;
+  }
+  BTIF_TRACE_DEBUG("%s", __func__);
+  CHECK_RC_CONNECTED(p_dev);
+  CHECK_BR_CONNECTED(p_dev);
+
+  tAVRC_COMMAND avrc_cmd = {0};
+
+  avrc_cmd.search.pdu = AVRC_PDU_SEARCH;
+  avrc_cmd.search.status = AVRC_STS_NO_ERROR;
+  avrc_cmd.search.string.charset_id = charset_id;
+  avrc_cmd.search.string.str_len = len;
+  avrc_cmd.search.string.p_str = str;  // not duplicate str, because it'll be copied into p_msg with enough buffer
+
+  BT_HDR* p_msg = NULL;
+  tAVRC_STS status = AVRC_BldCommand(&avrc_cmd, &p_msg);
+  if (status != AVRC_STS_NO_ERROR) {
+    BTIF_TRACE_ERROR("%s failed to build command status %d", __func__, status);
+    return BT_STATUS_FAIL;
+  }
+
+  return build_and_send_browsing_cmd(&avrc_cmd, p_dev);
+
+}
+
+/***************************************************************************
+ *
+ * Function         get_search_list_cmd
+ *
+ * Description      Fetch the search list
+ *
+ * Paramters        start_item: First item to fetch (0 to fetch from beganning)
+ *                  end_item: Last item to fetch (0xffffffff to fetch until end)
+ *
+ * Returns          BT_STATUS_SUCCESS if command issued successfully otherwise
+ *                  BT_STATUS_FAIL.
+ *
+ **************************************************************************/
+static bt_status_t get_search_list_cmd(const RawAddress &bd_addr, uint32_t start_item,
+                                       uint32_t num_items) {
+  BTIF_TRACE_DEBUG("%s start, end: (%d, %d)", __func__, start_item, num_items);
+  return get_folder_items_cmd(bd_addr, AVRC_SCOPE_SEARCH, start_item,
+                              num_items);
 }
 
 /***************************************************************************
@@ -5330,6 +5448,8 @@ static const btrc_ctrl_interface_t bt_rc_ctrl_interface = {
     change_folder_path_cmd,
     set_browsed_player_cmd,
     set_addressed_player_cmd,
+    search_cmd,
+    get_search_list_cmd,
     set_volume_rsp,
     volume_change_notification_rsp,
     cleanup_ctrl,
