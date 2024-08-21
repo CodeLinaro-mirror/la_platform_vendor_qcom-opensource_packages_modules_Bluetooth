@@ -25,11 +25,16 @@ android/app/src/com/android/bluetooth/avrcp/AvrcpNativeInterface.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpTargetExtService.java
 android/app/src/com/android/bluetooth/avrcp/AvrcpVolumeManager.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpBipClient.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerService.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpControllerStateMachine.java
+android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtManager.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpCoverArtProvider.java
 android/app/src/com/android/bluetooth/avrcpcontroller/AvrcpPlayer.java
 android/app/src/com/android/bluetooth/avrcpcontroller/BrowseTree.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipEncoding.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/BipRequest.java
+android/app/src/com/android/bluetooth/avrcpcontroller/bip/RequestGetLinkedThumbnail.java
 android/app/src/com/android/bluetooth/bass_client/BassClientService.java
 android/app/src/com/android/bluetooth/bass_client/BassClientStateMachine.java
 android/app/src/com/android/bluetooth/bass_client/BassUtils.java
@@ -58,6 +63,7 @@ android/app/src/com/android/bluetooth/gatt/GattService.java
 android/app/src/com/android/bluetooth/gatt/PeriodicScanManager.java
 android/app/src/com/android/bluetooth/hearingaid/HearingAidNativeInterface.java
 android/app/src/com/android/bluetooth/hfp/HeadsetNativeInterface.java
+android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/map/BluetoothMapContentObserver.java
@@ -79,6 +85,7 @@ android/app/src/com/android/bluetooth/sap/SapServer.java
 android/app/src/com/android/bluetooth/sap/SapService.java
 android/app/src/com/android/bluetooth/telephony/BluetoothInCallService.java
 android/app/src/com/android/bluetooth/vc/VolumeControlNativeInterface.java
+android/app/tests/unit/src/com/android/bluetooth/btservice/storage/schemas/com.android.bluetooth.btservice.storage.MetadataDatabase/118.json
 
 # framework
 framework/Android.bp
@@ -122,6 +129,7 @@ system/binder/Android.bp
 system/binder/android/bluetooth/IBluetooth.aidl
 system/binder/android/bluetooth/IBluetoothA2dp.aidl
 system/binder/android/bluetooth/IBluetoothA2dpExt.aidl
+system/binder/android/bluetooth/IBluetoothAvrcpController.aidl
 system/binder/android/bluetooth/IBluetoothAvrcpTargetExt.aidl
 system/binder/android/bluetooth/IBluetoothExt.aidl
 system/binder/android/bluetooth/IBluetoothGattExt.aidl
@@ -133,6 +141,7 @@ system/bta/av/bta_av_main.cc
 system/bta/av/bta_av_ssm.cc
 system/bta/av/bta_av_act.cc
 system/bta/dm/bta_dm_act.cc
+system/bta/dm/bta_dm_cfg.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/gatt/bta_gatts_act.cc
@@ -184,6 +193,7 @@ system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
 system/gd/rust/topshim/btav_sink/btav_sink_shim.cc
+system/gd/storage/storage_module.cc
 system/include/hardware/avrcp/avrcp.h
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
@@ -274,6 +284,8 @@ system/stack/l2cap/l2c_api.cc
 system/stack/l2cap/l2c_int.h
 system/stack/l2cap/l2c_link.cc
 system/stack/l2cap/l2c_utils.cc
+system/stack/sdp/sdp_api.cc
+system/stack/sdp/sdp_main.cc
 system/stack/smp/smp_act.cc
 system/stack/test/a2dp/a2dp_aac_unittest.cc
 system/stack/test/a2dp/a2dp_sbc_unittest.cc

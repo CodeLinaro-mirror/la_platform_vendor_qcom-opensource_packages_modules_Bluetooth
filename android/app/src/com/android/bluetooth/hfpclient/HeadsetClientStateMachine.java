@@ -15,7 +15,7 @@
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
@@ -50,6 +50,7 @@ import android.bluetooth.BluetoothSinkAudioPolicy;
 import android.bluetooth.BluetoothStatusCodes;
 import android.bluetooth.BluetoothUuid;
 import android.bluetooth.hfp.BluetoothHfpProtoEnums;
+
 import android.car.Car;
 import android.car.CarNotConnectedException;
 import android.car.media.CarAudioManager;
@@ -124,6 +125,7 @@ public class HeadsetClientStateMachine extends StateMachine {
     public static final int SEND_VENDOR_AT_COMMAND = 21;
     public static final int SEND_BIEV = 22;
     public static final int SEND_ANDROID_AT_COMMAND = 23;
+    public static final int RELEASE_CALL = 24;
 
     // internal actions
     @VisibleForTesting
@@ -668,6 +670,10 @@ public class HeadsetClientStateMachine extends StateMachine {
                     action = HeadsetClientHalConstants.CALL_ACTION_CHLD_1;
                 } else if (getCall(HfpClientCall.CALL_STATE_ACTIVE) != null) {
                     action = HeadsetClientHalConstants.CALL_ACTION_CHLD_3;
+                    if (HeadsetClientHandler.isPtsEnabled()) {
+                        Log.w(TAG, "Don't send AT+CHLD=3 for pts HFP/HF/ECC/BV-02-C");
+                        return;
+                    }
                 } else if (flag == BluetoothHeadsetClient.CALL_ACCEPT_NONE) {
                     action = HeadsetClientHalConstants.CALL_ACTION_CHLD_2;
                 } else {
@@ -800,6 +806,27 @@ public class HeadsetClientStateMachine extends StateMachine {
             Log.e(TAG, "ERROR: Couldn't enter private " + " id:" + idx);
         }
     }
+
+    private void releaseCall(int idx) {
+        if (DBG) {
+            Log.d(TAG, "releaseCall: " + idx);
+        }
+
+        HfpClientCall c = mCalls.get(idx);
+
+        if (c == null ||
+            c.getState() != HfpClientCall.CALL_STATE_ACTIVE) {
+            return;
+        }
+
+        if (mNativeInterface.handleCallAction(mCurrentDevice,
+                HeadsetClientHalConstants.CALL_ACTION_CHLD_1X, idx)) {
+            addQueuedAction(RELEASE_CALL, c);
+        } else {
+            Log.e(TAG, "ERROR: Couldn't release call " + " id:" + idx);
+        }
+    }
+
 
     @VisibleForTesting
     void explicitCallTransfer() {
@@ -1545,6 +1572,9 @@ public class HeadsetClientStateMachine extends StateMachine {
                     break;
                 case ENTER_PRIVATE_MODE:
                     enterPrivateMode(message.arg1);
+                    break;
+                case RELEASE_CALL:
+                    releaseCall(message.arg1);
                     break;
                 case EXPLICIT_CALL_TRANSFER:
                     explicitCallTransfer();
