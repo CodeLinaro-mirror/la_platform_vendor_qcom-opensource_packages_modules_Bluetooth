@@ -23,6 +23,7 @@ android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/mapclient/MasClient.java
 android/app/src/com/android/bluetooth/mapclient/MnsService.java
 android/app/src/com/android/bluetooth/le_audio/LeAudioService.java
+android/app/src/com/android/bluetooth/pbapclient/PbapClientConnectionHandler.java
 
 # apex
 apex/permissions/com.android.bluetooth.xml
