@@ -25,6 +25,9 @@ framework/api/current.txt
 framework/java/android/bluetooth/BluetoothDevice.java
 framework/java/android/bluetooth/OobData.java
 
+# service
+service/src/com/android/server/bluetooth/BluetoothManagerService.java
+
 # system (bluetooth stack)
 system/bta/av/bta_av_aact.cc
 system/bta/av/bta_av_act.cc
@@ -61,6 +64,7 @@ system/btif/src/btif_hf_client.cc
 system/btif/src/stack_manager.cc
 system/gd/hci/hci_layer.cc
 system/btif/src/btif_rc.cc
+system/gd/storage/storage_module.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/include/hardware/bt_rc.h
