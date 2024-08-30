@@ -23,6 +23,7 @@ apex/permissions/com.android.bluetooth.xml
 # framework
 framework/api/current.txt
 framework/java/android/bluetooth/BluetoothDevice.java
+framework/java/android/bluetooth/BluetoothLeBroadcastAssistant.java
 framework/java/android/bluetooth/OobData.java
 
 # service
