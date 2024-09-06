@@ -127,7 +127,9 @@ void StorageModule::SaveImmediately() {
     ASSERT(os::RenameFile(config_file_path_, config_backup_path_));
   }
   // 2. write in-memory config to disk, if failed, backup can still be used
-  ASSERT(LegacyConfigFile::FromPath(config_file_path_).Write(pimpl_->cache_));
+  if (!LegacyConfigFile::FromPath(config_file_path_).Write(pimpl_->cache_)) {
+    LOG_ERROR("Unable to write config file");
+  }
   // 3. now write back up to disk as well
   if (!LegacyConfigFile::FromPath(config_backup_path_).Write(pimpl_->cache_)) {
     LOG_ERROR("Unable to write backup config file");
