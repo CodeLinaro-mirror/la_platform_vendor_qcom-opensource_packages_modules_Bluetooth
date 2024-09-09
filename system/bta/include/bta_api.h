@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************************
  *
  *  Copyright 2003-2014 Broadcom Corporation
  *
@@ -14,7 +14,12 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- ******************************************************************************/
+ *  Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ *
+ *  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ *****************************************************************************************/
 
 /******************************************************************************
  *
@@ -306,6 +311,7 @@ typedef struct {
   tBLE_ADDR_TYPE addr_type; /* Peer device address type */
   tBT_DEVICE_TYPE dev_type;
   bool is_ctkd; /* True if key is derived using CTKD procedure */
+  bool smp_over_br;
 } tBTA_DM_AUTH_CMPL;
 
 /* Structure associated with BTA_DM_LINK_UP_EVT */

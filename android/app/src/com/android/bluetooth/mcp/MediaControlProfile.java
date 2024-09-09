@@ -120,6 +120,12 @@ public class MediaControlProfile implements MediaControlServiceCallbacks {
             // Fix build error. TO be fixed
             Log.w(TAG, "ListCallback sendVolumeChanged: device= " + device);
         }
+
+        @Override
+        public void adjustVolume(BluetoothDevice device, int cmd) {
+            // Fix build error. TO be fixed
+            Log.w(TAG, "ListCallback adjustVolume: device= " + device);
+        }
     }
 
     @VisibleForTesting
