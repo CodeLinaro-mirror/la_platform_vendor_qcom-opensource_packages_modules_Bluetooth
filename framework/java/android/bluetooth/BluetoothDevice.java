@@ -1542,7 +1542,8 @@ public final class BluetoothDevice implements Parcelable, Attributable {
             new Parcelable.Creator<BluetoothDevice>() {
                 public BluetoothDevice createFromParcel(Parcel in) {
                     String address = in.readString();
-                    return new BluetoothDevice(address, in.readInt());
+                    int adapterIndex = in.readInt();
+                    return new BluetoothDevice(adapterIndex, address);
                 }
 
                 public BluetoothDevice[] newArray(int size) {
