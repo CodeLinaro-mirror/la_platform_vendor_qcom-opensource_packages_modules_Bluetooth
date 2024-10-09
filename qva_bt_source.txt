@@ -150,6 +150,7 @@ system/bta/gatt/bta_gattc_utils.cc
 system/bta/hf_client/bta_hf_client_api.cc
 system/bta/hf_client/bta_hf_client_int.h
 system/bta/hf_client/bta_hf_client_rfc.cc
+system/bta/hf_client/bta_hf_client_sdp.cc
 system/bta/hf_client/bta_hf_client_main.cc
 system/bta/include/bta_api.h
 system/bta/include/bta_av_api.h
@@ -301,6 +302,7 @@ system/stack/l2cap/l2c_int.h
 system/stack/l2cap/l2c_link.cc
 system/stack/l2cap/l2c_utils.cc
 system/stack/sdp/sdp_api.cc
+system/stack/sdp/sdp_discovery.cc
 system/stack/sdp/sdp_main.cc
 system/stack/sdp/sdp_utils.cc
 system/stack/smp/smp_act.cc
