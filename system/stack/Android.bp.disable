@@ -216,10 +216,6 @@ cc_library_static {
         "libaptx_enc",
         "libaptxhd_enc",
     ],
-    shared_libs: [
-        "libbt-sbc-encoder",
-        "libbt-sbc-encoder2",
-    ],
     host_supported: true,
     min_sdk_version: "Tiramisu"
 }
@@ -275,6 +271,7 @@ cc_test {
         "libbt-stack",
         "libbt-common",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt-utils",
         "libbtif",
         "libFraunhoferAAC",
@@ -692,6 +689,10 @@ cc_test {
         "a2dp/a2dp_vendor_opus.cc",
         "a2dp/a2dp_vendor_opus_encoder.cc",
         "a2dp/a2dp_vendor_opus_decoder.cc",
+        "test/a2dp/a2dp_aac_unittest.cc",
+        "test/a2dp/a2dp_sbc_unittest.cc",
+        "test/a2dp/a2dp_opus_unittest.cc",
+        "test/a2dp/a2dp_vendor_ldac_unittest.cc",
         "test/a2dp/mock_bta_av_codec.cc",
         "test/a2dp/test_util.cc",
         "test/a2dp/wav_reader.cc",

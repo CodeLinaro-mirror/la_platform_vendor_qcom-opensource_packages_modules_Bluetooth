@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -261,9 +256,3 @@ void SBC_Encoder_Init(SBC_ENC_PARAMS* pstrEncParams) {
 
   SbcAnalysisInit();
 }
-
-EXPORT_SYMBOL sbc_encode_interface_t sbc_encode_interface = {
-  sizeof(sbc_encode_interface),
-  SBC_Encoder_Init,
-  SBC_Encode,
-};

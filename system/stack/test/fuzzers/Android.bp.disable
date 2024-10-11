@@ -28,6 +28,7 @@ cc_defaults {
         "libbt-stack",
         "libbt-common",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt-utils",
         "libbtif",
         "libbt-hci",
@@ -44,7 +45,6 @@ cc_defaults {
     shared_libs: [
         "libbinder",
         "libbase",
-        "libbt-sbc-encoder",
         "libcutils",
         "liblog",
         "android.hardware.bluetooth@1.0",

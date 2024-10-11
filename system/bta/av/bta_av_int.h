@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -199,8 +194,7 @@ typedef void (*tBTA_AV_CO_START)(tBTA_AV_HNDL bta_av_handle,
                                  bool* p_no_rtp_header);
 typedef void (*tBTA_AV_CO_STOP)(tBTA_AV_HNDL bta_av_handle,
                                 const RawAddress& peer_addr);
-typedef BT_HDR* (*tBTA_AV_CO_DATAPATH)(const RawAddress& peer_addr,
-                                       const uint8_t* p_codec_info,
+typedef BT_HDR* (*tBTA_AV_CO_DATAPATH)(const uint8_t* p_codec_info,
                                        uint32_t* p_timestamp);
 typedef void (*tBTA_AV_CO_DELAY)(tBTA_AV_HNDL bta_av_handle,
                                  const RawAddress& peer_addr, uint16_t delay);
@@ -428,12 +422,6 @@ typedef struct {
       p_app_sink_data_cback; /* Sink application callback for media packets */
 } tBTA_AV_SEP;
 
-/* Data type for BTA_AV_CI_SRC_DATA_READY_EVT */
-typedef struct {
-  BT_HDR hdr;
-  RawAddress peer_address;
-} tBTA_AV_CI_SRC_DATA;
-
 enum : uint8_t {
   /* initiator/acceptor role for adaption */
   BTA_AV_ROLE_AD_INT = 0x00, /* initiator */
@@ -472,7 +460,6 @@ union tBTA_AV_DATA {
   tBTA_AV_SDP_RES sdp_res;
   tBTA_AV_API_META_RSP api_meta_rsp;
   tBTA_AV_API_STATUS_RSP api_status_rsp;
-  tBTA_AV_CI_SRC_DATA ci_src_data;
 };
 
 typedef union {

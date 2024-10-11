@@ -11,7 +11,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.os.RemoteException;
-import android.os.SystemProperties;
 import android.util.Log;
 
 import java.util.Arrays;
@@ -32,7 +31,6 @@ public final class BluetoothAdapterUtil {
 
     private static boolean sDualBluetoothSupported = false;
     private static HashMap<Integer, ArrayList<Integer>> sProfiles;
-    private static boolean sIsA2dpSinkRole = true;
 
     static {
         classInit();
@@ -40,26 +38,18 @@ public final class BluetoothAdapterUtil {
 
     private static void classInit() {
         sDualBluetoothSupported = BluetoothAdapterExt.isSupported();
-        sIsA2dpSinkRole = SystemProperties.getBoolean("persist.bluetooth.adapter0.isA2dpSink", true);
         sProfiles = new HashMap<Integer, ArrayList<Integer>>(ADAPTER_NUMBER);
 
-        ArrayList<Integer> profileArray = new ArrayList<Integer>(Arrays.asList(
+        sProfiles.put(ADAPTER_DEFAULT, new ArrayList<Integer>(Arrays.asList(
+                BluetoothProfile.A2DP_SINK,
+                BluetoothProfile.AVRCP_CONTROLLER,
                 BluetoothProfile.GATT,
-                BluetoothProfile.GATT_SERVER));
-        if (sIsA2dpSinkRole) {
-            profileArray.add(BluetoothProfile.A2DP_SINK);
-            profileArray.add(BluetoothProfile.AVRCP_CONTROLLER);
-            profileArray.add(BluetoothProfile.HEADSET_CLIENT);
-            profileArray.add(BluetoothProfile.PBAP_CLIENT);
-            profileArray.add(BluetoothProfile.HID_HOST);
-            profileArray.add(BluetoothProfile.MAP_CLIENT);
-            profileArray.add(BluetoothProfile.PAN);
-        } else {
-            profileArray.add(BluetoothProfile.A2DP);
-            profileArray.add(BluetoothProfile.AVRCP);
-            profileArray.add(BluetoothProfile.HID_HOST);
-        }
-        sProfiles.put(ADAPTER_DEFAULT, profileArray);
+                BluetoothProfile.GATT_SERVER,
+                BluetoothProfile.HEADSET_CLIENT,
+                BluetoothProfile.PBAP_CLIENT,
+                BluetoothProfile.HID_HOST,
+                BluetoothProfile.MAP_CLIENT,
+                BluetoothProfile.PAN)));
 
         sProfiles.put(ADAPTER_1, new ArrayList<Integer>(Arrays.asList(
                 BluetoothProfile.A2DP,

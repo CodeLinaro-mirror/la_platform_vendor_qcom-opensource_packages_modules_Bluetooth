@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -47,7 +42,7 @@
  * Returns          void
  *
  ******************************************************************************/
-extern void bta_av_ci_src_data_ready(const RawAddress& peer_address, tBTA_AV_CHNL chnl);
+extern void bta_av_ci_src_data_ready(tBTA_AV_CHNL chnl);
 
 /*******************************************************************************
  *

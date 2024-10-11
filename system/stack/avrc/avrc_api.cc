@@ -113,7 +113,9 @@ bool avrcp_absolute_volume_is_enabled() {
  *
  *****************************************************************************/
 static bool is_new_avrcp_enabled() {
-  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false);
+  // New Bluetooth adapter supports AVRCP(TG)
+  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", true) &&
+        !is_default_bluetooth();
 }
 
 /******************************************************************************

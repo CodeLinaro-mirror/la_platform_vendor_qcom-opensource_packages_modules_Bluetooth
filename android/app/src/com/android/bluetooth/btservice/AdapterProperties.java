@@ -245,12 +245,9 @@ class AdapterProperties {
             filter.addAction(BluetoothMap.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothSap.ACTION_CONNECTION_STATE_CHANGED);
         } else {
-            if (SystemProperties.getBoolean("persist.bluetooth.adapter0.isA2dpSink", true))
-                filter.addAction(BluetoothA2dpSink.ACTION_CONNECTION_STATE_CHANGED);
-            else
-                filter.addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothHearingAid.ACTION_CONNECTION_STATE_CHANGED);
+            filter.addAction(BluetoothA2dpSink.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothHidDevice.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothHidHost.ACTION_CONNECTION_STATE_CHANGED);
             filter.addAction(BluetoothAvrcpController.ACTION_CONNECTION_STATE_CHANGED);

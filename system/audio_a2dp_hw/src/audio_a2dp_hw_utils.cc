@@ -17,11 +17,7 @@
  ******************************************************************************/
 
 #include "audio_a2dp_hw.h"
-#ifdef INSTALL_A2DP_HAL
-#include <cutils/properties.h>
-#else
 #include "osi/include/properties.h"
-#endif
 
 #define CASE_RETURN_STR(const) \
   case const:                  \
@@ -44,9 +40,5 @@ const char* audio_a2dp_hw_dump_ctrl_event(tA2DP_CTRL_CMD event) {
 }
 
 bool delay_reporting_enabled() {
-#ifdef INSTALL_A2DP_HAL
-  return !property_get_bool("persist.bluetooth.disabledelayreports", false);
-#else
   return !osi_property_get_bool("persist.bluetooth.disabledelayreports", false);
-#endif
 }

@@ -12,13 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
-
 #include "device.h"
 
 #include "abstract_message_loop.h"
@@ -95,8 +89,7 @@ void filter_cover_art(SongInfo& s) {
 }
 
 bool Device::IsActive() const {
-  return a2dp_interface_->active_peers().find(address_) !=
-          a2dp_interface_->active_peers().end();
+  return address_ == a2dp_interface_->active_peer();
 }
 
 bool Device::IsInSilenceMode() const {
@@ -181,13 +174,12 @@ void Device::VendorPacketHandler(uint8_t label,
         send_message(label, false, std::move(response));
         return;
       }
-      media_interface_->GetSongInfoExt(GetAddress(), base::Bind(&Device::GetElementAttributesResponse,
-                                               weak_ptr_factory_.GetWeakPtr(),
+      media_interface_->GetSongInfo(base::Bind(&Device::GetElementAttributesResponse, weak_ptr_factory_.GetWeakPtr(),
                                                label, get_element_attributes_request_pkt));
     } break;
 
     case CommandPdu::GET_PLAY_STATUS: {
-      media_interface_->GetPlayStatusExt(GetAddress(), base::Bind(&Device::GetPlayStatusResponse,
+      media_interface_->GetPlayStatus(base::Bind(&Device::GetPlayStatusResponse,
                                                  weak_ptr_factory_.GetWeakPtr(),
                                                  label));
     } break;
@@ -250,8 +242,6 @@ void Device::HandleGetCapabilities(
       response->AddEvent(Event::TRACK_CHANGED);
       response->AddEvent(Event::PLAYBACK_POS_CHANGED);
 
-      DEVICE_VLOG(4) << __func__
-                       << ": avrcp13_compatibility_=" << avrcp13_compatibility_;
       if (!avrcp13_compatibility_) {
         response->AddEvent(Event::AVAILABLE_PLAYERS_CHANGED);
         response->AddEvent(Event::ADDRESSED_PLAYER_CHANGED);
@@ -286,26 +276,26 @@ void Device::HandleNotification(
 
   switch (pkt->GetEventRegistered()) {
     case Event::TRACK_CHANGED: {
-      media_interface_->GetNowPlayingListExt(GetAddress(),
+      media_interface_->GetNowPlayingList(
           base::Bind(&Device::TrackChangedNotificationResponse,
                      weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
 
     case Event::PLAYBACK_STATUS_CHANGED: {
-      media_interface_->GetPlayStatusExt(GetAddress(),
+      media_interface_->GetPlayStatus(
           base::Bind(&Device::PlaybackStatusNotificationResponse,
                      weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
 
     case Event::PLAYBACK_POS_CHANGED: {
       play_pos_interval_ = pkt->GetInterval();
-      media_interface_->GetPlayStatusExt(GetAddress(),
+      media_interface_->GetPlayStatus(
           base::Bind(&Device::PlaybackPosNotificationResponse,
                      weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
 
     case Event::NOW_PLAYING_CONTENT_CHANGED: {
-      media_interface_->GetNowPlayingListExt(GetAddress(),
+      media_interface_->GetNowPlayingList(
           base::Bind(&Device::HandleNowPlayingNotificationResponse,
                      weak_ptr_factory_.GetWeakPtr(), label, true));
     } break;
@@ -420,7 +410,7 @@ void Device::HandleVolumeChanged(
   volume_ = pkt->GetVolume();
   volume_ &= ~0x80;  // remove RFA bit
   DEVICE_VLOG(1) << __func__ << ": Volume has changed to " << (uint32_t)volume_;
-  volume_interface_->SetVolumeExt(GetAddress(), volume_);
+  volume_interface_->SetVolume(volume_);
 }
 
 void Device::SetVolume(int8_t volume) {
@@ -444,23 +434,6 @@ void Device::SetVolume(int8_t volume) {
 
   volume_ = volume;
   send_message_cb_.Run(label, false, std::move(request));
-}
-
-void Device::AdjustVolume(int cmd) {
-  DEVICE_VLOG(1) << __func__ << ": cmd=" << cmd;
-
-  // Press key
-  auto request = PassThroughPacketBuilder::MakeBuilder(
-    false, true, cmd);
-
-  // Use fixed label
-  send_message_cb_.Run(1, false, std::move(request));
-
-  // Release key
-  request = PassThroughPacketBuilder::MakeBuilder(
-    false, false, cmd);
-
-  send_message_cb_.Run(2, false, std::move(request));
 }
 
 void Device::TrackChangedNotificationResponse(uint8_t label, bool interim,
@@ -533,10 +506,6 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim,
   }
 
   auto state_to_send = status.state;
-  DEVICE_VLOG(2) << __func__ << " status.state " << status.state
-      << " IsActive() " << IsActive()
-      << " interim  " << interim
-      << " last_play_status_.state " << last_play_status_.state;
   if (!IsActive()) state_to_send = PlayState::PAUSED;
   if (!interim && state_to_send == last_play_status_.state) {
     DEVICE_VLOG(0) << __func__
@@ -550,8 +519,6 @@ void Device::PlaybackStatusNotificationResponse(uint8_t label, bool interim,
   auto response =
       RegisterNotificationResponseBuilder::MakePlaybackStatusBuilder(
           interim, IsActive() ? status.state : PlayState::PAUSED);
-
-  DEVICE_VLOG(2) << __func__ << " send NotificationResponse with state " << state_to_send;
   send_message_cb_.Run(label, false, std::move(response));
 
   if (!interim) {
@@ -727,17 +694,13 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
           pass_through_packet->GetOperationId());
       send_message(label, false, std::move(response));
 
-      DEVICE_VLOG(4) << __func__ << ": OperationId=" << pass_through_packet->GetOperationId()
-                     << " KeyState = " <<  pass_through_packet->GetKeyState();
-
       // TODO (apanicke): Use an enum for media key ID's
-      // 0x44 is OperationId play
       if (pass_through_packet->GetOperationId() == 0x44 &&
           pass_through_packet->GetKeyState() == KeyState::PUSHED) {
         // We need to get the play status since we need to know
         // what the actual playstate is without being modified
         // by whether the device is active.
-        media_interface_->GetPlayStatusExt(GetAddress(), base::Bind(
+        media_interface_->GetPlayStatus(base::Bind(
             [](base::WeakPtr<Device> d, PlayStatus s) {
               if (!d) return;
 
@@ -753,16 +716,14 @@ void Device::MessageReceived(uint8_t label, std::shared_ptr<Packet> pkt) {
                 }
               }
 
-              d->media_interface_->SendKeyEventExt(d->GetAddress(), 0x44,
-                                       KeyState::PUSHED);
+              d->media_interface_->SendKeyEvent(0x44, KeyState::PUSHED);
             },
             weak_ptr_factory_.GetWeakPtr()));
         return;
       }
 
       if (IsActive()) {
-        media_interface_->SendKeyEventExt(GetAddress(),
-                                       pass_through_packet->GetOperationId(),
+        media_interface_->SendKeyEvent(pass_through_packet->GetOperationId(),
                                        pass_through_packet->GetKeyState());
       }
     } break;
@@ -1409,29 +1370,6 @@ void Device::SendMediaUpdate(bool metadata, bool play_status, bool queue) {
   if (metadata) HandleTrackUpdate();
 }
 
-void Device::SendMediaUpdateExt(bool metadata, bool play_status, bool queue) {
-  bool is_silence = IsInSilenceMode();
-
-  CHECK(media_interface_);
-  DEVICE_VLOG(4) << __func__ << ": address =" << GetAddress().ToString()
-                 << ": Metadata=" << metadata
-                 << " : play_status= " << play_status << " : queue=" << queue
-                 << " ; is_silence=" << is_silence;
-
-  if (queue) {
-    HandleNowPlayingUpdateExt();
-  }
-
-  if (play_status) {
-    HandlePlayStatusUpdateExt();
-    if (!is_silence) {
-      HandlePlayPosUpdateExt();
-    }
-  }
-
-  if (metadata) HandleTrackUpdateExt();
-}
-
 void Device::SendFolderUpdate(bool available_players, bool addressed_player,
                               bool uids) {
   CHECK(media_interface_);
@@ -1458,19 +1396,6 @@ void Device::HandleTrackUpdate() {
                  weak_ptr_factory_.GetWeakPtr(), track_changed_.second, false));
 }
 
-void Device::HandleTrackUpdateExt() {
-  DEVICE_VLOG(2) << __func__;
-  if (!track_changed_.first) {
-    LOG(WARNING) << "Device is not registered for track changed updates";
-    return;
-  }
-
-  DEVICE_VLOG(2) << __func__ << track_changed_.second;
-  media_interface_->GetNowPlayingListExt(GetAddress(),
-      base::Bind(&Device::TrackChangedNotificationResponse,
-                 weak_ptr_factory_.GetWeakPtr(), track_changed_.second, false));
-}
-
 void Device::HandlePlayStatusUpdate() {
   DEVICE_VLOG(2) << __func__;
   if (!play_status_changed_.first) {
@@ -1479,19 +1404,6 @@ void Device::HandlePlayStatusUpdate() {
   }
 
   media_interface_->GetPlayStatus(base::Bind(
-      &Device::PlaybackStatusNotificationResponse,
-      weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));
-}
-
-void Device::HandlePlayStatusUpdateExt() {
-  DEVICE_VLOG(2) << __func__;
-  if (!play_status_changed_.first) {
-    LOG(WARNING) << "Device is not registered for play status updates";
-    return;
-
-  }
-
-  media_interface_->GetPlayStatusExt(GetAddress(), base::Bind(
       &Device::PlaybackStatusNotificationResponse,
       weak_ptr_factory_.GetWeakPtr(), play_status_changed_.second, false));
 }
@@ -1505,19 +1417,6 @@ void Device::HandleNowPlayingUpdate() {
   }
 
   media_interface_->GetNowPlayingList(base::Bind(
-      &Device::HandleNowPlayingNotificationResponse,
-      weak_ptr_factory_.GetWeakPtr(), now_playing_changed_.second, false));
-}
-
-void Device::HandleNowPlayingUpdateExt() {
-  DEVICE_VLOG(2) << __func__;
-
-  if (!now_playing_changed_.first) {
-    LOG(WARNING) << "Device is not registered for now playing updates";
-    return;
-  }
-
-  media_interface_->GetNowPlayingListExt(GetAddress(), base::Bind(
       &Device::HandleNowPlayingNotificationResponse,
       weak_ptr_factory_.GetWeakPtr(), now_playing_changed_.second, false));
 }
@@ -1555,19 +1454,6 @@ void Device::HandlePlayPosUpdate() {
   }
 
   media_interface_->GetPlayStatus(base::Bind(
-      &Device::PlaybackPosNotificationResponse, weak_ptr_factory_.GetWeakPtr(),
-      play_pos_changed_.second, false));
-}
-
-void Device::HandlePlayPosUpdateExt() {
-  DEVICE_VLOG(0) << __func__;
-  if (!play_pos_changed_.first) {
-    LOG(WARNING) << "Device is not registered for play position updates";
-    return;
-  }
-
-  DEVICE_VLOG(2) << GetAddress().ToString();
-  media_interface_->GetPlayStatusExt(GetAddress(), base::Bind(
       &Device::PlaybackPosNotificationResponse, weak_ptr_factory_.GetWeakPtr(),
       play_pos_changed_.second, false));
 }

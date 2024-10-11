@@ -6,12 +6,9 @@ package android.bluetooth {
     method @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public java.util.List<android.bluetooth.BluetoothDevice> getConnectedDevices();
     method @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public int getConnectionState(android.bluetooth.BluetoothDevice);
     method @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public java.util.List<android.bluetooth.BluetoothDevice> getDevicesMatchingConnectionStates(int[]);
-    method @NonNull @RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_PRIVILEGED}) public String getMediaPlayer(@NonNull android.bluetooth.BluetoothDevice);
     method @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public boolean isA2dpPlaying(android.bluetooth.BluetoothDevice);
-    method @RequiresPermission(allOf={android.Manifest.permission.BLUETOOTH_CONNECT, android.Manifest.permission.BLUETOOTH_PRIVILEGED}) public boolean setMediaPlayer(@NonNull android.bluetooth.BluetoothDevice, @NonNull String);
     field @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public static final String ACTION_CONNECTION_STATE_CHANGED = "android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED";
     field @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public static final String ACTION_PLAYING_STATE_CHANGED = "android.bluetooth.a2dp.profile.action.PLAYING_STATE_CHANGED";
-    field @RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT) public static final String ACTION_SET_MEDIA_PLAYER = "android.bluetooth.a2dp.profile.action.SET_MEDIA_PLAYER";
     field public static final int STATE_NOT_PLAYING = 11; // 0xb
     field public static final int STATE_PLAYING = 10; // 0xa
   }

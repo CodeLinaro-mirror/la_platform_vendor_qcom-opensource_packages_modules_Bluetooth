@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include <errno.h>
@@ -77,7 +72,7 @@ void open() {
     LOG_WARN("Re-opening UIPC that is already running");
   }
   sco_uipc = UIPC_Init();
-  UIPC_Open(RawAddress::kEmpty, *sco_uipc, UIPC_CH_ID_AV_AUDIO, sco_data_cb, SCO_HOST_DATA_PATH);
+  UIPC_Open(*sco_uipc, UIPC_CH_ID_AV_AUDIO, sco_data_cb, SCO_HOST_DATA_PATH);
   struct group* grp = getgrnam(SCO_HOST_DATA_GROUP);
   chmod(SCO_HOST_DATA_PATH, 0770);
   if (grp) {

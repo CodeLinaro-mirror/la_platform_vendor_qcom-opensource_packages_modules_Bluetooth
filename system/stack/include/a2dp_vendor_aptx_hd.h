@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 //
@@ -153,13 +148,10 @@ int A2DP_VendorGetTrackSampleRateAptxHd(const uint8_t* p_codec_info);
 int A2DP_VendorGetTrackBitsPerSampleAptxHd(const uint8_t* p_codec_info);
 
 // Gets the track bitrate value for the A2DP aptX-HD codec.
-// |peer_address| is the peer address
 // |p_codec_info| is a pointer to the aptX-HD codec_info to decode.
 // Returns the track sample rate on success, or -1 if |p_codec_info|
 // contains invalid codec information.
-int A2DP_VendorGetBitRateAptxHd(
-    const RawAddress& peer_address,
-    const uint8_t* p_codec_info);
+int A2DP_VendorGetBitRateAptxHd(const uint8_t* p_codec_info);
 
 // Gets the channel count for the A2DP aptX-HD codec.
 // |p_codec_info| is a pointer to the aptX-HD codec_info to decode.
@@ -198,13 +190,11 @@ bool A2DP_VendorBuildCodecHeaderAptxHd(const uint8_t* p_codec_info,
 std::string A2DP_VendorCodecInfoStringAptxHd(const uint8_t* p_codec_info);
 
 // Gets the A2DP aptX-HD encoder interface that can be used to encode and
-// prepare A2DP packets for transmission - see |A2dpEncoderInterface|.
-// |peer_address| is the peer address
+// prepare A2DP packets for transmission - see |tA2DP_ENCODER_INTERFACE|.
 // |p_codec_info| contains the codec information.
 // Returns the A2DP aptX-HD encoder interface if the |p_codec_info| is valid
 // and supported, otherwise NULL.
-A2dpEncoderInterface* A2DP_VendorGetEncoderInterfaceAptxHd(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterfaceAptxHd(
     const uint8_t* p_codec_info);
 
 // Gets the A2DP aptX-HD decoder interface that can be used to decode and prepare

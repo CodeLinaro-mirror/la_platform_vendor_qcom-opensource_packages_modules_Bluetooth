@@ -61,7 +61,6 @@ cc_defaults {
         "libstatssocket",
         "libtinyxml2",
         "libutils",
-        "libbt-sbc-encoder",
     ],
     static_libs: [
         "android.hardware.bluetooth.a2dp@1.0",
@@ -83,6 +82,7 @@ cc_defaults {
         "lib-bt-packets-avrcp",
         "lib-bt-packets-base",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt-stack",
         "libbt-utils",
         "libcom.android.sysprop.bluetooth",

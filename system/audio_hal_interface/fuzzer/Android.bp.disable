@@ -45,7 +45,6 @@ cc_defaults {
         "android.hardware.bluetooth.audio@2.1",
         "android.system.suspend.control-V1-ndk",
         "android.system.suspend-V1-ndk",
-        "libbt-sbc-encoder",
     ],
     static_libs: [
         "libbte",
@@ -80,6 +79,7 @@ cc_defaults {
         "libbluetooth_gd",
         "libFraunhoferAAC",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libcgrouprc_format",
         "libbluetooth-types",
         "libbluetooth-protos",

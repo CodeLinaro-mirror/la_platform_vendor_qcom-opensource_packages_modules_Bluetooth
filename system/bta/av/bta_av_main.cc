@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -704,8 +699,7 @@ static void bta_av_ci_data(tBTA_AV_DATA* p_data) {
   for (i = 0; i < BTA_AV_NUM_STRS; i++) {
     p_scb = bta_av_cb.p_scb[i];
 
-    if (p_scb && p_scb->chnl == chnl && p_scb->PeerAddress() == p_data->ci_src_data.peer_address) {
-      APPL_TRACE_DEBUG("%s: p_scb->PeerAddress: %s", __func__, p_scb->PeerAddress().ToString().c_str());
+    if (p_scb && p_scb->chnl == chnl) {
       bta_av_ssm_execute(p_scb, BTA_AV_SRC_DATA_READY_EVT, p_data);
     }
   }

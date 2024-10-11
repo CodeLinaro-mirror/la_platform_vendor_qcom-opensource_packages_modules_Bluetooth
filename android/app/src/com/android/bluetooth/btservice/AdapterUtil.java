@@ -1,4 +1,4 @@
-/* Changes from Qualcomm Innovation Center are provided under the following license:
+/*
  * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
@@ -18,11 +18,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.SystemProperties;
 import android.provider.Settings;
-
-import com.android.bluetooth.a2dp.A2dpService;
-import com.android.bluetooth.a2dp.A2dpExtService;
-import com.android.bluetooth.avrcp.AvrcpTargetService;
-import com.android.bluetooth.avrcp.AvrcpTargetExtService;
 
 import com.android.bluetooth.gatt.GattService;
 import com.android.bluetooth.gatt.GattExtService;
@@ -54,8 +49,6 @@ public final class AdapterUtil {
     private static String sCounterpartAddress = null;
     private static HashMap<Integer, ArrayList<Integer>> sProfiles;
 
-    private static boolean sIsA2dpSinkRole = true;
-
     public static void init(@NonNull Context context) {
         sContext = context;
         sDualBluetooth = SystemProperties.getBoolean("persist.bluetooth.dual_bt", false);
@@ -70,28 +63,19 @@ public final class AdapterUtil {
             AdapterExt.create(sContext);
         }
 
-        sIsA2dpSinkRole = SystemProperties.getBoolean("persist.bluetooth.adapter0.isA2dpSink", true);
-
         // Init profile supported in Bluetooth adapter
         sProfiles = new HashMap<Integer, ArrayList<Integer>>(ADAPTER_NUMBER);
-        ArrayList<Integer> profileArray = new ArrayList<Integer>(Arrays.asList(
+        sProfiles.put(ADAPTER_DEFAULT, new ArrayList<Integer>(Arrays.asList(
+                BluetoothProfile.A2DP_SINK,
+                BluetoothProfile.AVRCP_CONTROLLER,
                 BluetoothProfile.GATT,
-                BluetoothProfile.GATT_SERVER));
-        if (sIsA2dpSinkRole) {
-            profileArray.add(BluetoothProfile.A2DP_SINK);
-            profileArray.add(BluetoothProfile.AVRCP_CONTROLLER);
-            profileArray.add(BluetoothProfile.HEADSET_CLIENT);
-            profileArray.add(BluetoothProfile.PBAP_CLIENT);
-            profileArray.add(BluetoothProfile.HID_HOST);
-            profileArray.add(BluetoothProfile.MAP_CLIENT);
-            profileArray.add(BluetoothProfile.PAN);
-            profileArray.add(BluetoothProfile.OPP);
-        } else {
-            profileArray.add(BluetoothProfile.A2DP);
-            profileArray.add(BluetoothProfile.AVRCP);
-            profileArray.add(BluetoothProfile.HID_HOST);
-        }
-        sProfiles.put(ADAPTER_DEFAULT, profileArray);
+                BluetoothProfile.GATT_SERVER,
+                BluetoothProfile.HEADSET_CLIENT,
+                BluetoothProfile.PBAP_CLIENT,
+                BluetoothProfile.HID_HOST,
+                BluetoothProfile.MAP_CLIENT,
+                BluetoothProfile.PAN,
+                BluetoothProfile.OPP)));
         sProfiles.put(ADAPTER_1, new ArrayList<Integer>(Arrays.asList(
                 BluetoothProfile.A2DP,
                 BluetoothProfile.AVRCP,
@@ -150,14 +134,6 @@ public final class AdapterUtil {
 
     public static Class getGattServiceClass() {
         return isAdapter1() ? GattExtService.class : GattService.class;
-    }
-
-    public static Class getA2dpServiceClass() {
-        return isAdapter1() ? A2dpExtService.class : A2dpService.class;
-    }
-
-    public static Class getAvrcpTargetServiceClass() {
-        return isAdapter1() ? AvrcpTargetExtService.class : AvrcpTargetService.class;
     }
 
     public static boolean isDualAdapterMode() {

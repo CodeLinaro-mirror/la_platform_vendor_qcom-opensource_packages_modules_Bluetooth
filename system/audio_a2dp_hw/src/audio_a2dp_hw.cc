@@ -14,19 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
-
-/******************************************************************************
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
- *****************************************************************************/
 
 /*****************************************************************************
  *
@@ -38,7 +26,6 @@
 
 #define LOG_TAG "bt_a2dp_hw"
 
-#include <audio_utils/format.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -57,14 +44,9 @@
 #include <hardware/hardware.h>
 #include <system/audio.h>
 
-#ifdef INSTALL_A2DP_HAL
-#include <unordered_map>
-#include <cutils/properties.h>
-#else
 #include "osi/include/hash_map_utils.h"
 #include "osi/include/osi.h"
 #include "osi/include/socket_utils/sockets.h"
-#endif
 
 #include "audio_a2dp_hw.h"
 
@@ -83,8 +65,6 @@
 
 #define MIN_DELAY_MS 100
 #define MAX_DELAY_MS 1000
-
-#define DEFAULT_BUF_SIZE 6144
 
 // set WRITE_POLL_MS to 0 for blocking sockets, nonzero for polled non-blocking
 // sockets
@@ -105,26 +85,6 @@
     ERROR("### ASSERT : %s line %d %s (%d) ###", __FILE__, __LINE__, msg, \
           val);                                                           \
   }
-
-#define IS_AUDIO_DEVICE_OUT_BUS(dev) ((dev) == AUDIO_DEVICE_OUT_BUS)
-
-/* To remove libosi dependency */
-/*
- * See also android.os.LocalSocketAddress.Namespace
- */
-// Linux "abstract" (non-filesystem) namespace
-#define ANDROID_SOCKET_NAMESPACE_ABSTRACT 0
-// Android "reserved" (/dev/socket) namespace
-#define ANDROID_SOCKET_NAMESPACE_RESERVED 1
-// Normal filesystem namespace
-#define ANDROID_SOCKET_NAMESPACE_FILESYSTEM 2
-#define ANDROID_RESERVED_SOCKET_PREFIX "/dev/socket/"
-
-#define OSI_NO_INTR(fn) \
-  do {                  \
-  } while ((fn) == -1 && errno == EINTR)
-
-#define UNUSED_ATTR __attribute__((unused))
 
 /*****************************************************************************
  *  Local type definitions
@@ -150,7 +110,6 @@ struct a2dp_audio_device {
   std::recursive_mutex* mutex;  // See note below on mutex acquisition order.
   struct a2dp_stream_in* input;
   struct a2dp_stream_out* output;
-  std::string bdaddress;
 };
 
 struct a2dp_config {
@@ -167,14 +126,8 @@ struct a2dp_stream_common {
   int ctrl_fd;
   int audio_fd;
   size_t buffer_sz;
-  struct audio_config in_config;
   struct a2dp_config cfg;
   a2dp_state_t state;
-  std::string bdaddress;
-  audio_devices_t device_type;
-  std::string bus_address;
-  void * data;
-  size_t data_sz;
 };
 
 struct a2dp_stream_out {
@@ -204,12 +157,6 @@ struct a2dp_stream_in {
 
 static bool enable_delay_reporting = false;
 
-static std::unordered_map<std::string, struct a2dp_stream_out*> device_stream_map;
-/* Get stream from bus address */
-static std::unordered_map<std::string, struct a2dp_stream_out*> bus_stream_map;
-/* Get group from address for same audio source */
-static std::unordered_map<std::string, std::string> device_group_map;
-
 /*****************************************************************************
  *  Static functions
  *****************************************************************************/
@@ -229,164 +176,6 @@ static void a2dp_open_ctrl_path(struct a2dp_stream_common* common);
 /*****************************************************************************
  *   Miscellaneous helper functions
  *****************************************************************************/
-#ifdef INSTALL_A2DP_HAL
-static std::unordered_map<std::string, std::string>
-hash_map_utils_new_from_string_params(const char* params) {
-  CHECK(params != NULL);
-
-  std::unordered_map<std::string, std::string> map;
-
-  char* str = strdup(params);
-  if (!str) return map;
-
-  // Parse |str| and add extracted key-and-value pair(s) in |map|.
-  int items = 0;
-  char* tmpstr;
-  char* kvpair = strtok_r(str, ";", &tmpstr);
-  while (kvpair && *kvpair) {
-    char* eq = strchr(kvpair, '=');
-
-    if (eq == kvpair) goto next_pair;
-
-    char* key;
-    char* value;
-    if (eq) {
-      key = strndup(kvpair, eq - kvpair);
-
-      // The increment of |eq| moves |eq| to the beginning of the value.
-      ++eq;
-      value = (*eq != '\0') ? strdup(eq) : strdup("");
-    } else {
-      key = strdup(kvpair);
-      value = strdup("");
-    }
-
-    map[key] = value;
-
-    free(key);
-    free(value);
-
-    items++;
-  next_pair:
-    kvpair = strtok_r(NULL, ";", &tmpstr);
-  }
-
-  free(str);
-  return map;
-}
-
-/* Documented in header file. */
-static int osi_socket_make_sockaddr_un(const char* name, int namespaceId,
-                                struct sockaddr_un* p_addr, socklen_t* alen) {
-  memset(p_addr, 0, sizeof(*p_addr));
-  size_t namelen;
-
-  switch (namespaceId) {
-    case ANDROID_SOCKET_NAMESPACE_ABSTRACT:
-#if defined(__linux__)
-      namelen = strlen(name);
-
-      // Test with length +1 for the *initial* '\0'.
-      if ((namelen + 1) > sizeof(p_addr->sun_path)) {
-        goto error;
-      }
-
-      /*
-       * Note: The path in this case is *not* supposed to be
-       * '\0'-terminated. ("man 7 unix" for the gory details.)
-       */
-
-      p_addr->sun_path[0] = 0;
-      memcpy(p_addr->sun_path + 1, name, namelen);
-#else
-      /* this OS doesn't have the Linux abstract namespace */
-
-      namelen = strlen(name) + strlen(FILESYSTEM_SOCKET_PREFIX);
-      /* unix_path_max appears to be missing on linux */
-      if (namelen >
-          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
-        goto error;
-      }
-
-      strlcpy(p_addr->sun_path, FILESYSTEM_SOCKET_PREFIX, sizeof(p_addr->sun_path));
-      strlcat(p_addr->sun_path, name, sizeof(p_addr->sun_path));
-#endif
-      break;
-
-    case ANDROID_SOCKET_NAMESPACE_RESERVED:
-      namelen = strlen(name) + strlen(ANDROID_RESERVED_SOCKET_PREFIX);
-      /* unix_path_max appears to be missing on linux */
-      if (namelen >
-          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
-        goto error;
-      }
-
-      strlcpy(p_addr->sun_path, ANDROID_RESERVED_SOCKET_PREFIX, sizeof(p_addr->sun_path));
-      strlcat(p_addr->sun_path, name, sizeof(p_addr->sun_path));
-      break;
-
-    case ANDROID_SOCKET_NAMESPACE_FILESYSTEM:
-      namelen = strlen(name);
-      /* unix_path_max appears to be missing on linux */
-      if (namelen >
-          sizeof(*p_addr) - offsetof(struct sockaddr_un, sun_path) - 1) {
-        goto error;
-      }
-
-      strlcpy(p_addr->sun_path, name, sizeof(p_addr->sun_path));
-      break;
-    default:
-      // invalid namespace id
-      return -1;
-  }
-
-  p_addr->sun_family = AF_LOCAL;
-  *alen = namelen + offsetof(struct sockaddr_un, sun_path) + 1;
-  return 0;
-error:
-  return -1;
-}
-
-
-/**
- * connect to peer named "name" on fd
- * returns same fd or -1 on error.
- * fd is not closed on error. that's your job.
- *
- * Used by AndroidSocketImpl
- */
-static int osi_socket_local_client_connect(int fd, const char* name, int namespaceId,
-                                    int type UNUSED_ATTR) {
-  struct sockaddr_un addr;
-  socklen_t alen;
-  int err;
-
-  err = osi_socket_make_sockaddr_un(name, namespaceId, &addr, &alen);
-
-  if (err < 0) {
-    goto error;
-  }
-
-  OSI_NO_INTR(err = connect(fd, (struct sockaddr*)&addr, alen));
-  if (err < 0) {
-    goto error;
-  }
-
-  return fd;
-
-error:
-  return -1;
-}
-
-bool osi_property_get_bool(const char* key, bool default_value) {
-#if defined(OS_GENERIC)
-  return default_value;
-#else
-  return property_get_bool(key, default_value);
-#endif  // defined(OS_GENERIC)
-}
-#endif
-
 static void hash_map_utils_dump_string_keys_string_values(
     std::unordered_map<std::string, std::string>& map) {
   for (const auto& ptr : map) {
@@ -1000,26 +789,6 @@ static int a2dp_get_presentation_position_cmd(struct a2dp_stream_common* common,
   return 0;
 }
 
-static std::string get_a2dp_socket_path(struct a2dp_stream_common* common, const char* path) {
-  INFO("get_a2dp_socket_path: path:%s, address:%s, bus:%s", path, common->bdaddress.c_str(),
-        common->bus_address.c_str());
-  std::string socket = path;
-  // Append the address as socket name to connect socket for specified device
-  if (common->bdaddress.compare("") != 0) {
-    /* The control server socket named with Bluetooth address
-    * for example when adddress is 11:22:33:44:AA:BB, the ctrl server socket is
-    * named like /data/misc/bluedroid/.a2dp_ctrl_11_22_33_44_AA_BB
-    * The data server socket is named like
-    * /data/misc/bluedroid/.a2dp_data_11_22_33_44_AA_BB
-    */
-    std::transform(common->bdaddress.begin(), common->bdaddress.end(),
-            common->bdaddress.begin(), ::tolower);
-    socket.append("_" + common->bdaddress);
-    std::replace(socket.begin(), socket.end(), ':', '_');
-  }
-  return socket;
-}
-
 static void a2dp_open_ctrl_path(struct a2dp_stream_common* common) {
   int i;
 
@@ -1029,8 +798,7 @@ static void a2dp_open_ctrl_path(struct a2dp_stream_common* common) {
   for (i = 0; i < CTRL_CHAN_RETRY_COUNT; i++) {
     /* connect control channel if not already connected */
     if ((common->ctrl_fd = skt_connect(
-             get_a2dp_socket_path(common, A2DP_CTRL_PATH).c_str(),
-             AUDIO_STREAM_CONTROL_OUTPUT_BUFFER_SZ)) >= 0) {
+             A2DP_CTRL_PATH, AUDIO_STREAM_CONTROL_OUTPUT_BUFFER_SZ)) >= 0) {
       /* success, now check if stack is ready */
       if (check_a2dp_ready(common) == 0) break;
 
@@ -1062,8 +830,6 @@ static void a2dp_stream_common_init(struct a2dp_stream_common* common) {
 
   /* manages max capacity of socket pipe */
   common->buffer_sz = AUDIO_STREAM_OUTPUT_BUFFER_SZ;
-
-  common->device_type = AUDIO_DEVICE_NONE;
 }
 
 static void a2dp_stream_common_destroy(struct a2dp_stream_common* common) {
@@ -1071,11 +837,6 @@ static void a2dp_stream_common_destroy(struct a2dp_stream_common* common) {
 
   delete common->mutex;
   common->mutex = NULL;
-  common->data_sz = 0;
-  if (common->data != NULL) {
-    free(common->data);
-    common->data = NULL;
-  }
 }
 
 static int start_audio_datapath(struct a2dp_stream_common* common) {
@@ -1095,7 +856,7 @@ static int start_audio_datapath(struct a2dp_stream_common* common) {
 
   /* connect socket if not yet connected */
   if (common->audio_fd == AUDIO_SKT_DISCONNECTED) {
-    common->audio_fd = skt_connect(get_a2dp_socket_path(common, A2DP_DATA_PATH).c_str(), common->buffer_sz);
+    common->audio_fd = skt_connect(A2DP_DATA_PATH, common->buffer_sz);
     if (common->audio_fd < 0) {
       ERROR("Audiopath start failed - error opening data socket");
       goto error;
@@ -1158,76 +919,17 @@ static int suspend_audio_datapath(struct a2dp_stream_common* common,
   return 0;
 }
 
-static int bt_format_from_24_to_16(a2dp_stream_out *out, const void *buffer,
-                                   size_t in_size, size_t *out_size)
-{
-  /* The value of src_count and des_size refer to
-   * memcpy_to_i16_from_p24 API
-   */
-  size_t src_count = in_size/3;
-  size_t des_size = src_count*2;
-  *out_size = des_size;
-  DEBUG("src_count = %zu, des_size = %zu, data_sz = %zu",
-        src_count, des_size, out->common.data_sz);
-  if (des_size > out->common.data_sz) {
-    out->common.data = realloc(out->common.data, des_size);
-    out->common.data_sz = des_size;
-    if (out->common.data == NULL) {
-      ERROR("%s: Memory Allocation failed!", __func__);
-      out->common.data_sz = 0;
-      return -1;
-    }
-  }
-  memcpy_by_audio_format((int16_t*)out->common.data,
-                         (audio_format_t)out->common.cfg.format,
-                         (uint8_t*)buffer,
-                         out->common.in_config.format,
-                         src_count);
-  return 0;
-}
-
-static int bt_format_from_16_to_24(a2dp_stream_out *out, const void *buffer,
-                                   size_t in_size, size_t *out_size)
-{
-  /* The value of src_count and des_size refer to
-   * memcpy_to_p24_from_i16 API
-   */
-  size_t src_count = in_size/2;
-  size_t des_size = src_count*3;
-  *out_size = des_size;
-  DEBUG("src_count = %zu, des_size = %zu, data_sz = %zu",
-        src_count, des_size, out->common.data_sz);
-  if (des_size > out->common.data_sz) {
-    out->common.data = realloc(out->common.data, des_size);
-    out->common.data_sz = des_size;
-    if (out->common.data == NULL) {
-      ERROR("%s: Memory Allocation failed!", __func__);
-      out->common.data_sz = 0;
-      return -1;
-    }
-  }
-  memcpy_by_audio_format((uint8_t*)out->common.data,
-                         (audio_format_t)out->common.cfg.format,
-                         (int16_t*)buffer,
-                         out->common.in_config.format,
-                         src_count);
-  return 0;
-}
-
 /*****************************************************************************
  *
  *  audio output callbacks
  *
  ****************************************************************************/
 
-static ssize_t out_write_ext(struct audio_stream_out* stream, const void* buffer,
+static ssize_t out_write(struct audio_stream_out* stream, const void* buffer,
                          size_t bytes) {
   struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
   int sent = -1;
   size_t write_bytes = bytes;
-  size_t write_reformat_bytes = 0;
-
-  DEBUG("bdaddress:%s, bus:%s", out->common.bdaddress.c_str(), out->common.bus_address.c_str());
 
   DEBUG("write %zu bytes (fd %d)", bytes, out->common.audio_fd);
 
@@ -1263,34 +965,7 @@ static ssize_t out_write_ext(struct audio_stream_out* stream, const void* buffer
   }
 
   lock.unlock();
-  if ((audio_format_t)out->common.cfg.format != out->common.in_config.format) {
-    if (((audio_format_t)out->common.cfg.format == AUDIO_FORMAT_PCM_16_BIT) &&
-        (out->common.in_config.format == AUDIO_FORMAT_PCM_24_BIT_PACKED)) {
-      /* Do re-format, Source bitrate is AUDIO_FORMAT_PCM_24_BIT_PACKED,
-       * Destination bitrate is AUDIO_FORMAT_PCM_16_BIT
-       */
-      bt_format_from_24_to_16(out, buffer, write_bytes,
-                              &write_reformat_bytes);
-      sent = skt_write(out->common.audio_fd,
-                       (int16_t*)out->common.data,
-                       write_reformat_bytes);
-    } else if (((audio_format_t)out->common.cfg.format == AUDIO_FORMAT_PCM_24_BIT_PACKED) &&
-               (out->common.in_config.format == AUDIO_FORMAT_PCM_16_BIT)) {
-      /* Do re-format, Source bitrate is AUDIO_FORMAT_PCM_16_BIT,
-       * Destination bitrate is AUDIO_FORMAT_PCM_24_BIT_PACKED
-       */
-      bt_format_from_16_to_24(out, buffer, write_bytes,
-                              &write_reformat_bytes);
-      sent = skt_write(out->common.audio_fd,
-                       (int16_t*)out->common.data,
-                       write_reformat_bytes);
-    } else {
-      ERROR("%s: Not support re-format for bitrate", __func__);
-      goto finish;
-    }
-  } else {
-    sent = skt_write(out->common.audio_fd, buffer, write_bytes);
-  }
+  sent = skt_write(out->common.audio_fd, buffer, write_bytes);
   lock.lock();
 
   if (sent == -1) {
@@ -1312,26 +987,12 @@ finish:;
   lock.unlock();
 
   // If send didn't work out, sleep to emulate write delay.
-  if (sent == -1 && device_group_map.size() <= 1) {
+  if (sent == -1) {
     const int us_delay = calc_audiotime_usec(out->common.cfg, bytes);
     DEBUG("emulate a2dp write delay (%d us)", us_delay);
     usleep(us_delay);
   }
   return bytes;
-}
-
-static ssize_t out_write(struct audio_stream_out* stream, const void* buffer,
-                         size_t bytes) {
-  ssize_t ret;
-  struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
-
-  for (auto it : device_group_map) {
-    // Write data to all stream in this bus group
-    if (it.second.compare(out->common.bus_address) == 0) {
-      ret = out_write_ext((struct audio_stream_out*)device_stream_map.find(it.first)->second, buffer, bytes);
-    }
-  }
-  return ret;
 }
 
 static uint32_t out_get_sample_rate(const struct audio_stream* stream) {
@@ -1490,25 +1151,13 @@ static int out_standby(struct audio_stream* stream) {
   int retVal = 0;
 
   FNLOG();
-  // prevent interference with adev_set_parameters.
+
   std::lock_guard<std::recursive_mutex> lock(*out->common.mutex);
-  if (out->common.device_type != AUDIO_DEVICE_OUT_BUS) {
-    // Do nothing in SUSPENDED state.
-    if (out->common.state != AUDIO_A2DP_STATE_SUSPENDED)
-      retVal = suspend_audio_datapath(&out->common, true);
-  } else {
-    const a2dp_state_t state = out->common.state;
-    INFO("closing output (state %d)", (int)state);
-    if ((state == AUDIO_A2DP_STATE_STARTED) ||
-        (state == AUDIO_A2DP_STATE_STOPPING)) {
-      retVal = stop_audio_datapath(&out->common);
-    }
-
-    skt_disconnect(out->common.ctrl_fd);
-    out->common.ctrl_fd = AUDIO_SKT_DISCONNECTED;
-  }
-
+  // Do nothing in SUSPENDED state.
+  if (out->common.state != AUDIO_A2DP_STATE_SUSPENDED)
+    retVal = suspend_audio_datapath(&out->common, true);
   out->frames_rendered = 0;  // rendered is reset, presented is not
+
   return retVal;
 }
 
@@ -1521,8 +1170,6 @@ static int out_dump(UNUSED_ATTR const struct audio_stream* stream,
 static int out_set_parameters(struct audio_stream* stream,
                               const char* kvpairs) {
   struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
-
-  INFO("stream %p bus %s", stream, out->common.bus_address.c_str());
 
   INFO("state %d kvpairs %s", out->common.state, kvpairs);
 
@@ -1543,11 +1190,8 @@ static int out_set_parameters(struct audio_stream* stream,
   }
 
   if (params["A2dpSuspended"].compare("true") == 0) {
-    if (!IS_AUDIO_DEVICE_OUT_BUS(out->common.device_type)) {
-      if (out->common.state == AUDIO_A2DP_STATE_STARTED) {
-        status = suspend_audio_datapath(&out->common, false);
-      }
-    }
+    if (out->common.state == AUDIO_A2DP_STATE_STARTED)
+      status = suspend_audio_datapath(&out->common, false);
   } else {
     /* Do not start the streaming automatically. If the phone was streaming
      * prior to being suspended, the next out_write shall trigger the
@@ -1557,51 +1201,12 @@ static int out_set_parameters(struct audio_stream* stream,
     /* Irrespective of the state, return 0 */
   }
 
-  std::string address = params["bdaddress"];
-
-  INFO("bdaddress %s", address.c_str());
-  if (address.compare("") != 0) {
-    // for BUS device
-    if (IS_AUDIO_DEVICE_OUT_BUS(out->common.device_type)) {
-      if (out->common.bus_address.compare(params["bus"]) == 0) {
-        if (params["map"].compare("true") == 0) {
-          INFO("save bdaddress %s for bus device %s", address.c_str(),
-            out->common.bus_address.c_str());
-          out->common.bdaddress = address;
-          device_stream_map.erase(address);
-          device_stream_map.emplace(address, out);
-          device_group_map.erase(address);
-          device_group_map.emplace(address, params["groupBus"]);
-          btav_a2dp_codec_config_t codec_config;
-          btav_a2dp_codec_config_t codec_capability;
-          status = a2dp_read_output_audio_config(&out->common, &codec_config,
-                                            &codec_capability,
-                                            true /* update_stream_config */);
-          if (status < 0) {
-            ERROR("a2dp_read_output_audio_config failed");
-            return status;
-          }
-        } else {
-          INFO("bdaddress %s disconnected", address.c_str());
-          device_stream_map.erase(address);
-          device_group_map.erase(address);
-        }
-      }
-    } else {
-      // for A2DP device
-      INFO("save bdaddress %s for A2DP OUT DEVICE", address.c_str());
-      out->common.bdaddress = address;
-    }
-  }
-
   return status;
 }
 
 static char* out_get_parameters(const struct audio_stream* stream,
                                 const char* keys) {
   FNLOG();
-
-  INFO("stream %p", stream);
 
   btav_a2dp_codec_config_t codec_config;
   btav_a2dp_codec_config_t codec_capability;
@@ -1975,7 +1580,7 @@ static int in_remove_audio_effect(UNUSED_ATTR const struct audio_stream* stream,
 
 static int adev_open_output_stream(struct audio_hw_device* dev,
                                    UNUSED_ATTR audio_io_handle_t handle,
-                                   audio_devices_t devices,
+                                   UNUSED_ATTR audio_devices_t devices,
                                    UNUSED_ATTR audio_output_flags_t flags,
                                    struct audio_config* config,
                                    struct audio_stream_out** stream_out,
@@ -1985,14 +1590,8 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
   struct a2dp_audio_device* a2dp_dev = (struct a2dp_audio_device*)dev;
   struct a2dp_stream_out* out;
   int ret = 0;
-  // Make sure we always have the feeding parameters configured
-  btav_a2dp_codec_config_t codec_config;
-  btav_a2dp_codec_config_t codec_capability;
-
-  INFO("dev %p", dev);
 
   INFO("opening output");
-  INFO("address %s, a2dp_dev->bdaddress %s", address, a2dp_dev->bdaddress.c_str());
   // protect against adev->output and stream_out from being inconsistent
   std::lock_guard<std::recursive_mutex> lock(*a2dp_dev->mutex);
   out = (struct a2dp_stream_out*)calloc(1, sizeof(struct a2dp_stream_out));
@@ -2020,24 +1619,15 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
   /* initialize a2dp specifics */
   a2dp_stream_common_init(&out->common);
 
-  if (strcmp(a2dp_dev->bdaddress.c_str(), address) == 0) {
-    INFO("Save bdaddress to out->common.bdaddress");
-    out->common.bdaddress = address;
-  }
-
   // Make sure we always have the feeding parameters configured
-  out->common.device_type = devices;
-  if (IS_AUDIO_DEVICE_OUT_BUS(devices)) {
-    out->common.bus_address = address;
-    INFO("bus %s", out->common.bus_address.c_str());
-  } else {
-    if (a2dp_read_output_audio_config(&out->common, &codec_config,
-                                      &codec_capability,
-                                      true /* update_stream_config */) < 0) {
-      ERROR("a2dp_read_output_audio_config failed");
-      ret = -1;
-      goto err_open;
-    }
+  btav_a2dp_codec_config_t codec_config;
+  btav_a2dp_codec_config_t codec_capability;
+  if (a2dp_read_output_audio_config(&out->common, &codec_config,
+                                    &codec_capability,
+                                    true /* update_stream_config */) < 0) {
+    ERROR("a2dp_read_output_audio_config failed");
+    ret = -1;
+    goto err_open;
   }
   // a2dp_read_output_audio_config() opens the socket control path (or fails)
 
@@ -2051,20 +1641,18 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
       out->common.cfg.channel_mask = config->channel_mask;
     if ((out->common.cfg.format != 0) || (out->common.cfg.rate != 0) ||
         (out->common.cfg.channel_mask != 0)) {
-      if (!IS_AUDIO_DEVICE_OUT_BUS(devices)) {
-        if (a2dp_write_output_audio_config(&out->common) < 0) {
-          ERROR("a2dp_write_output_audio_config failed");
-          ret = -1;
-          goto err_open;
-        }
-        // Read again and make sure we use the same parameters as the remote side
-        if (a2dp_read_output_audio_config(&out->common, &codec_config,
-                                          &codec_capability,
-                                          true /* update_stream_config */) < 0) {
-          ERROR("a2dp_read_output_audio_config failed");
-          ret = -1;
-          goto err_open;
-        }
+      if (a2dp_write_output_audio_config(&out->common) < 0) {
+        ERROR("a2dp_write_output_audio_config failed");
+        ret = -1;
+        goto err_open;
+      }
+      // Read again and make sure we use the same parameters as the remote side
+      if (a2dp_read_output_audio_config(&out->common, &codec_config,
+                                        &codec_capability,
+                                        true /* update_stream_config */) < 0) {
+        ERROR("a2dp_read_output_audio_config failed");
+        ret = -1;
+        goto err_open;
       }
     }
     config->format = out_get_format((const struct audio_stream*)&out->stream);
@@ -2072,8 +1660,6 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
         out_get_sample_rate((const struct audio_stream*)&out->stream);
     config->channel_mask =
         out_get_channels((const struct audio_stream*)&out->stream);
-
-    out->common.in_config = *config;
 
     INFO(
         "Output stream config: format=0x%x sample_rate=%d channel_mask=0x%x "
@@ -2083,25 +1669,11 @@ static int adev_open_output_stream(struct audio_hw_device* dev,
   }
   *stream_out = &out->stream;
   a2dp_dev->output = out;
-  INFO("stream %p", out);
-  if (devices == AUDIO_DEVICE_OUT_BUS) {
-    INFO("stream %p, busaddress= %s", out,address);
-    bus_stream_map.emplace(address, out);
-    out->common.data = malloc(DEFAULT_BUF_SIZE);
-    out->common.data_sz = DEFAULT_BUF_SIZE;
-    if (out->common.data == NULL) {
-      ERROR("%s: Memory Allocation failed!", __func__);
-      out->common.data_sz = 0;
-      goto err_open;
-    }
-  }
 
   DEBUG("success");
   /* Delay to ensure Headset is in proper state when START is initiated from
    * DUT immediately after the connection due to ongoing music playback. */
-  if (!IS_AUDIO_DEVICE_OUT_BUS(devices)) {
-    usleep(250000);
-  }
+  usleep(250000);
   return 0;
 
 err_open:
@@ -2117,8 +1689,6 @@ static void adev_close_output_stream(struct audio_hw_device* dev,
                                      struct audio_stream_out* stream) {
   struct a2dp_audio_device* a2dp_dev = (struct a2dp_audio_device*)dev;
   struct a2dp_stream_out* out = (struct a2dp_stream_out*)stream;
-
-  INFO("stream %p", stream);
 
   INFO("%s: state %d", __func__, out->common.state);
 
@@ -2153,19 +1723,6 @@ static int adev_set_parameters(struct audio_hw_device* dev,
   std::lock_guard<std::recursive_mutex> lock(*a2dp_dev->mutex);
   struct a2dp_stream_out* out = a2dp_dev->output;
 
-  std::unordered_map<std::string, std::string> params =
-    hash_map_utils_new_from_string_params(kvpairs);
-  if (!params.empty()) {
-    std::string bus = params["bus"];
-    if (bus != "") {
-      // Get the right stream from bus in kv pairs
-      if (bus_stream_map.find(bus) != bus_stream_map.end()) {
-        out = bus_stream_map.find(bus)->second;
-        INFO("out stream %p for bus %s", out, bus.c_str());
-      }
-    }
-  }
-
   if (out == NULL) return retval;
 
   INFO("state %d", out->common.state);
@@ -2184,19 +1741,6 @@ static char* adev_get_parameters(UNUSED_ATTR const struct audio_hw_device* dev,
       hash_map_utils_new_from_string_params(keys);
   hash_map_utils_dump_string_keys_string_values(params);
 
-  if (!params.empty()) {
-    std::string address = params["bdaddress"];
-    INFO("address %s", address.c_str());
-    if (address != "") {
-      if (device_stream_map.find(address) != device_stream_map.end()) {
-        struct a2dp_stream_out* out = device_stream_map.find(address)->second;
-        if (out != nullptr) {
-          INFO("found bus: %s",  out->common.bus_address.c_str());
-          return strdup(out->common.bus_address.c_str());
-        }
-      }
-    }
-  }
   return strdup("");
 }
 

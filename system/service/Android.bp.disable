@@ -110,6 +110,7 @@ cc_binary {
         "lib-bt-packets-base",
         "libbt-protos-lite",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt-stack",
         "libbt-utils",
         "libc++fs",
@@ -141,7 +142,6 @@ cc_binary {
         "libprocessgroup",
         "libprotobuf-cpp-lite",
         "libutils",
-        "libbt-sbc-encoder",
     ],
     init_rc: ["bluetoothtbd.rc"],
     target: {
@@ -192,6 +192,7 @@ cc_test {
         "lib-bt-packets-base",
         "libbt-protos-lite",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt-stack",
         "libbt-utils",
         "libc++fs",
@@ -216,7 +217,6 @@ cc_test {
         "libfmq",
         "libprocessgroup",
         "libprotobuf-cpp-lite",
-        "libbt-sbc-encoder",
     ],
 
     host_supported: true,

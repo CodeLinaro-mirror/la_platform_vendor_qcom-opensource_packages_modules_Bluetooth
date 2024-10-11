@@ -72,7 +72,6 @@ rust_binary_host {
         "libcutils",
         "libgrpc++",
         "libgrpc_wrap"
-        "libbt-sbc-encoder",
     ],
     proc_macros: [
         "libpaste",

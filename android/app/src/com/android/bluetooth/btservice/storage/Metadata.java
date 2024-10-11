@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -81,8 +76,6 @@ public class Metadata {
      * connected and active.
      */
     public int preferred_duplex_profile;
-    public String a2dpMediaPlayer;
-    public int a2dpAudioZone;
 
     Metadata(String address) {
         this.address = address;
@@ -96,8 +89,6 @@ public class Metadata {
         audioPolicyMetadata = new AudioPolicyEntity();
         preferred_output_only_profile = 0;
         preferred_duplex_profile = 0;
-        a2dpMediaPlayer = "";
-        a2dpAudioZone = 0;
     }
 
     /**
@@ -448,10 +439,6 @@ public class Metadata {
             .append(a2dpSupportsOptionalCodecs)
             .append("|enabled=")
             .append(a2dpOptionalCodecsEnabled)
-            .append("), media player(")
-            .append(a2dpMediaPlayer)
-            .append("), audio zone(")
-            .append(a2dpAudioZone)
             .append("), custom metadata(")
             .append(publicMetadata)
             .append("), hfp client audio policy(")

@@ -101,7 +101,7 @@ static const tA2DP_OPUS_CIE a2dp_opus_default_config = {
     0x00,                                // future 3
     0x00                                 // future 4
 };
-/*
+
 static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_opus = {
     a2dp_vendor_opus_encoder_init,
     a2dp_vendor_opus_encoder_cleanup,
@@ -111,7 +111,7 @@ static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_opus = {
     a2dp_vendor_opus_get_effective_frame_size,
     a2dp_vendor_opus_send_frames,
     a2dp_vendor_opus_set_transmit_queue_length};
-*/
+
 static const tA2DP_DECODER_INTERFACE a2dp_decoder_interface_opus = {
     a2dp_vendor_opus_decoder_init,          a2dp_vendor_opus_decoder_cleanup,
     a2dp_vendor_opus_decoder_decode_packet, a2dp_vendor_opus_decoder_start,
@@ -617,14 +617,14 @@ std::string A2DP_VendorCodecInfoStringOpus(const uint8_t* p_codec_info) {
 
   return res.str();
 }
-/*
+
 const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterfaceOpus(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsVendorSourceCodecValidOpus(p_codec_info)) return NULL;
 
   return &a2dp_encoder_interface_opus;
 }
-*/
+
 const tA2DP_DECODER_INTERFACE* A2DP_VendorGetDecoderInterfaceOpus(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsVendorSinkCodecValidOpus(p_codec_info)) return NULL;

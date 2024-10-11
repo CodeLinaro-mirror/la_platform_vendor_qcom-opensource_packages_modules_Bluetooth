@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 #include <base/logging.h>
@@ -83,15 +78,12 @@ void BTA_AvVendorCmd(uint8_t rc_handle, uint8_t label, tBTA_AV_CODE cmd_code,
                      uint8_t* p_data, uint16_t len) {}
 void BTA_AvVendorRsp(uint8_t rc_handle, uint8_t label, tBTA_AV_CODE rsp_code,
                      uint8_t* p_data, uint16_t len, uint32_t company_id) {}
-void btif_av_clear_remote_suspend_flag(const RawAddress& peer_address) {}
+void btif_av_clear_remote_suspend_flag(void) {}
 bool btif_av_is_connected(void) { return false; }
 bool btif_av_is_sink_enabled(void) { return false; }
 RawAddress btif_av_sink_active_peer(void) { return RawAddress(); }
 RawAddress btif_av_source_active_peer(void) { return RawAddress(); }
-std::set<RawAddress> btif_av_source_active_peers(void) { return std::set<RawAddress>(); }
-bool btif_av_source_is_active_peer(const RawAddress& peer_address) { return true;}
-bool btif_av_is_connected(const RawAddress& peer_address) { return true;}
-bool btif_av_stream_started_ready(const RawAddress& peer_address) { return false; }
+bool btif_av_stream_started_ready(void) { return false; }
 bt_status_t btif_transfer_context(tBTIF_CBACK* p_cback, uint16_t event,
                                   char* p_params, int param_len,
                                   tBTIF_COPY_CBACK* p_copy_cback) {

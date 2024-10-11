@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Changes from Qualcomm Innovation Center are provided under the following license:
-  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
-  SPDX-License-Identifier: BSD-3-Clause-Clear
--->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.android.bluetooth"
@@ -83,7 +78,6 @@
     <uses-permission android:name="android.permission.QUERY_AUDIO_STATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WRITE_SECURITY_LOG"/>
-    <uses-permission android:name="android.car.permission.CAR_CONTROL_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.car.permission.CAR_CONTROL_AUDIO_VOLUME"/>
 
     <uses-sdk android:minSdkVersion="14"/>
@@ -119,21 +113,12 @@
         </service>
 
         <!--  Advanced Audio Distribution Profile (A2DP) source Profile Service  -->
-        <service android:process="@string/process"
+        <service android:process="@string/new_process"
              android:name="com.android.bluetooth.a2dp.A2dpService"
              android:enabled="true"
              android:exported="true">
             <intent-filter>
                 <action android:name="android.bluetooth.IBluetoothA2dp"/>
-            </intent-filter>
-        </service>
-
-        <service android:process="@string/new_process"
-             android:name="com.android.bluetooth.a2dp.A2dpExtService"
-             android:enabled="true"
-             android:exported="true">
-            <intent-filter>
-                <action android:name="android.bluetooth.IBluetoothA2dpExt"/>
             </intent-filter>
         </service>
 
@@ -158,22 +143,12 @@
         </service>
 
         <!--  Audio/Video Remote Control Profile (AVRCP) target Profile Service  -->
-        <service android:process="@string/process"
+        <service android:process="@string/new_process"
              android:name="com.android.bluetooth.avrcp.AvrcpTargetService"
              android:enabled="true"
              android:exported="true">
             <intent-filter>
-                <action android:name="android.bluetooth.IBluetoothAvrcpTarget"/>
-            </intent-filter>
-        </service>
-
-        <!--  Audio/Video Remote Control Profile (AVRCP) target Extended Profile Service  -->
-        <service android:process="@string/new_process"
-             android:name="com.android.bluetooth.avrcp.AvrcpTargetExtService"
-             android:enabled="true"
-             android:exported="true">
-            <intent-filter>
-                <action android:name="android.bluetooth.IBluetoothAvrcpTargetExt"/>
+                <action android:name="android.bluetooth.IBluetoothAvrcp"/>
             </intent-filter>
         </service>
 

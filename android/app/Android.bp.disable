@@ -69,10 +69,6 @@ cc_library_shared {
         "libbluetooth",
         "libc++fs",
     ],
-    shared_libs: [
-        "libbt-sbc-encoder",
-        "libbt-sbc-encoder2",
-    ],
     sanitize: {
         scs: true,
     },

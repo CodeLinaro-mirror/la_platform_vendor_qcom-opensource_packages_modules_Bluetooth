@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -37,7 +32,6 @@
 
 #include "a2dp_sbc_decoder.h"
 #include "a2dp_sbc_encoder.h"
-#include "btif_a2dp_source.h"
 #include "bt_utils.h"
 #include "embdrv/sbc/encoder/include/sbc_encoder.h"
 #include "osi/include/log.h"
@@ -60,7 +54,7 @@ typedef struct {
 
 /* SBC Source codec capabilities */
 static const tA2DP_SBC_CIE a2dp_sbc_source_caps = {
-    (A2DP_SBC_IE_SAMP_FREQ_48),                         /* samp_freq */
+    (A2DP_SBC_IE_SAMP_FREQ_44),                         /* samp_freq */
     (A2DP_SBC_IE_CH_MD_MONO | A2DP_SBC_IE_CH_MD_JOINT), /* ch_mode */
     (A2DP_SBC_IE_BLOCKS_16 | A2DP_SBC_IE_BLOCKS_12 | A2DP_SBC_IE_BLOCKS_8 |
      A2DP_SBC_IE_BLOCKS_4),            /* block_len */
@@ -95,6 +89,17 @@ const tA2DP_SBC_CIE a2dp_sbc_default_config = {
     A2DP_SBC_IE_MIN_BITPOOL,           /* min_bitpool */
     A2DP_SBC_MAX_BITPOOL,              /* max_bitpool */
     BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16 /* bits_per_sample */
+};
+
+static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_sbc = {
+    a2dp_sbc_encoder_init,
+    a2dp_sbc_encoder_cleanup,
+    a2dp_sbc_feeding_reset,
+    a2dp_sbc_feeding_flush,
+    a2dp_sbc_get_encoder_interval_ms,
+    a2dp_sbc_get_effective_frame_size,
+    a2dp_sbc_send_frames,
+    nullptr  // set_transmit_queue_length
 };
 
 static const tA2DP_DECODER_INTERFACE a2dp_decoder_interface_sbc = {
@@ -167,19 +172,12 @@ static tA2DP_STATUS A2DP_ParseInfoSbc(tA2DP_SBC_CIE* p_ie,
 
   // Check the codec capability length
   losc = *p_codec_info++;
-  if (losc != A2DP_SBC_INFO_LEN) {
-    LOG_ERROR("%s: losc is %d, not equal %d",
-              __func__, losc, A2DP_SBC_INFO_LEN);
-    return A2DP_WRONG_CODEC;
-  }
+  if (losc != A2DP_SBC_INFO_LEN) return A2DP_WRONG_CODEC;
 
   media_type = (*p_codec_info++) >> 4;
   codec_type = *p_codec_info++;
   /* Check the Media Type and Media Codec Type */
   if (media_type != AVDT_MEDIA_TYPE_AUDIO || codec_type != A2DP_MEDIA_CT_SBC) {
-    LOG_ERROR("%s: media_type is %d, expect %d, codec_type is %d expect %d",
-              __func__, media_type, AVDT_MEDIA_TYPE_AUDIO, codec_type,
-              A2DP_MEDIA_CT_SBC);
     return A2DP_WRONG_CODEC;
   }
 
@@ -661,16 +659,7 @@ int A2DP_GetMaxBitpoolSbc(const uint8_t* p_codec_info) {
   return sbc_cie.max_bitpool;
 }
 
-uint32_t A2DP_GetBitrateSbc(const RawAddress& peer_address) {
-  A2dpSbcEncoder* encoder = (A2dpSbcEncoder*)findA2dpSourceEncoder(peer_address);
-  if (encoder == nullptr) {
-    LOG_ERROR("%s: failed to find encoder for peer_address:%s",
-              __func__, peer_address.ToString().c_str());
-    return 0;
-  }
-  return encoder->get_bitrate();
-}
-
+uint32_t A2DP_GetBitrateSbc() { return a2dp_sbc_get_bitrate(); }
 int A2DP_GetSinkTrackChannelTypeSbc(const uint8_t* p_codec_info) {
   tA2DP_SBC_CIE sbc_cie;
 
@@ -786,18 +775,11 @@ std::string A2DP_CodecInfoStringSbc(const uint8_t* p_codec_info) {
   return res.str();
 }
 
-A2dpEncoderInterface* A2DP_GetEncoderInterfaceSbc(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceSbc(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsSourceCodecValidSbc(p_codec_info)) return NULL;
 
-  LOG_DEBUG("%s: peer_address:%s",
-            __func__, peer_address.ToString().c_str());
-
-  A2dpEncoderInterface* encoder =
-     (A2dpEncoderInterface*)new A2dpSbcEncoder(peer_address);
-  setA2dpSourceEncoders(peer_address, encoder);
-  return encoder;
+  return &a2dp_encoder_interface_sbc;
 }
 
 const tA2DP_DECODER_INTERFACE* A2DP_GetDecoderInterfaceSbc(
@@ -912,12 +894,10 @@ A2dpCodecConfigSbcSource::A2dpCodecConfigSbcSource(
 A2dpCodecConfigSbcSource::~A2dpCodecConfigSbcSource() {}
 
 bool A2dpCodecConfigSbcSource::init() {
-  if (!(isValid() && A2DP_IsCodecSupported(BTAV_A2DP_CODEC_INDEX_SOURCE_SBC))) {
-    return false;
-  }
+  if (!isValid()) return false;
 
   // Load the encoder
-  if (!A2dpSbcEncoder::A2DP_LoadEncoderSbc())  {
+  if (!A2DP_LoadEncoderSbc()) {
     LOG_ERROR("%s: cannot load the encoder", __func__);
     return false;
   }
@@ -1208,16 +1188,16 @@ bool A2dpCodecConfigSbcBase::setCodecConfig(const uint8_t* p_peer_codec_info,
       break;
     }
 
-    // No user preference - use the best match
-    if (select_best_sample_rate(samp_freq, &result_config_cie,
-                                &codec_config_)) {
-      break;
-    }
-
     // No user preference - try the default config
     if (select_best_sample_rate(
             a2dp_sbc_default_config.samp_freq & peer_info_cie.samp_freq,
             &result_config_cie, &codec_config_)) {
+      break;
+    }
+
+    // No user preference - use the best match
+    if (select_best_sample_rate(samp_freq, &result_config_cie,
+                                &codec_config_)) {
       break;
     }
   } while (false);

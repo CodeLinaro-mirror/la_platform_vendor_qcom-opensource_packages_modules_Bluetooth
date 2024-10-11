@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 //
@@ -66,8 +61,7 @@ class A2dpCodecConfig {
           BTAV_A2DP_CODEC_PRIORITY_DEFAULT);
 
   virtual ~A2dpCodecConfig() = 0;
-  const RawAddress& getPeerAddress() const  { return peer_address_; }
-  void setPeerAddress(const RawAddress& peer_address) { peer_address_ = peer_address; }
+
   // Gets the pre-defined codec index.
   btav_a2dp_codec_index_t codecIndex() const { return codec_index_; }
 
@@ -84,7 +78,7 @@ class A2dpCodecConfig {
 
   // Gets the bitRate for the A2DP codec.
   // Returns the bitrate of current codec configuration, or 0 if not configured
-  int getTrackBitRate();
+  int getTrackBitRate() const;
 
   // Copies out the current OTA codec config to |p_codec_info|.
   // Returns true if the current codec config is valid and copied,
@@ -264,7 +258,6 @@ class A2dpCodecConfig {
   uint8_t ota_codec_config_[AVDT_CODEC_SIZE];
   uint8_t ota_codec_peer_capability_[AVDT_CODEC_SIZE];
   uint8_t ota_codec_peer_config_[AVDT_CODEC_SIZE];
-  RawAddress peer_address_;
 };
 
 class A2dpCodecs {
@@ -345,8 +338,7 @@ class A2dpCodecs {
   //
   // The result codec configuration is stored in |p_result_codec_config|.
   // Returns true on success, othewise false.
-  bool setCodecConfig(const RawAddress& peer_address,
-                      const uint8_t* p_peer_codec_info, bool is_capability,
+  bool setCodecConfig(const uint8_t* p_peer_codec_info, bool is_capability,
                       uint8_t* p_result_codec_config,
                       bool select_current_codec);
 
@@ -370,8 +362,7 @@ class A2dpCodecs {
   // If there is any change in the codec configuration, flag |p_config_updated|
   // is set to true.
   // Returns true on success, otherwise false.
-  bool setCodecUserConfig(const RawAddress& peer_address,
-                          const btav_a2dp_codec_config_t& codec_user_config,
+  bool setCodecUserConfig(const btav_a2dp_codec_config_t& codec_user_config,
                           const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
                           const uint8_t* p_peer_sink_capabilities,
                           uint8_t* p_result_codec_config, bool* p_restart_input,
@@ -479,58 +470,59 @@ typedef struct {
   tA2DP_CHANNEL_COUNT channel_count;      // 1 for mono or 2 for stereo
 } tA2DP_FEEDING_PARAMS;
 
-class A2dpEncoderInterface;
+// Prototype for a callback to read audio data for encoding.
+// |p_buf| is the buffer to store the data. |len| is the number of octets to
+// read.
+// Returns the number of octets read.
+typedef uint32_t (*a2dp_source_read_callback_t)(uint8_t* p_buf, uint32_t len);
 
-typedef uint32_t (A2dpEncoderInterface::*a2dp_source_read_callback_t)(const RawAddress& peer_address,
-                                                uint8_t* p_buf, uint32_t len);
-
-typedef bool (A2dpEncoderInterface::*a2dp_source_enqueue_callback_t)(const RawAddress& peer_address,
-                                                BT_HDR* p_buf, size_t frames_n, uint32_t num_bytes);
+// Prototype for a callback to enqueue A2DP Source packets for transmission.
+// |p_buf| is the buffer with the audio data to enqueue. The callback is
+// responsible for freeing |p_buf|.
+// |frames_n| is the number of audio frames in |p_buf| - it is used for
+// statistics purpose.
+// |num_bytes| is the number of audio bytes in |p_buf| - it is used for
+// delay reporting.
+// Returns true if the packet was enqueued, otherwise false.
+typedef bool (*a2dp_source_enqueue_callback_t)(BT_HDR* p_buf, size_t frames_n,
+                                               uint32_t num_bytes);
 
 //
 // A2DP encoder callbacks interface.
 //
-class A2dpEncoderInterface{
-public:
-  virtual ~A2dpEncoderInterface() {};
+typedef struct {
   // Initialize the A2DP encoder.
   // |p_peer_params| contains the A2DP peer information
   // The current A2DP codec config is in |a2dp_codec_config|.
   // |read_callback| is the callback for reading the input audio data.
   // |enqueue_callback| is the callback for enqueueing the encoded audio data.
-  virtual void encoder_init(tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
+  void (*encoder_init)(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
                        A2dpCodecConfig* a2dp_codec_config,
                        a2dp_source_read_callback_t read_callback,
-                       a2dp_source_enqueue_callback_t enqueue_callback) = 0;
+                       a2dp_source_enqueue_callback_t enqueue_callback);
 
   // Cleanup the A2DP encoder.
-  virtual  void encoder_cleanup(void) = 0;
+  void (*encoder_cleanup)(void);
 
   // Reset the feeding for the A2DP encoder.
-  virtual void feeding_reset(void) = 0;
+  void (*feeding_reset)(void);
 
   // Flush the feeding for the A2DP encoder.
-  virtual void feeding_flush(void) = 0;
+  void (*feeding_flush)(void);
 
   // Get the A2DP encoder interval (in milliseconds).
-  virtual uint64_t get_encoder_interval_ms(void) = 0;
+  uint64_t (*get_encoder_interval_ms)(void);
 
   // Get the A2DP encoded maximum frame size (similar to MTU).
-  virtual int get_effective_frame_size(void) = 0;
+  int (*get_effective_frame_size)(void);
 
   // Prepare and send A2DP encoded frames.
   // |timestamp_us| is the current timestamp (in microseconds).
-  virtual void send_frames(uint64_t timestamp_us) = 0;
+  void (*send_frames)(uint64_t timestamp_us);
 
   // Set transmit queue length for the A2DP encoder.
-  void set_transmit_queue_length([[maybe_unused]] size_t transmit_queue_length        ) { return; } //Do nothing
-
-  const RawAddress& get_peer_address() { return peer_address_; }
-
-  protected:
-    RawAddress peer_address_;
-    tA2DP_ENCODER_INIT_PEER_PARAMS peer_params;
-};
+  void (*set_transmit_queue_length)(size_t transmit_queue_length);
+} tA2DP_ENCODER_INTERFACE;
 
 // Prototype for a callback to receive decoded audio data from a
 // tA2DP_DECODER_INTERFACE|.
@@ -679,12 +671,11 @@ bool A2DP_BuildCodecHeader(const uint8_t* p_codec_info, BT_HDR* p_buf,
                            uint16_t frames_per_packet);
 
 // Gets the A2DP encoder interface that can be used to encode and prepare
-// A2DP packets for transmission - see |A2dpEncoderInterface|.
+// A2DP packets for transmission - see |tA2DP_ENCODER_INTERFACE|.
 // |p_codec_info| contains the codec information.
 // Returns the A2DP encoder interface if the |p_codec_info| is valid and
 // supported, otherwise NULL.
-A2dpEncoderInterface* A2DP_GetEncoderInterface(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterface(
     const uint8_t* p_codec_info);
 
 // Gets the A2DP decoder interface that can be used to decode received A2DP

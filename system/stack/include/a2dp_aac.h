@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 //
@@ -222,13 +217,11 @@ bool A2DP_BuildCodecHeaderAac(const uint8_t* p_codec_info, BT_HDR* p_buf,
 std::string A2DP_CodecInfoStringAac(const uint8_t* p_codec_info);
 
 // Gets the A2DP AAC encoder interface that can be used to encode and prepare
-// A2DP packets for transmission - see |A2dpEncoderInterface|.
-// |peer_address| is the peer address
+// A2DP packets for transmission - see |tA2DP_ENCODER_INTERFACE|.
 // |p_codec_info| contains the codec information.
 // Returns the A2DP AAC encoder interface if the |p_codec_info| is valid and
 // supported, otherwise NULL.
-A2dpEncoderInterface* A2DP_GetEncoderInterfaceAac(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceAac(
     const uint8_t* p_codec_info);
 
 // Gets the current A2DP AAC decoder interface that can be used to decode

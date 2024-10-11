@@ -15,11 +15,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 #define LOG_TAG "bt_btif_a2dp"
@@ -40,17 +35,15 @@
 #include "btif_util.h"
 #include "osi/include/log.h"
 #include "types/raw_address.h"
-#include "uipc.h"
 
 #include <base/logging.h>
 
-void btif_a2dp_on_idle(const RawAddress& peer_addr) {
+void btif_a2dp_on_idle(void) {
   LOG_VERBOSE("Peer stream endpoint type:%s",
-              peer_stream_endpoint_text(btif_av_get_peer_sep(peer_addr)).c_str());
-
-  if (btif_av_get_peer_sep(peer_addr) == AVDT_TSEP_SNK) {
-    btif_a2dp_source_on_idle(peer_addr);
-  } else if (btif_av_get_peer_sep(peer_addr) == AVDT_TSEP_SRC) {
+              peer_stream_endpoint_text(btif_av_get_peer_sep()).c_str());
+  if (btif_av_get_peer_sep() == AVDT_TSEP_SNK) {
+    btif_a2dp_source_on_idle();
+  } else if (btif_av_get_peer_sep() == AVDT_TSEP_SRC) {
     btif_a2dp_sink_on_idle();
   }
 }
@@ -69,7 +62,7 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
     if (bluetooth::audio::a2dp::is_hal_enabled()) {
       bluetooth::audio::a2dp::ack_stream_started(status);
     } else {
-      btif_a2dp_command_ack(uipc_get_ch_from_address(peer_addr, UIPC_CTRL_CH), status);
+      btif_a2dp_command_ack(status);
     }
     return true;
   }
@@ -83,11 +76,11 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
       return false;
     }
     if (btif_av_is_a2dp_offload_running()) {
-      btif_av_stream_start_offload(peer_addr);
+      btif_av_stream_start_offload();
     } else if (bluetooth::audio::a2dp::is_hal_enabled()) {
-      if (btif_av_get_peer_sep(peer_addr) == AVDT_TSEP_SNK) {
+      if (btif_av_get_peer_sep() == AVDT_TSEP_SNK) {
         /* Start the media encoder to do the SW audio stream */
-        btif_a2dp_source_start_audio_req(peer_addr);
+        btif_a2dp_source_start_audio_req();
       }
       if (p_av_start->initiator) {
         bluetooth::audio::a2dp::ack_stream_started(A2DP_CTRL_ACK_SUCCESS);
@@ -95,7 +88,7 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
       }
     } else {
       if (p_av_start->initiator) {
-        btif_a2dp_command_ack(uipc_get_ch_from_address(peer_addr, UIPC_CTRL_CH), A2DP_CTRL_ACK_SUCCESS);
+        btif_a2dp_command_ack(A2DP_CTRL_ACK_SUCCESS);
         return true;
       }
       /* media task is auto-started upon UIPC connection of a2dp audiopath */
@@ -105,36 +98,36 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
     if (bluetooth::audio::a2dp::is_hal_enabled()) {
       bluetooth::audio::a2dp::ack_stream_started(A2DP_CTRL_ACK_FAILURE);
     } else {
-      btif_a2dp_command_ack(uipc_get_ch_from_address(peer_addr, UIPC_CTRL_CH), A2DP_CTRL_ACK_FAILURE);
+      btif_a2dp_command_ack(A2DP_CTRL_ACK_FAILURE);
     }
     return true;
   }
   return false;
 }
 
-void btif_a2dp_on_stopped(const RawAddress& peer_addr, tBTA_AV_SUSPEND* p_av_suspend) {
+void btif_a2dp_on_stopped(tBTA_AV_SUSPEND* p_av_suspend) {
   LOG_INFO("%s: ## ON A2DP STOPPED ## p_av_suspend=%p", __func__, p_av_suspend);
 
-  if (btif_av_get_peer_sep(peer_addr) == AVDT_TSEP_SRC) {
+  if (btif_av_get_peer_sep() == AVDT_TSEP_SRC) {
     btif_a2dp_sink_on_stopped(p_av_suspend);
     return;
   }
   if (bluetooth::audio::a2dp::is_hal_enabled() ||
       !btif_av_is_a2dp_offload_running()) {
-    btif_a2dp_source_on_stopped(peer_addr, p_av_suspend);
+    btif_a2dp_source_on_stopped(p_av_suspend);
   }
 }
 
-void btif_a2dp_on_suspended(const RawAddress& peer_addr, tBTA_AV_SUSPEND* p_av_suspend) {
+void btif_a2dp_on_suspended(tBTA_AV_SUSPEND* p_av_suspend) {
   LOG_INFO("%s: ## ON A2DP SUSPENDED ## p_av_suspend=%p", __func__,
            p_av_suspend);
-  if (btif_av_get_peer_sep(peer_addr) == AVDT_TSEP_SRC) {
+  if (btif_av_get_peer_sep() == AVDT_TSEP_SRC) {
     btif_a2dp_sink_on_suspended(p_av_suspend);
     return;
   }
   if (bluetooth::audio::a2dp::is_hal_enabled() ||
       !btif_av_is_a2dp_offload_running()) {
-    btif_a2dp_source_on_suspended(peer_addr, p_av_suspend);
+    btif_a2dp_source_on_suspended(p_av_suspend);
   }
 }
 
@@ -160,7 +153,7 @@ void btif_a2dp_on_offload_started(const RawAddress& peer_addr,
       break;
   }
   if (btif_av_is_a2dp_offload_running()) {
-    if (ack != BTA_AV_SUCCESS && btif_av_stream_started_ready(peer_addr)) {
+    if (ack != BTA_AV_SUCCESS && btif_av_stream_started_ready()) {
       // Offload request will return with failure from btif_av sm if
       // suspend is triggered for remote start. Disconnect only if SoC
       // returned failure for offload VSC
@@ -172,7 +165,7 @@ void btif_a2dp_on_offload_started(const RawAddress& peer_addr,
   if (bluetooth::audio::a2dp::is_hal_enabled()) {
     bluetooth::audio::a2dp::ack_stream_started(ack);
   } else {
-    btif_a2dp_command_ack(uipc_get_ch_from_address(peer_addr, UIPC_CTRL_CH), ack);
+    btif_a2dp_command_ack(ack);
   }
 }
 

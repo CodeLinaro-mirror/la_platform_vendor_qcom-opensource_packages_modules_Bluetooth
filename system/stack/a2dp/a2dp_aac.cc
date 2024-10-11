@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 /******************************************************************************
@@ -36,7 +31,6 @@
 #include "a2dp_aac_decoder.h"
 #include "a2dp_aac_encoder.h"
 #include "bt_utils.h"
-#include "btif_a2dp_source.h"
 #include "osi/include/log.h"
 #include "osi/include/osi.h"
 #include "osi/include/properties.h"
@@ -65,7 +59,7 @@ static const tA2DP_AAC_CIE a2dp_aac_cbr_source_caps = {
     A2DP_AAC_OBJECT_TYPE_MPEG2_LC,
     // sampleRate
     // TODO: AAC 48.0kHz sampling rate should be added back - see b/62301376
-    A2DP_AAC_SAMPLING_FREQ_48000,
+    A2DP_AAC_SAMPLING_FREQ_44100,
     // channelMode
     A2DP_AAC_CHANNEL_MODE_STEREO,
     // variableBitRateSupport
@@ -81,7 +75,7 @@ static const tA2DP_AAC_CIE a2dp_aac_vbr_source_caps = {
     A2DP_AAC_OBJECT_TYPE_MPEG2_LC,
     // sampleRate
     // TODO: AAC 48.0kHz sampling rate should be added back - see b/62301376
-    A2DP_AAC_SAMPLING_FREQ_48000,
+    A2DP_AAC_SAMPLING_FREQ_44100,
     // channelMode
     A2DP_AAC_CHANNEL_MODE_STEREO,
     // variableBitRateSupport
@@ -114,6 +108,17 @@ static const tA2DP_AAC_CIE a2dp_aac_default_config = {
     A2DP_AAC_VARIABLE_BIT_RATE_DISABLED,  // variableBitRateSupport
     A2DP_AAC_DEFAULT_BITRATE,             // bitRate
     BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16    // bits_per_sample
+};
+
+static const tA2DP_ENCODER_INTERFACE a2dp_encoder_interface_aac = {
+    a2dp_aac_encoder_init,
+    a2dp_aac_encoder_cleanup,
+    a2dp_aac_feeding_reset,
+    a2dp_aac_feeding_flush,
+    a2dp_aac_get_encoder_interval_ms,
+    a2dp_aac_get_effective_frame_size,
+    a2dp_aac_send_frames,
+    nullptr  // set_transmit_queue_length
 };
 
 static const tA2DP_DECODER_INTERFACE a2dp_decoder_interface_aac = {
@@ -672,18 +677,11 @@ std::string A2DP_CodecInfoStringAac(const uint8_t* p_codec_info) {
   return res.str();
 }
 
-A2dpEncoderInterface* A2DP_GetEncoderInterfaceAac(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceAac(
     const uint8_t* p_codec_info) {
   if (!A2DP_IsSourceCodecValidAac(p_codec_info)) return NULL;
 
-  LOG_DEBUG("%s: peer_address:%s",
-            __func__, peer_address.ToString().c_str());
-
-  A2dpEncoderInterface* encoder =
-     (A2dpEncoderInterface*)new A2dpAacEncoder(peer_address);
-  setA2dpSourceEncoders(peer_address, encoder);
-  return encoder;
+  return &a2dp_encoder_interface_aac;
 }
 
 const tA2DP_DECODER_INTERFACE* A2DP_GetDecoderInterfaceAac(
@@ -802,9 +800,7 @@ A2dpCodecConfigAacSource::A2dpCodecConfigAacSource(
 A2dpCodecConfigAacSource::~A2dpCodecConfigAacSource() {}
 
 bool A2dpCodecConfigAacSource::init() {
-  if (!(isValid() && A2DP_IsCodecSupported(BTAV_A2DP_CODEC_INDEX_SOURCE_AAC))) {
-    return false;
-  }
+  if (!isValid()) return false;
 
   // Load the encoder
   if (!A2DP_LoadEncoderAac()) {
@@ -1168,16 +1164,16 @@ bool A2dpCodecConfigAacBase::setCodecConfig(const uint8_t* p_peer_codec_info,
       break;
     }
 
-    // No user preference - use the best match
-    if (select_best_sample_rate(sampleRate, &result_config_cie,
-                                &codec_config_)) {
-      break;
-    }
-
     // No user preference - try the default config
     if (select_best_sample_rate(
             a2dp_aac_default_config.sampleRate & peer_info_cie.sampleRate,
             &result_config_cie, &codec_config_)) {
+      break;
+    }
+
+    // No user preference - use the best match
+    if (select_best_sample_rate(sampleRate, &result_config_cie,
+                                &codec_config_)) {
       break;
     }
   } while (false);

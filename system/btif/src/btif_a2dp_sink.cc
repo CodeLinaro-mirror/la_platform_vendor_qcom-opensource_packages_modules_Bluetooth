@@ -15,11 +15,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 #define LOG_TAG "bt_btif_a2dp_sink"
@@ -276,7 +271,7 @@ bool btif_a2dp_sink_restart_session(const RawAddress& old_peer_address,
     btif_a2dp_sink_end_session(old_peer_address);
   }
 
-  if (!bta_av_co_set_active_peer(new_peer_address, true)) {
+  if (!bta_av_co_set_active_peer(new_peer_address)) {
     LOG(ERROR) << __func__
                << ": Cannot stream audio: cannot set active peer to "
                << new_peer_address;
@@ -545,7 +540,7 @@ static void btif_a2dp_sink_on_decode_complete(uint8_t* data, uint32_t len) {
 
 // Must be called while locked.
 static void btif_a2dp_sink_handle_inc_media(BT_HDR* p_msg) {
-  if ((btif_av_sink_get_peer_sep() == AVDT_TSEP_SNK) ||
+  if ((btif_av_get_peer_sep() == AVDT_TSEP_SNK) ||
       (btif_a2dp_sink_cb.rx_flush)) {
     APPL_TRACE_DEBUG("%s: state changed happened in this tick", __func__);
     return;

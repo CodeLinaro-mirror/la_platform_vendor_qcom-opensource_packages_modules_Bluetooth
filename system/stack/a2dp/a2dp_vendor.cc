@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 /**
@@ -414,21 +409,20 @@ bool A2DP_VendorCodecEquals(const uint8_t* p_codec_info_a,
   return false;
 }
 
-int A2DP_VendorGetBitRate(const RawAddress& peer_address,
-                          const uint8_t* p_codec_info) {
+int A2DP_VendorGetBitRate(const uint8_t* p_codec_info) {
   uint32_t vendor_id = A2DP_VendorCodecGetVendorId(p_codec_info);
   uint16_t codec_id = A2DP_VendorCodecGetCodecId(p_codec_info);
 
   // Check for aptX
   if (A2DP_IsAptxCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetBitRateAptx(peer_address, p_codec_info);
+    return A2DP_VendorGetBitRateAptx(p_codec_info);
   }
 
   // Check for aptX-HD
   if (A2DP_IsAptxHdCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetBitRateAptxHd(peer_address, p_codec_info);
+    return A2DP_VendorGetBitRateAptxHd(p_codec_info);
   }
-/*
+
   // Check for LDAC
   if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
     return A2DP_VendorGetBitRateLdac(p_codec_info);
@@ -438,7 +432,7 @@ int A2DP_VendorGetBitRate(const RawAddress& peer_address,
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_VendorGetBitRateOpus(p_codec_info);
   }
-*/
+
   // Add checks based on <vendor_id, codec_id>
 
   return -1;
@@ -625,22 +619,21 @@ bool A2DP_VendorBuildCodecHeader(const uint8_t* p_codec_info, BT_HDR* p_buf,
   return false;
 }
 
-A2dpEncoderInterface* A2DP_VendorGetEncoderInterface(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterface(
     const uint8_t* p_codec_info) {
   uint32_t vendor_id = A2DP_VendorCodecGetVendorId(p_codec_info);
   uint16_t codec_id = A2DP_VendorCodecGetCodecId(p_codec_info);
 
   // Check for aptX
   if (A2DP_IsAptxCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetEncoderInterfaceAptx(peer_address, p_codec_info);
+    return A2DP_VendorGetEncoderInterfaceAptx(p_codec_info);
   }
 
   // Check for aptX-HD
   if (A2DP_IsAptxHdCodec(vendor_id, codec_id)) {
-    return A2DP_VendorGetEncoderInterfaceAptxHd(peer_address, p_codec_info);
+    return A2DP_VendorGetEncoderInterfaceAptxHd(p_codec_info);
   }
-/*
+
   // Check for LDAC
   if (vendor_id == A2DP_LDAC_VENDOR_ID && codec_id == A2DP_LDAC_CODEC_ID) {
     return A2DP_VendorGetEncoderInterfaceLdac(p_codec_info);
@@ -650,7 +643,7 @@ A2dpEncoderInterface* A2DP_VendorGetEncoderInterface(
   if (vendor_id == A2DP_OPUS_VENDOR_ID && codec_id == A2DP_OPUS_CODEC_ID) {
     return A2DP_VendorGetEncoderInterfaceOpus(p_codec_info);
   }
-*/
+
   // Add checks based on <vendor_id, codec_id>
 
   return NULL;

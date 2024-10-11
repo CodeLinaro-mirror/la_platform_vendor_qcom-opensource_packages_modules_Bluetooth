@@ -12,13 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
-
 #define LOG_TAG "a2dp_encoding"
 
 #include "a2dp_encoding_aidl.h"
@@ -86,11 +80,11 @@ BluetoothAudioCtrlAck A2dpTransport::StartRequest(bool is_low_latency) {
     return a2dp_ack_to_bt_audio_ctrl_ack(A2DP_CTRL_ACK_INCALL_FAILURE);
   }
 
-  if (btif_av_stream_started_ready(RawAddress::kEmpty)) {
+  if (btif_av_stream_started_ready()) {
     // Already started, ACK back immediately.
     return a2dp_ack_to_bt_audio_ctrl_ack(A2DP_CTRL_ACK_SUCCESS);
   }
-  if (btif_av_stream_ready(RawAddress::kEmpty)) {
+  if (btif_av_stream_ready()) {
     // check if codec needs to be switched prior to stream start
     invoke_switch_codec_cb(is_low_latency);
     /*
@@ -99,8 +93,8 @@ BluetoothAudioCtrlAck A2dpTransport::StartRequest(bool is_low_latency) {
      * procedure is completed, othewise send it now.
      */
     a2dp_pending_cmd_ = A2DP_CTRL_CMD_START;
-    btif_av_stream_start_with_latency(RawAddress::kEmpty, is_low_latency);
-    if (btif_av_get_peer_sep(RawAddress::kEmpty) != AVDT_TSEP_SRC) {
+    btif_av_stream_start_with_latency(is_low_latency);
+    if (btif_av_get_peer_sep() != AVDT_TSEP_SRC) {
       LOG(INFO) << __func__ << ": accepted";
       return a2dp_ack_to_bt_audio_ctrl_ack(A2DP_CTRL_ACK_PENDING);
     }
@@ -121,24 +115,24 @@ BluetoothAudioCtrlAck A2dpTransport::SuspendRequest() {
     return a2dp_ack_to_bt_audio_ctrl_ack(A2DP_CTRL_ACK_FAILURE);
   }
   // Local suspend
-  if (btif_av_stream_started_ready(RawAddress::kEmpty)) {
+  if (btif_av_stream_started_ready()) {
     LOG(INFO) << __func__ << ": accepted";
     a2dp_pending_cmd_ = A2DP_CTRL_CMD_SUSPEND;
-    btif_av_stream_suspend(RawAddress::kEmpty);
+    btif_av_stream_suspend();
     return BluetoothAudioCtrlAck::PENDING;
   }
   /* If we are not in started state, just ack back ok and let
    * audioflinger close the channel. This can happen if we are
    * remotely suspended, clear REMOTE SUSPEND flag.
    */
-  btif_av_clear_remote_suspend_flag(RawAddress::kEmpty);
+  btif_av_clear_remote_suspend_flag();
   return a2dp_ack_to_bt_audio_ctrl_ack(A2DP_CTRL_ACK_SUCCESS);
 }
 
 void A2dpTransport::StopRequest() {
-  if (btif_av_get_peer_sep(RawAddress::kEmpty) == AVDT_TSEP_SNK &&
-      !btif_av_stream_started_ready(RawAddress::kEmpty)) {
-    btif_av_clear_remote_suspend_flag(RawAddress::kEmpty);
+  if (btif_av_get_peer_sep() == AVDT_TSEP_SNK &&
+      !btif_av_stream_started_ready()) {
+    btif_av_clear_remote_suspend_flag();
     return;
   }
   LOG(INFO) << __func__ << ": handling";
@@ -296,7 +290,7 @@ bool a2dp_get_selected_hal_codec_config(CodecConfiguration* codec_config) {
   }
   codec_config->encodedAudioBitrate = a2dp_config->getTrackBitRate();
   // Obtain the MTU
-  RawAddress peer_addr = *btif_av_source_active_peers().begin();
+  RawAddress peer_addr = btif_av_source_active_peer();
   tA2DP_ENCODER_INIT_PEER_PARAMS peer_param;
   bta_av_co_get_peer_params(peer_addr, &peer_param);
   int effectiveMtu = bta_av_co_get_encoder_effective_frame_size();

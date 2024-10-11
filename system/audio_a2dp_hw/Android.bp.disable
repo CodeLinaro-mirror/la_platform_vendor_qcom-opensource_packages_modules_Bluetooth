@@ -24,25 +24,18 @@ cc_library {
     name: "audio.a2dp.default",
     defaults: ["audio_a2dp_hw_defaults"],
     relative_install_path: "hw",
-    proprietary: true,
-    header_libs: ["internal_include_headers", "libhardware_headers"],
-    cflags: [
-         "-DINSTALL_A2DP_HAL",
-    ],
     srcs: [
         "src/audio_a2dp_hw.cc",
         "src/audio_a2dp_hw_utils.cc",
     ],
-    //apex_available: [
-    //    "com.android.bluetooth",
-    //],
+    apex_available: [
+        "com.android.bluetooth",
+    ],
     shared_libs: [
         "liblog",
         "libcutils",
-        "libchrome",
-        "libaudioutils",
     ],
-    //static_libs: ["libosi"],
+    static_libs: ["libosi"],
 }
 
 cc_library_static {
@@ -63,17 +56,17 @@ cc_test {
     name: "net_test_audio_a2dp_hw",
     test_suites: ["device-tests"],
     defaults: [
-        //"audio_a2dp_hw_defaults",
+        "audio_a2dp_hw_defaults",
         "mts_defaults",
     ],
     srcs: [
-        //"test/audio_a2dp_hw_test.cc",
+        "test/audio_a2dp_hw_test.cc",
     ],
     shared_libs: [
         "liblog",
     ],
     static_libs: [
-        //"audio.a2dp.default",
+        "audio.a2dp.default",
         "libosi",
     ],
 }

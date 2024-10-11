@@ -38,13 +38,9 @@ using TestBrowsePacket = TestPacketType<BrowsePacket>;
 class MockMediaInterface : public MediaInterface {
  public:
   MOCK_METHOD2(SendKeyEvent, void(uint8_t, KeyState));
-  MOCK_METHOD3(SendKeyEventExt, void(const RawAddress&, uint8_t, KeyState));
-  MOCK_METHOD1(GetSongInfo, void( MediaInterface::SongInfoCallback));
-  MOCK_METHOD2(GetSongInfoExt, void(const RawAddress&, MediaInterface::SongInfoCallback));
+  MOCK_METHOD1(GetSongInfo, void(MediaInterface::SongInfoCallback));
   MOCK_METHOD1(GetPlayStatus, void(MediaInterface::PlayStatusCallback));
-  MOCK_METHOD2(GetPlayStatusExt, void(const RawAddress&, MediaInterface::PlayStatusCallback));
   MOCK_METHOD1(GetNowPlayingList, void(MediaInterface::NowPlayingCallback));
-  MOCK_METHOD2(GetNowPlayingListExt, void(const RawAddress&, MediaInterface::NowPlayingCallback));
   MOCK_METHOD1(GetMediaPlayerList, void(MediaInterface::MediaListCallback));
   MOCK_METHOD3(GetFolderItems, void(uint16_t, std::string,
                                     MediaInterface::FolderItemsCallback));
@@ -62,7 +58,6 @@ class MockVolumeInterface : public VolumeInterface {
   MOCK_METHOD2(DeviceConnected, void(const RawAddress&, VolumeChangedCb));
   MOCK_METHOD1(DeviceDisconnected, void(const RawAddress&));
   MOCK_METHOD1(SetVolume, void(int8_t));
-  MOCK_METHOD2(SetVolumeExt, void(const RawAddress&, int8_t));
 };
 
 class MockAvrcpInterface : public AvrcpInterface {
@@ -88,7 +83,6 @@ class MockA2dpInterface : public A2dpInterface {
   MOCK_METHOD1(event_open, void(const RawAddress&));
   MOCK_METHOD1(event_close, void(const RawAddress&));
   MOCK_METHOD0(active_peer, RawAddress());
-  MOCK_METHOD0(active_peers, std::set<RawAddress>());
   MOCK_METHOD1(is_peer_in_silence_mode, bool(const RawAddress&));
 };
 

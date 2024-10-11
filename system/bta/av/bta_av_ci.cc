@@ -14,11 +14,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 /******************************************************************************
@@ -46,12 +41,11 @@
  * Returns          void
  *
  ******************************************************************************/
-void bta_av_ci_src_data_ready(const RawAddress& peer_address, tBTA_AV_CHNL chnl) {
-  tBTA_AV_CI_SRC_DATA* p_buf = (tBTA_AV_CI_SRC_DATA*)osi_malloc(sizeof(tBTA_AV_CI_SRC_DATA));
+void bta_av_ci_src_data_ready(tBTA_AV_CHNL chnl) {
+  BT_HDR_RIGID* p_buf = (BT_HDR_RIGID*)osi_malloc(sizeof(BT_HDR_RIGID));
 
-  p_buf->hdr.layer_specific = chnl;
-  p_buf->hdr.event = BTA_AV_CI_SRC_DATA_READY_EVT;
-  p_buf->peer_address = peer_address;
+  p_buf->layer_specific = chnl;
+  p_buf->event = BTA_AV_CI_SRC_DATA_READY_EVT;
 
   bta_sys_sendmsg(p_buf);
 }

@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 //
@@ -154,12 +149,10 @@ int A2DP_VendorGetTrackBitsPerSample(const uint8_t* p_codec_info);
 int A2DP_VendorGetTrackChannelCount(const uint8_t* p_codec_info);
 
 // Gets the bitrate for the A2DP vendor-specific codec.
-// |peer_address| is the peer address
 // |p_codec_info| is a pointer to the vendor-specific codec_info to decode.
 // Returns the channel count on success, or -1 if |p_codec_info|
 // contains invalid codec information.
-int A2DP_VendorGetBitRate(const RawAddress& peer_address,
-                          const uint8_t* p_codec_info);
+int A2DP_VendorGetBitRate(const uint8_t* p_codec_info);
 
 // Gets the channel type for the A2DP vendor-specific Sink codec:
 // 1 for mono, or 3 for dual/stereo/joint.
@@ -186,13 +179,11 @@ bool A2DP_VendorBuildCodecHeader(const uint8_t* p_codec_info, BT_HDR* p_buf,
                                  uint16_t frames_per_packet);
 
 // Gets the A2DP vendor encoder interface that can be used to encode and
-// prepare A2DP packets for transmission - see |A2dpEncoderInterface|.
-// |peer_address| is the peer address
+// prepare A2DP packets for transmission - see |tA2DP_ENCODER_INTERFACE|.
 // |p_codec_info| contains the codec information.
 // Returns the A2DP vendor encoder interface if the |p_codec_info| is valid and
 // supported, otherwise NULL.
-A2dpEncoderInterface* A2DP_VendorGetEncoderInterface(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_VendorGetEncoderInterface(
     const uint8_t* p_codec_info);
 
 // Gets the current A2DP vendor decoder interface that can be used to decode

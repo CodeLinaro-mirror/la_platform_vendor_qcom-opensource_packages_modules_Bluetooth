@@ -93,8 +93,6 @@ bool get_pts_le_audio_disable_ases_before_stopping(void) { return false; }
 config_t* get_all(void) { return nullptr; }
 const packet_fragmenter_t* packet_fragmenter_get_interface() { return nullptr; }
 
-bool btif_a2dp_source_media_task_is_running(const RawAddress& peer_address) { return true; }
-
 stack_config_t mock_stack_config{
     .get_trace_config_enabled = get_trace_config_enabled,
     .get_pts_avrcp_test = get_pts_avrcp_test,

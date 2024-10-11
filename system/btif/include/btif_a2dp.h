@@ -15,11 +15,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Changes from Qualcomm Innovation Center are provided under the following license:
- *
- *  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- *  SPDX-License-Identifier: BSD-3-Clause-Clear.
- *
  ******************************************************************************/
 
 #ifndef BTIF_A2DP_H
@@ -31,7 +26,7 @@
 #include "types/raw_address.h"
 
 // Process 'idle' request from the BTIF state machine during initialization.
-void btif_a2dp_on_idle(const RawAddress& peer_addr);
+void btif_a2dp_on_idle(void);
 
 // Process 'start' request from the BTIF state machine to prepare for A2DP
 // streaming.
@@ -43,13 +38,13 @@ bool btif_a2dp_on_started(const RawAddress& peer_addr, tBTA_AV_START* p_av_start
 // Process 'stop' request from the BTIF state machine to stop A2DP streaming.
 // |p_av_suspend| is the data associated with the request - see
 // |tBTA_AV_SUSPEND|.
-void btif_a2dp_on_stopped(const RawAddress& peer_addr, tBTA_AV_SUSPEND* p_av_suspend);
+void btif_a2dp_on_stopped(tBTA_AV_SUSPEND* p_av_suspend);
 
 // Process 'suspend' request from the BTIF state machine to suspend A2DP
 // streaming.
 // |p_av_suspend| is the data associated with the request - see
 // |tBTA_AV_SUSPEND|.
-void btif_a2dp_on_suspended(const RawAddress& peer_addr, tBTA_AV_SUSPEND* p_av_suspend);
+void btif_a2dp_on_suspended(tBTA_AV_SUSPEND* p_av_suspend);
 
 // Process 'offload start' request from the BTIF state machine to start
 // offloading of the A2DP streaming.

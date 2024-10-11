@@ -282,7 +282,7 @@ const tA2DP_DECODER_INTERFACE* A2DP_GetDecoderInterface(
   mock_function_count_map[__func__]++;
   return nullptr;
 }
-const A2dpEncoderInterface* A2DP_GetEncoderInterface(
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterface(
     const uint8_t* p_codec_info) {
   mock_function_count_map[__func__]++;
   return nullptr;

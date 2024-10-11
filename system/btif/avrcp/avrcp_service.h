@@ -74,8 +74,6 @@ class AvrcpService : public MediaCallbacks {
   // Functions inherited from MediaCallbacks in order to receive updates
   void SendMediaUpdate(bool track_changed, bool play_state,
                        bool queue) override;
-  void SendMediaUpdateExt(const RawAddress& bdaddr, bool track_changed,
-                          bool play_state, bool queue);
   void SendFolderUpdate(bool available_players, bool addressed_player,
                         bool queue) override;
   void SendActiveDeviceChanged(const RawAddress& address) override;
@@ -119,5 +117,7 @@ class AvrcpService : public MediaCallbacks {
 }  // namespace bluetooth
 
 inline bool is_new_avrcp_enabled() {
-  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false);
+  // New Bluetooth adapter supports AVRCP(TG)
+  return osi_property_get_bool("bluetooth.profile.avrcp.target.enabled", false) &&
+         !is_default_bluetooth();
 }

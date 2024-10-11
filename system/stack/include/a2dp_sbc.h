@@ -12,11 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 //
@@ -55,7 +50,7 @@ class A2dpCodecConfigSbcBase : public A2dpCodecConfig {
 class A2dpCodecConfigSbcSource : public A2dpCodecConfigSbcBase {
  public:
   A2dpCodecConfigSbcSource(btav_a2dp_codec_priority_t codec_priority);
-  ~A2dpCodecConfigSbcSource();
+  virtual ~A2dpCodecConfigSbcSource();
 
   bool init() override;
 
@@ -229,13 +224,11 @@ bool A2DP_BuildCodecHeaderSbc(const uint8_t* p_codec_info, BT_HDR* p_buf,
 std::string A2DP_CodecInfoStringSbc(const uint8_t* p_codec_info);
 
 // Gets the A2DP SBC encoder interface that can be used to encode and prepare
-// A2DP packets for transmission - see |A2dpEncoderInterface|.
-// |peer_address| is the peer address
+// A2DP packets for transmission - see |tA2DP_ENCODER_INTERFACE|.
 // |p_codec_info| contains the codec information.
 // Returns the A2DP SBC encoder interface if the |p_codec_info| is valid and
 // supported, otherwise NULL.
-A2dpEncoderInterface* A2DP_GetEncoderInterfaceSbc(
-    const RawAddress& peer_address,
+const tA2DP_ENCODER_INTERFACE* A2DP_GetEncoderInterfaceSbc(
     const uint8_t* p_codec_info);
 
 // Gets the A2DP SBC decoder interface that can be used to decode received A2DP
@@ -277,8 +270,7 @@ bool A2DP_InitCodecConfigSbc(AvdtpSepConfig* p_cfg);
 bool A2DP_InitCodecConfigSbcSink(AvdtpSepConfig* p_cfg);
 
 // Get SBC bitrate
-// |peer_address| is the peer address
 // Returns |uint32_t| bitrate value in bits per second
-uint32_t A2DP_GetBitrateSbc(const RawAddress& peer_address);
+uint32_t A2DP_GetBitrateSbc();
 
 #endif  // A2DP_SBC_H

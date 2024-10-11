@@ -191,7 +191,6 @@ fluoride_defaults {
         "libbase",
         "liblog",
         "libnativehelper",
-        "libbt-sbc-encoder",
     ],
     static_libs: [
         "android.hardware.bluetooth.a2dp@1.0",
@@ -203,6 +202,7 @@ fluoride_defaults {
         "libbt-platform-protos-lite",
         "libbt-protos-lite",
         "libbt-sbc-decoder",
+        "libbt-sbc-encoder",
         "libbt_shim_bridge",
         "libbt_shim_ffi",
         "libflatbuffers-cpp",
