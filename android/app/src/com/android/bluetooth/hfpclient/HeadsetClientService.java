@@ -32,7 +32,6 @@ import android.bluetooth.IBluetoothHeadsetClient;
 import android.content.AttributionSource;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -139,9 +138,7 @@ public class HeadsetClientService extends ProfileService {
 
             IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
             filter.addAction(BluetoothHeadsetClient.ACTION_VENDOR_SPECIFIC_HEADSETCLIENT_EVENT);
-            if (!isAutomotive()) {
-                filter.addAction(AudioManager.ACTION_VOLUME_CHANGED);
-            }
+            filter.addAction(AudioManager.ACTION_VOLUME_CHANGED);
             registerReceiver(mBroadcastReceiver, filter);
 
             // Start the HfpClientConnectionService to create connection with telecom when HFP
@@ -1464,9 +1461,5 @@ public class HeadsetClientService extends ProfileService {
                 }
             }
         }
-    }
-
-    boolean isAutomotive() {
-        return getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE);
     }
 }

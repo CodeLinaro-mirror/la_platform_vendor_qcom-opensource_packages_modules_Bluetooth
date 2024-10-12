@@ -96,7 +96,6 @@ android_app {
 
     jni_uses_platform_apis: true,
     libs: [
-        "android.car",
         "framework-bluetooth-pre-jarjar",
         "framework-statsd.stubs.module_lib",
         "framework-tethering.stubs.module_lib",

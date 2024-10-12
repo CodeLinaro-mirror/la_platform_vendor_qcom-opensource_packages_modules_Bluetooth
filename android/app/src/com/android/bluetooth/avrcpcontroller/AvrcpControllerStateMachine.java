@@ -26,19 +26,13 @@ import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
-import android.car.Car;
-import android.car.CarNotConnectedException;
-import android.car.media.CarAudioManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.media.AudioAttributes;
 import android.media.MediaMetadata;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.Message;
 import android.support.v4.media.MediaBrowserCompat.MediaItem;
 import android.support.v4.media.session.MediaSessionCompat;
@@ -146,10 +140,6 @@ class AvrcpControllerStateMachine extends StateMachine {
     private static BluetoothDevice sActiveDevice;
     private final AudioManager mAudioManager;
     private final boolean mIsVolumeFixed;
-    private Car mCar;
-    private CarAudioManager mCarAudioManager;
-    private static int mVolumeGroupId;
-    private static int mMaxVolume;
 
     protected final BluetoothDevice mDevice;
     protected final byte[] mDeviceAddress;
@@ -400,24 +390,6 @@ class AvrcpControllerStateMachine extends StateMachine {
     static final int CMD_TIMEOUT_MILLIS = 10000;
     static final int ABS_VOL_TIMEOUT_MILLIS = 1000; //1s
 
-    private final CarAudioManager.CarVolumeCallback mVolumeChangeCallback =
-        new CarAudioManager.CarVolumeCallback() {
-            @Override
-            public void onGroupVolumeChanged(int zoneId, int groupId, int flags) {
-                logD("zoneId:" + zoneId + ", groupId:" + groupId);
-
-                if (zoneId == CarAudioManager.PRIMARY_AUDIO_ZONE
-                        && groupId == mVolumeGroupId) {
-                    int volume = getAbsVolume();
-                    logD("notify abs volume changed: " + volume);
-                    // Send volume changed notification
-                    mService.sendRegisterAbsVolRspNative(mDeviceAddress,
-                            NOTIFICATION_RSP_TYPE_CHANGED,
-                            volume, mVolumeNotificationLabel);
-                }
-            }
-        };
-
     AvrcpControllerStateMachine(BluetoothDevice device, AvrcpControllerService service) {
         super(TAG);
         mDevice = device;
@@ -461,29 +433,9 @@ class AvrcpControllerStateMachine extends StateMachine {
         addState(mAddToNowPlaying, mConnected);
 
         mAudioManager = (AudioManager) service.getSystemService(Context.AUDIO_SERVICE);
-
-        if (mService.isAutomotive()) {
-          mCar = Car.createCar(service.getApplicationContext(), mConnection);
-          mCar.connect();
-          mIsVolumeFixed = false;
-        } else {
-          mIsVolumeFixed = mAudioManager.isVolumeFixed();
-        }
+        mIsVolumeFixed = mAudioManager.isVolumeFixed();
 
         setInitialState(mDisconnected);
-    }
-
-    public void doQuit() {
-        Log.d(TAG, "doQuit");
-        if (mCarAudioManager != null)
-            mCarAudioManager.unregisterCarVolumeCallback(mVolumeChangeCallback);
-
-        if (mCar != null && mCar.isConnected()) {
-            mCar.disconnect();
-            mCar = null;
-        }
-
-        quitNow();
     }
 
     BrowseTree.BrowseNode findNode(String parentMediaId) {
@@ -1830,29 +1782,6 @@ class AvrcpControllerStateMachine extends StateMachine {
         }
     }
 
-    private final ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            try {
-                mCarAudioManager = (CarAudioManager) mCar.getCarManager(Car.AUDIO_SERVICE);
-                if (mCarAudioManager != null) {
-                    mVolumeGroupId = mCarAudioManager.getVolumeGroupIdForUsage(AudioAttributes.USAGE_MEDIA);
-                    mMaxVolume = mCarAudioManager.getGroupMaxVolume(mVolumeGroupId);
-                    mCarAudioManager.registerCarVolumeCallback(mVolumeChangeCallback);
-                }
-            } catch (CarNotConnectedException e) {
-                Log.e(TAG, "Car is not connected!", e);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "mCarAudioManager is NULL!", e);
-            }
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.e(TAG, "Car service is disconnected");
-        }
-    };
-
     /**
      * Handle a request to align our local volume with the volume of a remote device. If
      * we're assuming the source volume is fixed then a response of ABS_VOL_MAX will always be
@@ -1882,78 +1811,31 @@ class AvrcpControllerStateMachine extends StateMachine {
      * @param absVol A volume level based on a domain of [0, ABS_VOL_MAX]
      */
     private void setAbsVolume(int absVol) {
-        if (mService.isAutomotive()) {
-            int currIndex = 0;
-            try {
-                currIndex = mCarAudioManager.getGroupVolume(mVolumeGroupId);
-            } catch (CarNotConnectedException e) {
-                Log.e(TAG, "Car is not connected", e);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "mCarAudioManager is NULL!", e);
-            }
+        int maxLocalVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int curLocalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int reqLocalVolume = (maxLocalVolume * absVol) / ABS_VOL_BASE;
+        logD("setAbsVolme: absVol = " + absVol + ", reqLocal = " + reqLocalVolume
+                + ", curLocal = " + curLocalVolume + ", maxLocal = " + maxLocalVolume);
 
-            int newIndex = (mMaxVolume * absVol) / ABS_VOL_BASE;
-            logD(" setAbsVolume =" + absVol + " maxVol = " + mMaxVolume
-                    + " cur = " + currIndex + " new = " + newIndex);
-
-            /*
-             * In some cases change in percentage is not sufficient to warrant
-             * change in index values which are in range of 0-15. For such cases,
-             * no action is required
-             */
-            if (newIndex != currIndex) {
-                try {
-                    mCarAudioManager.setGroupVolume(mVolumeGroupId, newIndex,
-                            AudioManager.FLAG_SHOW_UI);
-                } catch (CarNotConnectedException e) {
-                    Log.e(TAG, "Car is not connected", e);
-                } catch (NullPointerException e) {
-                    Log.e(TAG, "mCarAudioManager is NULL!", e);
-                }
-            }
-        } else {
-            int maxLocalVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            int curLocalVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-            int reqLocalVolume = (maxLocalVolume * absVol) / ABS_VOL_BASE;
-            logD("setAbsVolme: absVol = " + absVol + ", reqLocal = " + reqLocalVolume
-                    + ", curLocal = " + curLocalVolume + ", maxLocal = " + maxLocalVolume);
-
-            if (reqLocalVolume != curLocalVolume) {
-                mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, reqLocalVolume,
-                        AudioManager.FLAG_SHOW_UI);
-            }
+        /*
+         * In some cases change in percentage is not sufficient enough to warrant
+         * change in index values which are in range of 0-15. For such cases
+         * no action is required
+         */
+        if (reqLocalVolume != curLocalVolume) {
+            mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, reqLocalVolume,
+                    AudioManager.FLAG_SHOW_UI);
         }
     }
 
     private int getAbsVolume() {
-        if (mService.isAutomotive()) {
-            int currIndex = 0;
-            int newIndex = 0;
-
-            try {
-                currIndex = mCarAudioManager.getGroupVolume(mVolumeGroupId);
-            } catch (CarNotConnectedException e) {
-                Log.e(TAG, "Car is not connected", e);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "mCarAudioManager is NULL!", e);
-            }
-
-            if (mMaxVolume > 0) {
-                newIndex = (currIndex * ABS_VOL_BASE) / mMaxVolume;
-            } else {
-                Log.w(TAG, "Invalid mMaxVolume " + mMaxVolume);
-            }
-            logD("getAbsVolume newIndex is " + newIndex);
-            return newIndex;
-        } else {
-            if (mIsVolumeFixed) {
-                return ABS_VOL_BASE;
-            }
-            int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            int currIndex = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-            int newIndex = (currIndex * ABS_VOL_BASE) / maxVolume;
-            return newIndex;
+        if (mIsVolumeFixed) {
+            return ABS_VOL_BASE;
         }
+        int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int currIndex = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        int newIndex = (currIndex * ABS_VOL_BASE) / maxVolume;
+        return newIndex;
     }
 
     private void processUIDSChange(Message msg) {
