@@ -124,6 +124,7 @@ system/stack/include/hcidefs.h
 system/stack/include/hcimsgs.h
 system/stack/include/sec_hci_link_interface.h
 system/stack/sdp/sdp_api.cc
+system/stack/smp/smp_act.cc
 system/stack/test/stack_a2dp_test.cc
 system/test/suite/Android.bp
 system/test/mock/mock_a2dp_codec_config.cc
