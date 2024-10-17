@@ -576,6 +576,8 @@ public final class BluetoothLeBroadcastAssistant implements BluetoothProfile, Au
         final IBluetoothLeBroadcastAssistant service = getService();
         if (service == null) {
             Log.w(TAG, "Proxy not attached to service");
+            // Clean up mCallback when service is closed.
+            mCallback = null;
             if (DBG) log(Log.getStackTraceString(new Throwable()));
         } else if (mBluetoothAdapter.isEnabled()) {
             if (mCallback == null) {
