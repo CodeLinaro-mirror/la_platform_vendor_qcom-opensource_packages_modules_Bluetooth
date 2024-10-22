@@ -26,8 +26,10 @@ import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import android.bluetooth.BluetoothAvrcpController;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.AudioAttributes;
 import android.media.MediaMetadata;
@@ -166,7 +168,10 @@ class AvrcpControllerStateMachine extends StateMachine {
     private SparseArray<AvrcpPlayer> mAvailablePlayerList;
 
     private int mVolumeChangedNotificationsToIgnore = 0;
+    private boolean mAbsoluteVolumeChangeInProgress = false;
+    private boolean mAbsVolNotificationRequested;
     private int mVolumeNotificationLabel = -1;
+    private int previousPercentageVol = -1;
     private int mRemoteFeatures;
 
     /**
@@ -431,6 +436,9 @@ class AvrcpControllerStateMachine extends StateMachine {
         addState(mSearch, mConnected);
         mAddToNowPlaying = new AddToNowPlaying();
         addState(mAddToNowPlaying, mConnected);
+
+        IntentFilter filter = new IntentFilter(AudioManager.ACTION_VOLUME_CHANGED);
+        service.registerReceiver(mBroadcastReceiver, filter);
 
         mAudioManager = (AudioManager) service.getSystemService(Context.AUDIO_SERVICE);
         mIsVolumeFixed = mAudioManager.isVolumeFixed();
@@ -778,6 +786,7 @@ class AvrcpControllerStateMachine extends StateMachine {
 
                 case MESSAGE_PROCESS_SET_ABS_VOL_CMD:
                     mVolumeChangedNotificationsToIgnore++;
+                    mAbsoluteVolumeChangeInProgress = true;
                     removeMessages(MESSAGE_INTERNAL_ABS_VOL_TIMEOUT);
                     sendMessageDelayed(MESSAGE_INTERNAL_ABS_VOL_TIMEOUT,
                             ABS_VOL_TIMEOUT_MILLIS);
@@ -786,6 +795,7 @@ class AvrcpControllerStateMachine extends StateMachine {
 
                 case MESSAGE_PROCESS_REGISTER_ABS_VOL_NOTIFICATION:
                     mVolumeNotificationLabel = msg.arg1;
+                    setAbsVolNotificationRequested(true);
                     mService.sendRegisterAbsVolRspNative(mDeviceAddress,
                             NOTIFICATION_RSP_TYPE_INTERIM,
                             getAbsVolume(), mVolumeNotificationLabel);
@@ -925,6 +935,27 @@ class AvrcpControllerStateMachine extends StateMachine {
                         } else {
                             sendMessage(MSG_AVRCP_PASSTHRU,
                                     AvrcpControllerService.PASS_THRU_CMD_ID_PAUSE);
+                        }
+                    }
+                    return true;
+
+                case MESSAGE_PROCESS_VOLUME_CHANGED_NOTIFICATION:
+                    if (mAbsoluteVolumeChangeInProgress) {
+                        mAbsoluteVolumeChangeInProgress = false;
+                    } else {
+                        if (getAbsVolNotificationRequested()) {
+                            // setAbsVolume when system volume is changed,
+                            // otherwise percentageVol will not be changed at all.
+                            setAbsVolume(msg.arg1);
+                            int percentageVol = getAbsVolume();
+                            if (percentageVol != previousPercentageVol) {
+                                mService.sendRegisterAbsVolRspNative(
+                                    mDeviceAddress,
+                                    NOTIFICATION_RSP_TYPE_CHANGED,
+                                    percentageVol, mVolumeNotificationLabel);
+                                previousPercentageVol = percentageVol;
+                                setAbsVolNotificationRequested(false);
+                            }
                         }
                     }
                     return true;
@@ -2177,4 +2208,32 @@ class AvrcpControllerStateMachine extends StateMachine {
         }
     }
 
+    synchronized public void setAbsVolNotificationRequested(boolean request) {
+        mAbsVolNotificationRequested = request;
+    }
+
+    synchronized public boolean getAbsVolNotificationRequested() {
+        return mAbsVolNotificationRequested;
+    }
+
+    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(AudioManager.ACTION_VOLUME_CHANGED)) {
+                int streamType = intent.getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_TYPE, -1);
+                if (streamType == AudioManager.STREAM_MUSIC) {
+                    int streamValue = intent.getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_VALUE, -1);
+                    int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    // convert system volume to abs volume.
+                    if (maxVolume > 0) {
+                        int absVol = ((streamValue * ABS_VOL_BASE) / maxVolume);
+                        obtainMessage(MESSAGE_PROCESS_VOLUME_CHANGED_NOTIFICATION, absVol).sendToTarget();
+                    } else {
+                        Log.e(TAG, " can't get max stream volume ");
+                    }
+                }
+            }
+        }
+    };
 }
