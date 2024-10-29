@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 
+#include <string.h>
 #include "bt_target.h"
 #include "bta_api.h"
 #include "btif_storage.h"
@@ -82,7 +83,7 @@ void btif_iot_update_remote_info(tBTA_DM_AUTH_CMPL* p_auth_cmpl, bool is_ble,
     name_length = strlen((char*)p_auth_cmpl->bd_name) > BTM_MAX_LOC_BD_NAME_LEN
                       ? BTM_MAX_LOC_BD_NAME_LEN
                       : strlen((char*)p_auth_cmpl->bd_name) + 1;
-    strncpy(value, (char*)p_auth_cmpl->bd_name, name_length);
+    strlcpy(value, (char*)p_auth_cmpl->bd_name, sizeof(value));
     DEVICE_IOT_CONFIG_ADDR_SET_STR(p_auth_cmpl->bd_addr,
                                    IOT_CONF_KEY_REMOTE_NAME, value);
   } else {

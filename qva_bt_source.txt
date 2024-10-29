@@ -16,6 +16,7 @@ android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/mapclient/MnsService.java
+android/app/src/com/android/bluetooth/le_audio/LeAudioService.java
 
 # apex
 apex/permissions/com.android.bluetooth.xml
@@ -23,13 +24,18 @@ apex/permissions/com.android.bluetooth.xml
 # framework
 framework/api/current.txt
 framework/java/android/bluetooth/BluetoothDevice.java
+framework/java/android/bluetooth/BluetoothLeBroadcastAssistant.java
 framework/java/android/bluetooth/OobData.java
+
+# service
+service/src/com/android/server/bluetooth/BluetoothManagerService.java
 
 # system (bluetooth stack)
 system/bta/av/bta_av_aact.cc
 system/bta/av/bta_av_act.cc
 system/binder/android/bluetooth/IBluetooth.aidl
 system/bta/dm/bta_dm_act.cc
+system/bta/dm/bta_dm_cfg.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/gatt/bta_gatts_act.cc
@@ -40,6 +46,8 @@ system/bta/hf_client/bta_hf_client_rfc.cc
 system/bta/include/bta_api.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
+system/bta/le_audio/devices.cc
+system/bta/le_audio/le_audio_types.h
 system/btif/co/bta_av_co.cc
 system/btif/include/btif_api.h
 system/btif/include/btif_common.h
@@ -52,12 +60,14 @@ system/btif/src/btif_av.cc
 system/btif/src/btif_avrcp_audio_track.cc
 system/btif/src/btif_gatt_server.cc
 system/btif/src/btif_dm.cc
+system/btif/src/btif_iot_config.cc
 system/btif/src/btif_util.cc
 system/btif/Android.bp
 system/btif/src/btif_hf_client.cc
 system/btif/src/stack_manager.cc
 system/gd/hci/hci_layer.cc
 system/btif/src/btif_rc.cc
+system/gd/storage/storage_module.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
 system/include/hardware/bt_rc.h
