@@ -85,6 +85,7 @@ public final class AdapterUtil {
             profileArray.add(BluetoothProfile.HID_HOST);
             profileArray.add(BluetoothProfile.MAP_CLIENT);
             profileArray.add(BluetoothProfile.PAN);
+            profileArray.add(BluetoothProfile.OPP);
         } else {
             profileArray.add(BluetoothProfile.A2DP);
             profileArray.add(BluetoothProfile.AVRCP);
