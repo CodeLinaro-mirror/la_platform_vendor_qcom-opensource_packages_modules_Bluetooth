@@ -24,7 +24,7 @@ from genericpath import exists
 from multiprocessing import Process
 
 ANDROID_BUILD_TOP = os.getenv("ANDROID_BUILD_TOP")
-TARGET_PRODUCT = os.getenv("TARGET_PRODUCT")
+TARGET_BOARD_PLATFORM = os.getenv("TARGET_BOARD_PLATFORM")
 TARGET_BUILD_VARIANT = os.getenv("TARGET_BUILD_VARIANT")
 ANDROID_PRODUCT_OUT = os.getenv("ANDROID_PRODUCT_OUT")
 PANDORA_CF_APK = Path(
