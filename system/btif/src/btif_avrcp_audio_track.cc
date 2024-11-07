@@ -56,10 +56,8 @@ void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
   AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_FLOAT);
   AAudioStreamBuilder_setChannelCount(builder, channelCount);
   AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
-  aaudio_performance_mode_t mode = (bitsPerSample >= 24) ?
-      AAUDIO_PERFORMANCE_MODE_NONE : AAUDIO_PERFORMANCE_MODE_LOW_LATENCY;
-  LOG_DEBUG("%s: mode:%d", __func__, mode);
-  AAudioStreamBuilder_setPerformanceMode(builder, mode);
+  AAudioStreamBuilder_setPerformanceMode(builder,
+                                         AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
   result = AAudioStreamBuilder_openStream(builder, &stream);
   CHECK(result == AAUDIO_OK);
   AAudioStreamBuilder_delete(builder);
