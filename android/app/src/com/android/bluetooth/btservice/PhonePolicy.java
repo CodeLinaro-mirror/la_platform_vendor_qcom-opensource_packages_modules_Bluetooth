@@ -15,7 +15,7 @@
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -104,6 +104,9 @@ class PhonePolicy {
 
     private static final String PREFER_LE_AUDIO_ONLY_MODE =
             "persist.bluetooth.prefer_le_audio_only_mode";
+
+    private static final String BLUETOOTH_CAR_ROLE =
+            "persist.bluetooth.car_role";
 
     // Timeouts
     @VisibleForTesting static int sConnectOtherProfilesTimeoutMillis = 6000; // 6s
@@ -586,15 +589,27 @@ class PhonePolicy {
             debugLog("autoConnect: Initiate auto connection on BT on...");
             final BluetoothDevice mostRecentlyActiveA2dpDevice =
                     mDatabaseManager.getMostRecentlyConnectedA2dpDevice();
-            if (mostRecentlyActiveA2dpDevice == null) {
-                errorLog("autoConnect: most recently active a2dp device is null");
-                return;
+            if (!SystemProperties.getBoolean(BLUETOOTH_CAR_ROLE, true)) {
+                if (mostRecentlyActiveA2dpDevice == null) {
+                    errorLog("autoConnect: most recently active a2dp device is null");
+                    return;
+                }
+                debugLog("autoConnect(Phone): Device " + mostRecentlyActiveA2dpDevice
+                        + " attempting auto connection");
+                autoConnectHeadset(mostRecentlyActiveA2dpDevice);
+                autoConnectA2dp(mostRecentlyActiveA2dpDevice);
+                autoConnectHidHost(mostRecentlyActiveA2dpDevice);
+            } else {
+                BluetoothDevice[] bondedDevices = mAdapterService.getBondedDevices();
+                if (bondedDevices.length == 0) {
+                    errorLog("autoConnect(Car): Paired device list is null");
+                    return;
+                }
+                for (BluetoothDevice device : bondedDevices) {
+                    debugLog("autoConnect(Car): Device " + device + " attempting auto connection");
+                    mAdapterService.connectAllEnabledProfiles(device);
+                }
             }
-            debugLog("autoConnect: Device " + mostRecentlyActiveA2dpDevice
-                    + " attempting auto connection");
-            autoConnectHeadset(mostRecentlyActiveA2dpDevice);
-            autoConnectA2dp(mostRecentlyActiveA2dpDevice);
-            autoConnectHidHost(mostRecentlyActiveA2dpDevice);
         } else {
             debugLog("autoConnect() - BT is in quiet mode. Not initiating auto connections");
         }
