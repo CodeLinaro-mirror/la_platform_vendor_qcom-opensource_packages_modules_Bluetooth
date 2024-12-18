@@ -28,6 +28,7 @@ import android.bluetooth.BluetoothAdapterExt;
 import android.bluetooth.BluetoothCsipSetCoordinator;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothHeadsetClient;
 import android.bluetooth.BluetoothHearingAid;
 import android.bluetooth.BluetoothLeAudio;
 import android.bluetooth.BluetoothProfile;
@@ -101,6 +102,7 @@ class PhonePolicy {
     private static final int MESSAGE_ADAPTER_STATE_TURNED_ON = 4;
     private static final int MESSAGE_PROFILE_ACTIVE_DEVICE_CHANGED = 5;
     private static final int MESSAGE_DEVICE_CONNECTED = 6;
+    private static final int MESSAGE_CONNECT_ALL_PROFILES = 7;
 
     private static final String PREFER_LE_AUDIO_ONLY_MODE =
             "persist.bluetooth.prefer_le_audio_only_mode";
@@ -191,6 +193,11 @@ class PhonePolicy {
                 case BluetoothDevice.ACTION_ACL_CONNECTED:
                     mHandler.obtainMessage(MESSAGE_DEVICE_CONNECTED, intent).sendToTarget();
                     break;
+                case BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED:
+                    mHandler.obtainMessage(MESSAGE_PROFILE_CONNECTION_STATE_CHANGED,
+                            BluetoothProfile.HEADSET_CLIENT, -1, // No-op argument
+                            intent).sendToTarget();
+                    break;
                 default:
                     Log.e(TAG, "Received unexpected intent, action=" + action);
                     break;
@@ -260,11 +267,25 @@ class PhonePolicy {
                     resetStates();
                     autoConnect();
                     break;
-                case MESSAGE_DEVICE_CONNECTED:
+                case MESSAGE_DEVICE_CONNECTED: {
                     Intent intent = (Intent) msg.obj;
                     BluetoothDevice device =
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     processDeviceConnected(device);
+                }
+                break;
+                case MESSAGE_CONNECT_ALL_PROFILES: {
+                    BluetoothDevice device = (BluetoothDevice) msg.obj;
+                    if (device == null) {
+                        Log.e(TAG, "Device is null, stop connecting all profiles");
+                        return;
+                    }
+                    mAdapterService.connectAllEnabledProfiles(device);
+                }
+                break;
+                default:
+                    Log.e(TAG, "Received unexpected message, message=" + msg.what);
+                break;
             }
         }
     }
@@ -290,6 +311,7 @@ class PhonePolicy {
         }
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_UUID);
+        filter.addAction(BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED);
 
         mAdapterService.registerReceiver(mReceiver, filter);
     }
@@ -471,6 +493,9 @@ class PhonePolicy {
                 }
                 handleAllProfilesDisconnected(device);
             }
+        } else if (profileId == BluetoothProfile.HEADSET_CLIENT
+                && nextState == BluetoothProfile.STATE_CONNECTED) {
+            connectAllProfiles(device);
         }
     }
 
@@ -678,6 +703,12 @@ class PhonePolicy {
         Message m = mHandler.obtainMessage(MESSAGE_CONNECT_OTHER_PROFILES);
         m.obj = device;
         mHandler.sendMessageDelayed(m, sConnectOtherProfilesTimeoutMillis);
+    }
+
+    private void connectAllProfiles(BluetoothDevice device) {
+        Message m = mHandler.obtainMessage(MESSAGE_CONNECT_ALL_PROFILES);
+        m.obj = device;
+        mHandler.sendMessage(m);
     }
 
     // This function is called whenever a profile is connected.  This allows any other bluetooth
