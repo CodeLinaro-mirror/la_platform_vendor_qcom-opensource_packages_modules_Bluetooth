@@ -14,7 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
  *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear.
  *
  ******************************************************************************/
 
@@ -1573,13 +1576,17 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
                          BtifAvEvent::EventName(event).c_str());
 
       bool can_connect = true;
+      tBTA_AV* p_av = (tBTA_AV*)p_data;
       // Check whether connection is allowed
       if (peer_.IsSink()) {
         can_connect = btif_av_source.AllowedToConnect(peer_.PeerAddress());
         if (!can_connect) src_disconnect_sink(peer_.PeerAddress());
       } else if (peer_.IsSource()) {
         can_connect = btif_av_sink.AllowedToConnect(peer_.PeerAddress());
-        if (!can_connect) sink_disconnect_src(peer_.PeerAddress());
+        if (!can_connect) {
+          BTA_AvCloseRc(p_av->rc_open.rc_handle);
+          sink_disconnect_src(peer_.PeerAddress());
+        }
       }
       if (!can_connect) {
         BTA_AvCloseRc(((tBTA_AV*)p_data)->rc_open.rc_handle);
