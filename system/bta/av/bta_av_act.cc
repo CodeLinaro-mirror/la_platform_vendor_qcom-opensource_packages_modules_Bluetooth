@@ -1994,7 +1994,8 @@ void bta_av_rc_disc_done(UNUSED_ATTR tBTA_AV_DATA* p_data) {
     rc_handle = p_cb->disc & (~BTA_AV_CHNL_MSK);
   } else {
     /* Validate array index*/
-    if (((p_cb->disc & BTA_AV_HNDL_MSK) - 1) < BTA_AV_NUM_STRS) {
+    if ((((p_cb->disc & BTA_AV_HNDL_MSK) - 1) < BTA_AV_NUM_STRS) &&
+      (((p_cb->disc & BTA_AV_HNDL_MSK) - 1) >= 0)) {
       p_scb = p_cb->p_scb[(p_cb->disc & BTA_AV_HNDL_MSK) - 1];
     }
     if (p_scb) {
