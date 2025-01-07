@@ -55,6 +55,7 @@ static jmethodID method_handleNowPlayingContentChanged;
 static jmethodID method_onAvailablePlayerChanged;
 static jmethodID method_getRcPsm;
 static jmethodID method_handleSearchRsp;
+static jmethodID method_handleAddToNowPlayingRsp;
 
 static jclass class_AvrcpItem;
 static jclass class_AvrcpPlayer;
@@ -818,6 +819,31 @@ static void btavrcp_search_response_callback(const RawAddress& bd_addr, uint8_t 
                                (jint)status, (jint)uid_counter, (jint)num_items);
 }
 
+static void  btavrcp_get_item_attr_rsp_callback(const RawAddress& bd_addr, uint8_t num_attr,
+                                                btrc_element_attr_val_t *p_attrs) {
+    ALOGI("%s", __func__);
+    btavrcp_track_changed_callback(bd_addr, num_attr, p_attrs);
+}
+
+static void btavrcp_add_to_now_playing_callback(const RawAddress& bd_addr, uint8_t status) {
+  ALOGI("%s status %d", __func__, status);
+
+  CallbackEnv sCallbackEnv(__func__);
+  if (!sCallbackEnv.valid()) return;
+
+  ScopedLocalRef<jbyteArray> addr(
+      sCallbackEnv.get(), sCallbackEnv->NewByteArray(sizeof(RawAddress)));
+  if (!addr.get()) {
+    ALOGE("Fail to get new array ");
+    return;
+  }
+
+  sCallbackEnv->SetByteArrayRegion(addr.get(), 0, sizeof(RawAddress),
+                                   (jbyte*)&bd_addr);
+  sCallbackEnv->CallVoidMethod(sCallbacksObj, method_handleAddToNowPlayingRsp,
+                               addr.get(), (jint)status);
+}
+
 static btrc_ctrl_callbacks_t sBluetoothAvrcpCallbacks = {
     sizeof(sBluetoothAvrcpCallbacks),
     btavrcp_passthrough_response_callback,
@@ -836,12 +862,14 @@ static btrc_ctrl_callbacks_t sBluetoothAvrcpCallbacks = {
     btavrcp_change_path_callback,
     btavrcp_set_browsed_player_callback,
     btavrcp_set_addressed_player_callback,
+    btavrcp_add_to_now_playing_callback,
     btavrcp_addressed_player_changed_callback,
     btavrcp_now_playing_content_changed_callback,
     btavrcp_available_player_changed_callback,
     btavrcp_get_rcpsm_callback,
     btavrcp_uids_changed_callback,
-    btavrcp_search_response_callback};
+    btavrcp_search_response_callback,
+    btavrcp_get_item_attr_rsp_callback};
 
 static void classInitNative(JNIEnv* env, jclass clazz) {
   method_handlePassthroughRsp =
@@ -918,6 +946,8 @@ static void classInitNative(JNIEnv* env, jclass clazz) {
       env->GetMethodID(clazz, "onAvailablePlayerChanged", "([B)V");
   method_handleSearchRsp =
       env->GetMethodID(clazz, "handleSearchRsp", "([BIII)V");
+  method_handleAddToNowPlayingRsp =
+      env->GetMethodID(clazz, "handleAddToNowPlayingRsp", "([BI)V");
 
   ALOGI("%s: succeeds", __func__);
 }
@@ -1393,6 +1423,193 @@ static void getSearchListNative(JNIEnv* env, jobject object, jbyteArray address,
   env->ReleaseByteArrayElements(address, addr, 0);
 }
 
+static void getItemAttributesNative(JNIEnv* env, jobject object, jbyteArray address,
+                                    jbyte scope, jlong uid, jint uidCounter,
+                                    jbyte numAttr, jintArray attrIds) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte *addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  if (numAttr > BTRC_MAX_ELEM_ATTR_SIZE) {
+    ALOGE("getItemAttributesNative: number of attributes exceed maximum");
+    return;
+  }
+
+  jint* attr = NULL;
+  if ((numAttr > 0) && (attrIds != NULL)) {
+    attr = env->GetIntArrayElements(attrIds, NULL);
+    if (!attr) {
+      jniThrowIOException(env, EINVAL);
+      return;
+    }
+  }
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->get_item_attribute_cmd(
+      rawAddress, (uint8_t)scope, (uint8_t*)&uid, (uint16_t)uidCounter,
+      numAttr, (uint32_t*)attr);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending getItemAttributesNative command, status: %d", status);
+  }
+
+  if (attr) env->ReleaseIntArrayElements(attrIds, attr, 0);
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void getElementAttributesNative(JNIEnv *env, jobject object, jbyteArray address,
+                                     jbyte numAttr, jintArray attrIds) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  if (numAttr > BTRC_MAX_ELEM_ATTR_SIZE) {
+    ALOGE("getElementAttributesNative: number of attributes exceed maximum");
+    return;
+  }
+
+  jint* attr = NULL;
+  if ((numAttr > 0) && (attrIds != NULL)) {
+    attr = env->GetIntArrayElements(attrIds, NULL);
+    if (!attr) {
+      jniThrowIOException(env, EINVAL);
+      return;
+    }
+  }
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->get_element_attribute_cmd(
+      rawAddress, numAttr, (uint32_t*)attr);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending getElementAttributesNative command, status: %d", status);
+  }
+
+  if (attr) env->ReleaseIntArrayElements(attrIds, attr, 0);
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void getFolderItemsNative(JNIEnv* env, jobject object, jbyteArray address,
+                           jbyte scope, jbyte start, jbyte end, jbyte numAttr,
+                           jintArray attrIds) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  if (numAttr > BTRC_MAX_ELEM_ATTR_SIZE) {
+    ALOGE("getFolderItemsNative: number of attributes exceed maximum");
+    return;
+  }
+
+  jint* attr = NULL;
+  if ((numAttr > 0) && (attrIds != NULL)) {
+    attr = env->GetIntArrayElements(attrIds, NULL);
+    if (!attr) {
+      jniThrowIOException(env, EINVAL);
+      return;
+    }
+  }
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->get_folder_items_vendor_cmd(
+      rawAddress, (uint8_t)scope, (uint8_t)start, (uint8_t)end, (uint8_t)numAttr, (uint32_t*)attr);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending getFolderItemsNative command, status: %d", status);
+  }
+
+  if (attr) env->ReleaseIntArrayElements(attrIds, attr, 0);
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void addToNowPlayingNative(JNIEnv* env, jobject object, jbyteArray address,
+                                  jbyte scope, jlong uid, jint uidCounter) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->add_to_now_playing_cmd(
+      rawAddress, (uint8_t)scope, (uint8_t*)&uid, (uint16_t)uidCounter);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending addToNowPlayingNative command, status: %d", status);
+  }
+
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void requestContinuingResponseNative(JNIEnv* env, jobject object,
+                                   jbyteArray address, jbyte pduId) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->request_continuing_response_cmd(
+      rawAddress, (uint8_t)pduId);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending requestContinuingResponseNative command, status: %d", status);
+  }
+
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+static void abortContinuingResponseNative(JNIEnv* env, jobject object,
+                                   jbyteArray address, jbyte pduId) {
+  if (!sBluetoothAvrcpInterface) return;
+
+  jbyte* addr = env->GetByteArrayElements(address, NULL);
+  if (!addr) {
+    jniThrowIOException(env, EINVAL);
+    return;
+  }
+
+  RawAddress rawAddress;
+  rawAddress.FromOctets((uint8_t*)addr);
+
+  ALOGI("%s: sBluetoothAvrcpInterface: %p", __func__, sBluetoothAvrcpInterface);
+  bt_status_t status = sBluetoothAvrcpInterface->abort_continuing_response_cmd(
+      rawAddress, (uint8_t)pduId);
+  if (status != BT_STATUS_SUCCESS) {
+    ALOGE("Failed sending abortContinuingResponseNative command, status: %d", status);
+  }
+
+  env->ReleaseByteArrayElements(address, addr, 0);
+}
+
+
 static JNINativeMethod sMethods[] = {
     {"classInitNative", "()V", (void*)classInitNative},
     {"initNative", "()V", (void*)initNative},
@@ -1417,6 +1634,12 @@ static JNINativeMethod sMethods[] = {
     {"setAddressedPlayerNative", "([BI)V", (void*)setAddressedPlayerNative},
     {"searchNative", "([BIILjava/lang/String;)V", (void*)searchNative},
     {"getSearchListNative", "([BII)V", (void*)getSearchListNative},
+    {"getItemAttributesNative", "([BBJIB[I)V",(void *) getItemAttributesNative},
+    {"getElementAttributesNative", "([BB[I)V",(void *) getElementAttributesNative},
+    {"getFolderItemsNative", "([BBBBB[I)V", (void *) getFolderItemsNative},
+    {"addToNowPlayingNative", "([BBJI)V",(void*)addToNowPlayingNative},
+    {"requestContinuingResponseNative", "([BB)V",(void *) requestContinuingResponseNative},
+    {"abortContinuingResponseNative", "([BB)V",(void *) abortContinuingResponseNative},
 };
 
 int register_com_android_bluetooth_avrcp_controller(JNIEnv* env) {

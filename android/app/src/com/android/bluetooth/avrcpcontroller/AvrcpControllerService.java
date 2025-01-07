@@ -127,6 +127,32 @@ public class AvrcpControllerService extends ProfileService {
     public static final int DEVICE_STATE_INACTIVE = 0;
     public static final int DEVICE_STATE_ACTIVE = 1;
 
+    /**
+     * intent used to broadcast the change in metadata state of playing track on the avrcp
+     * ag.
+     *
+     * <p>this intent will have the two extras:
+     * <ul>
+     *    <li> {@link #extra_metadata} - {@link mediametadata} containing the current metadata.</li>
+     *    <li> {@link #extra_playback} - {@link playbackstate} containing the current playback
+     *    state. </li>
+     * </ul>
+     */
+    public static final String ACTION_TRACK_EVENT =
+        "android.bluetooth.avrcp-controller.profile.action.TRACK_EVENT";
+
+    public static final String EXTRA_METADATA =
+        "android.bluetooth.avrcp-controller.profile.extra.METADATA";
+
+    public static final String ACTION_FOLDER_LIST =
+        "android.bluetooth.avrcp-controller.profile.action.FOLDER_LIST";
+
+    public static final String EXTRA_FOLDER_LIST =
+        "android.bluetooth.avrcp-controller.profile.extra.FOLDER_LIST";
+
+    public static final String EXTRA_FOLDER_ID =
+        "android.bluetooth.avrcp-controller.profile.extra.EXTRA_FOLDER_ID";
+
     static BrowseTree sBrowseTree;
     private static AvrcpControllerService sService;
 
@@ -966,6 +992,19 @@ public class AvrcpControllerService extends ProfileService {
         }
     }
 
+    private void handleAddToNowPlayingRsp(byte[] address, int status) {
+        if (DBG) {
+            Log.d(TAG, "handleAddToNowPlayingRsp status" + status);
+        }
+        BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address);
+
+        AvrcpControllerStateMachine stateMachine = getStateMachine(device);
+        if (stateMachine != null) {
+            stateMachine.sendMessage(
+                    AvrcpControllerStateMachine.MESSAGE_PROCESS_ADD_TO_NOW_PLAYING, status, 0);
+        }
+    }
+
     /* Generic Profile Code */
 
     /**
@@ -1230,6 +1269,16 @@ public class AvrcpControllerService extends ProfileService {
      * @param pattern      pattern
      */
     public native static void searchNative(byte[] address, int charset, int strLen, String pattern);
+
+    /**
+     * add folder into now playing list
+     *
+     * @param scope          scope of item to played
+     * @param uid            song unique id
+     * @param uidCounter     counter
+     */
+    public native static void addToNowPlayingNative(byte[] address, byte scope, long uid, int uidCounter);
+
     /**
      * Get Search List
      *
@@ -1238,4 +1287,51 @@ public class AvrcpControllerService extends ProfileService {
      * @param strLen       end
      */
     public native static void getSearchListNative(byte[] address, int start, int end);
+
+    /**
+     * Get item attributes with provided uid
+     *
+     * @param scope          scope of item to played
+     * @param uid            song unique id
+     * @param uidCounter     counter
+     * @param numAttributes  number of attributes
+     * @param attribIds      list of attributes
+     */
+    public native static void getItemAttributesNative(byte[] address, byte scope, long uid,
+            int uidCounter, byte numAttributes, int[] attribIds);
+
+    /**
+     * Get element attributes
+     *
+     * @param numAttributes  number of attributes
+     * @param attribIds      list of attributes
+     */
+    public native static void getElementAttributesNative(byte[] address, byte numAttributes,
+            int[] attribIds);
+
+    /**
+     * Get folder items with specified range
+     *
+     * @param scope          scope of item to played
+     * @param start          start of range
+     * @param end            end of range
+     * @param numAttributes  number of attributes
+     * @param attribIds      list of attributes
+     */
+    public native static void getFolderItemsNative(byte[] address, byte scope, byte start,
+            byte end, byte numAttributes, int[] attribIds);
+
+    /**
+     * Request for continuing response
+     *
+     * @param pduId  ID of PDU data packet
+     */
+    public native static void requestContinuingResponseNative(byte[] address, byte pduId);
+
+    /**
+     * Abort continuing response
+     *
+     * @param pduId  ID of PDU data packet
+     */
+    public native static void abortContinuingResponseNative(byte[] address, byte pduId);
 }
