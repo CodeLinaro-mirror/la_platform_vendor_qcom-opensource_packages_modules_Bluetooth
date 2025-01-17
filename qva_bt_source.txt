@@ -61,6 +61,7 @@ system/bta/le_audio/le_audio_types.h
 system/btif/Android.bp
 system/btif/co/bta_av_co.cc
 system/btif/include/btif_api.h
+system/btif/include/btif_av_co.h
 system/btif/include/btif_common.h
 system/btif/include/btif_dm.h
 system/btif/include/core_callbacks.h
