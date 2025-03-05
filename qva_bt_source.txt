@@ -188,6 +188,7 @@ system/gd/common/Android.bp
 system/gd/common/BUILD.gn
 system/gd/common/utils.h
 system/gd/common/utils.cc
+system/gd/hci/acl_manager/le_impl.h
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/acl_manager.cc
 system/gd/hci/acl_manager/le_acl_connection.h
