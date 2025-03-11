@@ -23,7 +23,10 @@ android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
 android/app/src/com/android/bluetooth/mapclient/MasClient.java
 android/app/src/com/android/bluetooth/mapclient/MnsService.java
 android/app/src/com/android/bluetooth/le_audio/LeAudioService.java
+android/app/src/com/android/bluetooth/opp/BluetoothOppSendFileInfo.java
 android/app/src/com/android/bluetooth/pbapclient/PbapClientConnectionHandler.java
+android/app/tests/unit/Android.bp.disable
+android/app/tests/unit/src/com/android/bluetooth/opp/BluetoothOppSendFileInfoTest.java
 
 # apex
 apex/permissions/com.android.bluetooth.xml
