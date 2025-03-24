@@ -979,9 +979,6 @@ public class HeadsetClientStateMachine extends StateMachine {
             sMinAmVcVol = mAudioManager.getStreamMinVolume(AudioManager.STREAM_VOICE_CALL);
         }
 
-        sMaxAmVcVol = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
-        sMinAmVcVol = mAudioManager.getStreamMinVolume(AudioManager.STREAM_VOICE_CALL);
-
         mOperatorName = null;
         mSubscriberInfo = null;
 

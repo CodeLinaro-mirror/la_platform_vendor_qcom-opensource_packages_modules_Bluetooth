@@ -571,6 +571,10 @@ public class AdapterService extends Service {
         super.onCreate();
         initMetricsLogger();
         debugLog("onCreate()");
+        if (!Utils.checkCallerIsSystemOrActiveOrManagedUser(this, TAG)) {
+            errorLog("Createad under non-active user. Force exit! ");
+            System.exit(0);
+        }
         mDeviceConfigListener.start();
         mRemoteDevices = new RemoteDevices(this, Looper.getMainLooper());
         mRemoteDevices.init();

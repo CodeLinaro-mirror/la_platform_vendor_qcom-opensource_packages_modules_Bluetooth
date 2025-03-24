@@ -428,6 +428,10 @@ class HciHalHidl : public HciHal {
       ASSERT_LOG(
           death_link == STATUS_OK, "Unable to set the death recipient for the Bluetooth HAL");
 
+      auto close_status = aidl_hci_->close();
+      if (!close_status.isOk()) {
+        LOG_ERROR("Error calling close on the Bluetooth HAL");
+      }
       aidl_callbacks_ = ::ndk::SharedRefBase::make<AidlHciCallbacks>(btaa_logger_, btsnoop_logger_);
       aidl_hci_->initialize(aidl_callbacks_);
     }
@@ -470,6 +474,10 @@ class HciHalHidl : public HciHal {
     ASSERT_LOG(death_link.isOk(), "Unable to set the death recipient for the Bluetooth HAL");
     hidl_callbacks_ = new InternalHciCallbacks(btaa_logger_, btsnoop_logger_);
 
+    auto close_status = bt_hci_->close();
+    if (!close_status.isOk()) {
+      LOG_ERROR("Error calling close on the Bluetooth HAL");
+    }
     if (bt_hci_1_1_ != nullptr) {
       bt_hci_1_1_->initialize_1_1(hidl_callbacks_);
     } else {
