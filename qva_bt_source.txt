@@ -189,6 +189,7 @@ system/gd/common/BUILD.gn
 system/gd/common/utils.h
 system/gd/common/utils.cc
 system/gd/hal/hci_hal_android_hidl.cc
+system/gd/hci/acl_manager.cc
 system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
@@ -286,7 +287,9 @@ system/stack/l2cap/l2c_link.cc
 system/stack/l2cap/l2c_utils.cc
 system/stack/sdp/sdp_api.cc
 system/stack/sdp/sdp_main.cc
+system/stack/sdp/sdp_utils.cc
 system/stack/smp/smp_act.cc
+system/stack/smp/smp_int.h
 system/stack/test/a2dp/a2dp_aac_unittest.cc
 system/stack/test/a2dp/a2dp_sbc_unittest.cc
 system/stack/test/a2dp/mock_bta_av_codec.cc

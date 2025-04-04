@@ -2686,6 +2686,15 @@ static void bta_dm_check_av() {
  *
  ******************************************************************************/
 static void bta_dm_disable_conn_down_timer_cback(UNUSED_ATTR void* data) {
+  if (BTM_GetNumAclLinks()) {
+    LOG_INFO("ACL link is up just between the DisableDelayTimerInMs (200ms)");
+    LOG_INFO("Set timer to wait for all ACL connections to close:%lu ms",
+             first_pass.TimeToWaitInMs());
+    alarm_set_on_mloop(bta_dm_cb.disable_timer, first_pass.time_to_wait_in_ms,
+                       bta_dm_wait_for_acl_to_drain_cback,
+                       first_pass.AlarmCallbackData());
+    return;
+  }
   /* disable the power managment module */
   bta_dm_disable_pm();
 
