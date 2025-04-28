@@ -190,6 +190,8 @@ system/gd/common/utils.h
 system/gd/common/utils.cc
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/acl_manager.cc
+system/gd/hci/acl_manager/le_acl_connection.h
+system/gd/hci/acl_manager/le_impl.h
 system/gd/hci/hci_layer.cc
 system/gd/os/android/parameter_provider.cc
 system/gd/rust/topshim/btav/btav_shim.cc
@@ -201,6 +203,10 @@ system/include/hardware/bt_av.h
 system/include/hardware/bt_rc.h
 system/internal_include/bt_target.h
 system/main/Android.bp
+system/main/shim/acl.cc
+system/main/shim/acl.h
+system/main/shim/acl_api.cc
+system/main/shim/acl_api.h
 system/main/shim/Android.bp
 system/main/shim/btm_api.h
 system/main/shim/BUILD.gn
@@ -237,6 +243,7 @@ system/stack/a2dp/a2dp_vendor_ldac_encoder.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/a2dp/a2dp_vendor_opus_encoder.cc
 system/stack/Android.bp
+system/stack/acl/btm_acl.cc
 system/stack/avdt/avdt_ccb_act.cc
 system/stack/avdt/avdt_msg.cc
 system/stack/avdt/avdt_scb.cc
