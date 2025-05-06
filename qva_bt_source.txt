@@ -163,6 +163,8 @@ system/bta/include/bta_av_ci.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
 system/bta/le_audio/devices.cc
+system/bta/test/bta_dip_test.cc
+system/bta/test/bta_hf_client_add_record_test.cc
 system/btif/avrcp/avrcp_service.cc
 system/btif/avrcp/avrcp_service.h
 system/btif/co/bta_av_co.cc
