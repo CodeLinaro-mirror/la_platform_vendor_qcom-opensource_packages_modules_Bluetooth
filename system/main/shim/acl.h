@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #pragma once
@@ -66,6 +71,8 @@ class Acl : public hci::acl_manager::ConnectionCallbacks,
   void OnLeConnectFail(hci::AddressWithType, hci::ErrorCode reason) override;
   void OnLeLinkDisconnected(uint16_t handle, hci::ErrorCode reason);
   bluetooth::hci::AddressWithType GetConnectionLocalAddress(
+      const RawAddress& remote_bda);
+  bluetooth::hci::AddressWithType GetConnectionPeerAddress(
       const RawAddress& remote_bda);
 
   // LinkConnectionInterface
