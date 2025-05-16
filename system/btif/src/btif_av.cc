@@ -14,6 +14,8 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *
  ******************************************************************************/
 
 #define LOG_TAG "btif_av"
@@ -1580,6 +1582,7 @@ bool BtifAvStateMachine::StateIdle::ProcessEvent(uint32_t event, void* p_data) {
         if (!can_connect) sink_disconnect_src(peer_.PeerAddress());
       }
       if (!can_connect) {
+        BTA_AvCloseRc(((tBTA_AV*)p_data)->rc_open.rc_handle);
         BTIF_TRACE_ERROR(
             "%s: Cannot connect to peer %s: too many connected "
             "peers",
