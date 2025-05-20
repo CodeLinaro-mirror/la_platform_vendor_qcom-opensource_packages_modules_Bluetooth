@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.mapclient;
@@ -467,7 +472,12 @@ class MapClientContent {
         }
 
         logV("Contacts = " + messageContacts.toString());
-        return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        try {
+            return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        } catch (Exception e) {
+            Log.e(TAG, "getOrCreateThreadId failed: " + e.toString());
+            return -1;
+        }
     }
 
     private void getRecipientsFromMessage(Bmessage message, Set<String> messageContacts) {
