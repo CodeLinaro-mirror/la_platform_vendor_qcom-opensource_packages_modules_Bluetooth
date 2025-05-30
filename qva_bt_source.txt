@@ -123,6 +123,10 @@ system/stack/include/btm_client_interface.h
 system/stack/include/hcidefs.h
 system/stack/include/hcimsgs.h
 system/stack/include/sec_hci_link_interface.h
+system/stack/l2cap/l2c_api.cc
+system/stack/l2cap/l2c_int.h
+system/stack/l2cap/l2c_link.cc
+system/stack/l2cap/l2c_utils.cc
 system/stack/sdp/sdp_api.cc
 system/stack/sdp/sdp_utils.cc
 system/stack/smp/smp_act.cc

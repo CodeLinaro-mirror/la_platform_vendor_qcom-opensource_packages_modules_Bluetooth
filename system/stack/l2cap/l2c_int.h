@@ -14,6 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -358,6 +362,9 @@ typedef struct t_l2c_ccb {
   /* used to indicate that ECOC is used */
   bool ecoc{false};
   bool reconfig_started;
+
+  /* Used to indicate ccb shall be released after data in holding queue is sent out */
+  bool pending_remove;
 
   struct {
     struct {
