@@ -129,6 +129,7 @@ system/stack/include/a2dp_vendor_aptx_hd_decoder.h
 system/stack/include/a2dp_vendor_aptx_decoder_auth.h
 system/stack/include/btm_api_types.h
 system/stack/include/btm_client_interface.h
+system/stack/include/hci_error_code.h
 system/stack/include/hcidefs.h
 system/stack/include/hcimsgs.h
 system/stack/include/sec_hci_link_interface.h
