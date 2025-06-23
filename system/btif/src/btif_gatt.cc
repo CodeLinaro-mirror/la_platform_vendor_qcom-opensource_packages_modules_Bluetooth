@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /*******************************************************************************
@@ -70,8 +75,10 @@ static bt_status_t btif_gatt_init(const btgatt_callbacks_t* callbacks) {
  *
  ******************************************************************************/
 static void btif_gatt_cleanup(void) {
-  if (bt_gatt_callbacks) bt_gatt_callbacks = NULL;
-
+  if (bt_gatt_callbacks) {
+    do_in_jni_thread(
+        FROM_HERE, base::Bind([]() { bt_gatt_callbacks = nullptr; }));
+  }
   BTA_GATTC_Disable();
   BTA_GATTS_Disable();
 }

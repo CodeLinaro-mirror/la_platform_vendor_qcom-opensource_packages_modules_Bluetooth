@@ -14,6 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -1370,6 +1374,13 @@ BT_HDR* l2cu_get_next_buffer_to_send(tL2C_LCB* p_lcb) {
         if (NULL == p_buf) {
           LOG_ERROR("No data to be sent");
           return (NULL);
+        }
+
+        // Check if ccb needs to be released after transmit data hold queue is empty
+        if (p_ccb->pending_remove && fixed_queue_is_empty(p_ccb->xmit_hold_q)) {
+          int fixed_cid = xx + L2CAP_FIRST_FIXED_CHNL;
+          L2CA_RemoveFixedChnl(fixed_cid, p_lcb->remote_bd_addr);
+          p_ccb->pending_remove = false;
         }
 
         l2cu_check_channel_congestion(p_ccb);

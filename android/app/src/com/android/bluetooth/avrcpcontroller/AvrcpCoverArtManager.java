@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -73,8 +72,9 @@ public class AvrcpCoverArtManager {
     // More types refer to class BipEncoding
     public static final String MIMETYPE_DEFAULT = "JPEG";
 
-    public static final int IMAGE_HEIGHT_DEFAULT = 500;
-    public static final int IMAGE_WIDTH_DEFAULT = 500;
+    // AVRCP 1.6.2 defined "thumbnail" size is guaranteed so we'll do that for now
+    public static final int IMAGE_HEIGHT_DEFAULT = 200;
+    public static final int IMAGE_WIDTH_DEFAULT = 200;
     public static final int IMAGE_MAXSIZE_DEFAULT = 200000;
 
     private final AvrcpControllerService mService;
