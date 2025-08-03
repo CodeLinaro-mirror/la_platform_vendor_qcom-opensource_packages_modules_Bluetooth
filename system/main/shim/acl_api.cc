@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "main/shim/acl_api.h"
@@ -107,6 +112,15 @@ void bluetooth::shim::ACL_ReadConnectionAddress(const RawAddress& pseudo_addr,
       Stack::GetInstance()->GetAcl()->GetConnectionLocalAddress(pseudo_addr);
   conn_addr = ToRawAddress(local_address.GetAddress());
   *p_addr_type = static_cast<tBLE_ADDR_TYPE>(local_address.GetAddressType());
+}
+
+void bluetooth::shim::ACL_ReadPeerConnectionAddress(const RawAddress& pseudo_addr,
+                                                    RawAddress& conn_addr,
+                                                    tBLE_ADDR_TYPE* p_addr_type) {
+  auto remote_address =
+      Stack::GetInstance()->GetAcl()->GetConnectionPeerAddress(pseudo_addr);
+  conn_addr = ToRawAddress(remote_address.GetAddress());
+  *p_addr_type = static_cast<tBLE_ADDR_TYPE>(remote_address.GetAddressType());
 }
 
 void bluetooth::shim::ACL_AddToAddressResolution(

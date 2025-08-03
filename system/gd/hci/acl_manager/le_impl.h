@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #pragma once
@@ -517,6 +522,7 @@ struct le_impl : public bluetooth::hci::LeAddressManagerCallback {
     connection->latency_ = conn_latency;
     connection->supervision_timeout_ = supervision_timeout;
     connection->local_resolvable_private_address_ = connection_complete.GetLocalResolvablePrivateAddress();
+    connection->UpdateLocalRPAddress();
     connection->peer_resolvable_private_address_ = connection_complete.GetPeerResolvablePrivateAddress();
     connection->in_filter_accept_list_ = in_filter_accept_list;
     connections.add(
