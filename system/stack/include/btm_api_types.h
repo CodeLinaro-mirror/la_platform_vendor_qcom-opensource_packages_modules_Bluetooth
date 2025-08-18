@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 #ifndef BTM_API_TYPES_H
@@ -198,6 +203,8 @@ typedef uint8_t tBTM_SCO_TYPE;
 #define BTM_SCO_CODEC_MSBC 0x0002
 #define BTM_SCO_CODEC_LC3 0x0004
 typedef uint16_t tBTM_SCO_CODEC_TYPE;
+
+#define BTM_INVALID_EIR_TX_POWER_LEVEL 0x7f
 
 /*******************
  * SCO Voice Settings

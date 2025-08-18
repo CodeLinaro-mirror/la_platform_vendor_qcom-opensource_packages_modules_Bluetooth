@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -370,6 +375,11 @@ typedef struct {
 #endif
 
   tBTA_DM_ENCRYPT_CBACK* p_encrypt_cback;
+  /* Core spec v5.0, 7.3.61
+   * Power level used to transmit the FHS and EIR data packets
+   * Size: 1 Octet (signed integer). Range: -70 . N . 20
+   */
+  int8_t inq_tx_power;
   alarm_t* switch_delay_timer;
 } tBTA_DM_CB;
 
