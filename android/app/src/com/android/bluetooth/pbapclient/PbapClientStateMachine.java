@@ -385,7 +385,7 @@ class PbapClientStateMachine extends StateMachine {
     }
 
     public int getConnectionState() {
-        IState currentState = getCurrentState();
+        IState currentState = getCurrentStateWrapper();
         if (currentState instanceof Disconnected) {
             return BluetoothProfile.STATE_DISCONNECTED;
         } else if (currentState instanceof Connecting) {
@@ -437,7 +437,8 @@ class PbapClientStateMachine extends StateMachine {
          * Synchronization of the state and device is not possible with current state machine
          * desingn since the actual Transition happens sometime after the transitionTo method.
          */
-        if (getCurrentState() instanceof Disconnected) {
+        IState currentState = getCurrentStateWrapper();
+        if (currentState instanceof Disconnected) {
             return null;
         }
         return mCurrentDevice;
@@ -445,6 +446,17 @@ class PbapClientStateMachine extends StateMachine {
 
     Context getContext() {
         return mService;
+    }
+
+    IState getCurrentStateWrapper() {
+        IState currentState = null;
+        try {
+            currentState = getCurrentState();
+        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {
+            Log.e(TAG, "", e);
+            currentState = null;
+        }
+        return currentState;
     }
 
     public void dump(StringBuilder sb) {
