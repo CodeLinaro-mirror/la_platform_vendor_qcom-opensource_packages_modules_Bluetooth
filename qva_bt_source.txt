@@ -81,6 +81,8 @@ system/btif/src/btif_util.cc
 system/btif/src/stack_manager.cc
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/hci_layer.cc
+system/gd/stack_manager.cc
+system/gd/stack_manager.h
 system/gd/storage/storage_module.cc
 system/include/hardware/bluetooth.h
 system/include/hardware/bt_av.h
