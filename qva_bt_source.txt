@@ -138,6 +138,7 @@ system/stack/l2cap/l2c_utils.cc
 system/stack/sdp/sdp_api.cc
 system/stack/sdp/sdp_discovery.cc
 system/stack/sdp/sdp_utils.cc
+system/stack/sdp/sdpint.h
 system/stack/smp/smp_act.cc
 system/stack/test/stack_a2dp_test.cc
 system/test/suite/Android.bp
