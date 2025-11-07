@@ -653,7 +653,8 @@ static void btif_a2dp_sink_decoder_update_event(
   APPL_TRACE_DEBUG("%s: reset to Sink role", __func__);
   // Software Decoder
   if (btif_a2dp_sink_cb.codec_location == BTAV_A2DP_CODEC_LOCATION_SOFTWARE ) {
-    btif_a2dp_sink_cb.decoder_interface = bta_av_co_get_decoder_interface();
+    btif_a2dp_sink_cb.decoder_interface =
+        A2DP_GetDecoderInterface(p_buf->codec_info);
     if (btif_a2dp_sink_cb.decoder_interface == nullptr) {
       LOG_ERROR("%s: cannot stream audio: no source decoder interface", __func__);
       return;
@@ -711,13 +712,6 @@ uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   if (btif_a2dp_sink_cb.rx_flush || btif_a2dp_sink_cb.audio_track == nullptr)
     return fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue);
 
-  if (fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue) ==
-      MAX_INPUT_A2DP_FRAME_QUEUE_SZ) {
-    uint8_t ret = fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue);
-    osi_free(fixed_queue_try_dequeue(btif_a2dp_sink_cb.rx_audio_queue));
-    return ret;
-  }
-
   BTIF_TRACE_VERBOSE("%s +", __func__);
   /* Allocate and queue this buffer */
   BT_HDR* p_msg =
@@ -726,6 +720,14 @@ uint8_t btif_a2dp_sink_enqueue_buf(BT_HDR* p_pkt) {
   p_msg->offset = 0;
   memcpy(p_msg->data, p_pkt->data + p_pkt->offset, p_pkt->len);
   fixed_queue_enqueue(btif_a2dp_sink_cb.rx_audio_queue, p_msg);
+
+  if (fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue) ==
+      MAX_INPUT_A2DP_FRAME_QUEUE_SZ) {
+    osi_free(fixed_queue_try_dequeue(btif_a2dp_sink_cb.rx_audio_queue));
+    uint8_t ret = fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue);
+    return ret;
+  }
+
   // Avoid other checks if alarm has already been initialized.
   if (btif_a2dp_sink_cb.decode_alarm == nullptr &&
       fixed_queue_length(btif_a2dp_sink_cb.rx_audio_queue) >=

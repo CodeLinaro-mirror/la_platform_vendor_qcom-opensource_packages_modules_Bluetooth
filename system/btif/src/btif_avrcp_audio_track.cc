@@ -52,8 +52,8 @@ constexpr float kMinTrackGain = 0.0f;
 
 void* BtifAvrcpAudioTrackCreate(int trackFreq, int bitsPerSample,
                                 int channelCount) {
-  LOG_INFO("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ",
-              __func__, trackFreq, bitsPerSample, channelCount);
+  LOG_INFO("%s Track.cpp: btCreateTrack freq %d bps %d channel %d ", __func__,
+           trackFreq, bitsPerSample, channelCount);
 
   AAudioStreamBuilder* builder;
   AAudioStream* stream;
