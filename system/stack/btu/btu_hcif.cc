@@ -14,6 +14,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  ******************************************************************************/
 
 /******************************************************************************
@@ -67,6 +72,7 @@ void smp_cancel_start_encryption_attempt();                    // TODO remove
 void acl_disconnect_from_handle(uint16_t handle, tHCI_STATUS reason,
                                 std::string comment);  // TODO remove
 
+extern void btm_read_inq_tx_power_complete(uint8_t* p);
 /******************************************************************************/
 /*            L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /******************************************************************************/
@@ -1121,6 +1127,7 @@ static void btu_hcif_hdl_command_complete(uint16_t opcode, uint8_t* p,
       break;
 
     case HCI_READ_INQ_TX_POWER_LEVEL:
+      btm_read_inq_tx_power_complete(p);
       break;
 
     /* BLE Commands sComplete*/
