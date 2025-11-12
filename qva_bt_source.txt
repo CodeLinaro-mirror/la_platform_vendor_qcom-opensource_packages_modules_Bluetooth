@@ -81,6 +81,7 @@ android/app/src/com/android/bluetooth/opp/BluetoothOppTransferActivity.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppTransferAdapter.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppTransferHistory.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppUtility.java
+android/app/src/com/android/bluetooth/pbapclient/PbapClientStateMachine.java
 android/app/src/com/android/bluetooth/sap/SapServer.java
 android/app/src/com/android/bluetooth/sap/SapService.java
 android/app/src/com/android/bluetooth/telephony/BluetoothInCallService.java
