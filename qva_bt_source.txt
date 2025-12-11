@@ -61,6 +61,8 @@ system/bta/include/bta_dm_ci.h
 system/bta/le_audio/client.cc
 system/bta/le_audio/devices.cc
 system/bta/le_audio/le_audio_types.h
+system/bta/test/bta_dip_test.cc
+system/bta/test/bta_hf_client_add_record_test.cc
 system/btif/Android.bp
 system/btif/co/bta_av_co.cc
 system/btif/include/btif_api.h
