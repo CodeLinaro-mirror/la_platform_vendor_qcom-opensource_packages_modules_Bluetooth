@@ -32,6 +32,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.ParcelUuid;
+import android.os.UserManager;
 import android.sysprop.BluetoothProperties;
 import android.util.Log;
 
@@ -66,6 +67,8 @@ public class MapClientService extends ProfileService {
     private static MapClientService sMapClientService;
     @VisibleForTesting
     MapBroadcastReceiver mMapReceiver;
+    private boolean mIsUserUnlocked = false;
+    private boolean mIsContentCleared = false;
 
     public static boolean isEnabled() {
         return BluetoothProperties.isProfileMapClientEnabled().orElse(false);
@@ -326,9 +329,14 @@ public class MapClientService extends ProfileService {
         filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
         filter.addAction(BluetoothDevice.ACTION_SDP_RECORD);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(Intent.ACTION_USER_UNLOCKED);
         registerReceiver(mMapReceiver, filter);
         removeUncleanAccounts();
-        MapClientContent.clearAllContent(this);
+        UserManager um = getSystemService(UserManager.class);
+        mIsUserUnlocked = um.isUserUnlocked();
+        if (mIsUserUnlocked) {
+            mIsContentCleared = MapClientContent.clearAllContent(this);
+        }
         setMapClientService(this);
         mAdapterService.notifyActivityAttributionInfo(
                 getAttributionSource(),
@@ -736,6 +744,14 @@ public class MapClientService extends ProfileService {
             if (DBG) {
                 Log.d(TAG, "onReceive: " + action);
             }
+
+            if (action.equals(Intent.ACTION_USER_UNLOCKED)) {
+                if (!mIsContentCleared) {
+                    MapClientContent.clearAllContent(context);
+                }
+                return;
+            }
+
             if (!action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)
                     && !action.equals(BluetoothDevice.ACTION_SDP_RECORD)) {
                 // we don't care about this intent
