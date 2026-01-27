@@ -35,8 +35,9 @@ class WakelockManager {
   static const std::string kBtWakelockId;
 
   static WakelockManager& Get() {
-    static WakelockManager instance;
-    return instance;
+    // Leaky singleton
+    static WakelockManager* instance = new WakelockManager();
+    return *instance;
   }
 
   // The set of functions required by GD to grab wake locks. A caller with a custom wakelock implementation should

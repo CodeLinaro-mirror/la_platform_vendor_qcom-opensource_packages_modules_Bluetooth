@@ -89,6 +89,7 @@ system/btif/src/btif_util.cc
 system/btif/src/stack_manager.cc
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/hci_layer.cc
+system/gd/os/wakelock_manager.h
 system/gd/stack_manager.cc
 system/gd/stack_manager.h
 system/gd/storage/storage_module.cc
@@ -97,6 +98,7 @@ system/include/hardware/bt_av.h
 system/include/hardware/bt_rc.h
 system/internal_include/bt_target.h
 system/main/shim/btm_api.h
+system/osi/src/alarm.cc
 system/stack/gap/gap_conn.cc
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
