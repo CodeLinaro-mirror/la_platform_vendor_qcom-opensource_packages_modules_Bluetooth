@@ -68,6 +68,9 @@ constexpr uint8_t PHY_LE_1M = 0x01;
 constexpr uint8_t PHY_LE_2M = 0x02;
 constexpr uint8_t PHY_LE_CODED = 0x04;
 
+/* BLE ADDR type ID bit */
+constexpr uint8_t kBleAddrTypeIdBit= 0x02;
+
 enum class ConnectabilityState {
   DISARMED = 0,
   ARMING = 1,
@@ -764,6 +767,9 @@ struct le_impl : public bluetooth::hci::LeAddressManagerCallback {
     InitiatorFilterPolicy initiator_filter_policy = InitiatorFilterPolicy::USE_FILTER_ACCEPT_LIST;
     OwnAddressType own_address_type =
         static_cast<OwnAddressType>(le_address_manager_->GetCurrentAddress().GetAddressType());
+    if (le_address_manager_->GetAddressPolicy() == LeAddressManager::AddressPolicy::USE_RESOLVABLE_ADDRESS) {
+      own_address_type = (OwnAddressType)((uint8_t)own_address_type | kBleAddrTypeIdBit);
+    }
     uint16_t conn_interval_min = 0x0018;
     uint16_t conn_interval_max = 0x0028;
     uint16_t conn_latency = 0x0000;

@@ -81,10 +81,14 @@ android/app/src/com/android/bluetooth/opp/BluetoothOppTransferActivity.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppTransferAdapter.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppTransferHistory.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppUtility.java
+android/app/src/com/android/bluetooth/opp/BluetoothOppSendFileInfo.java
+android/app/src/com/android/bluetooth/pbapclient/PbapClientStateMachine.java
 android/app/src/com/android/bluetooth/sap/SapServer.java
 android/app/src/com/android/bluetooth/sap/SapService.java
 android/app/src/com/android/bluetooth/telephony/BluetoothInCallService.java
 android/app/src/com/android/bluetooth/vc/VolumeControlNativeInterface.java
+android/app/tests/unit/Android.bp.disable
+android/app/tests/unit/src/com/android/bluetooth/opp/BluetoothOppSendFileInfoTest.java
 android/app/tests/unit/src/com/android/bluetooth/btservice/storage/schemas/com.android.bluetooth.btservice.storage.MetadataDatabase/118.json
 
 # framework
@@ -145,9 +149,11 @@ system/bta/dm/bta_dm_cfg.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/gatt/bta_gatts_act.cc
+system/bta/gatt/bta_gattc_utils.cc
 system/bta/hf_client/bta_hf_client_api.cc
 system/bta/hf_client/bta_hf_client_int.h
 system/bta/hf_client/bta_hf_client_rfc.cc
+system/bta/hf_client/bta_hf_client_sdp.cc
 system/bta/hf_client/bta_hf_client_main.cc
 system/bta/include/bta_api.h
 system/bta/include/bta_av_api.h
@@ -157,6 +163,8 @@ system/bta/include/bta_av_ci.h
 system/bta/include/bta_av_co.h
 system/bta/include/bta_dm_ci.h
 system/bta/le_audio/devices.cc
+system/bta/test/bta_dip_test.cc
+system/bta/test/bta_hf_client_add_record_test.cc
 system/btif/avrcp/avrcp_service.cc
 system/btif/avrcp/avrcp_service.h
 system/btif/co/bta_av_co.cc
@@ -188,6 +196,7 @@ system/gd/common/Android.bp
 system/gd/common/BUILD.gn
 system/gd/common/utils.h
 system/gd/common/utils.cc
+system/gd/hci/acl_manager/le_impl.h
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/acl_manager.cc
 system/gd/hci/acl_manager/le_acl_connection.h
@@ -244,13 +253,18 @@ system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/a2dp/a2dp_vendor_opus_encoder.cc
 system/stack/Android.bp
 system/stack/acl/btm_acl.cc
+system/stack/avdt/avdt_ad.cc
+system/stack/avdt/avdt_api.cc
 system/stack/avdt/avdt_ccb_act.cc
 system/stack/avdt/avdt_msg.cc
 system/stack/avdt/avdt_scb.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_api.cc
 system/stack/avrc/avrc_bld_ct.cc
+system/stack/avct/avct_api.cc
+system/stack/avct/avct_bcb_act.cc
 system/stack/avct/avct_ccb.cc
+system/stack/avct/avct_lcb_act.cc
 system/stack/avrc/avrc_pars_ct.cc
 system/stack/btm/btm_ble.cc
 system/stack/btm/btm_ble_gap.cc
@@ -293,6 +307,7 @@ system/stack/l2cap/l2c_int.h
 system/stack/l2cap/l2c_link.cc
 system/stack/l2cap/l2c_utils.cc
 system/stack/sdp/sdp_api.cc
+system/stack/sdp/sdp_discovery.cc
 system/stack/sdp/sdp_main.cc
 system/stack/sdp/sdp_utils.cc
 system/stack/smp/smp_act.cc

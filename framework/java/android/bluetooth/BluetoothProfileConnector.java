@@ -66,6 +66,8 @@ public abstract class BluetoothProfileConnector<T> {
     private static final int MESSAGE_SERVICE_CONNECTED = 100;
     private static final int MESSAGE_SERVICE_DISCONNECTED = 101;
 
+    private final Object mLock = new Object();
+
     private final IBluetoothStateChangeCallback mBluetoothStateChangeCallback =
             new IBluetoothStateChangeCallback.Stub() {
         public void onBluetoothStateChange(boolean up) {
@@ -175,8 +177,12 @@ public abstract class BluetoothProfileConnector<T> {
     }
 
     void connect(Context context, BluetoothProfile.ServiceListener listener) {
+        mHandler.removeMessages(MESSAGE_SERVICE_CONNECTED);
+        mHandler.removeMessages(MESSAGE_SERVICE_DISCONNECTED);
         mContext = context;
-        mServiceListener = listener;
+        synchronized (mLock) {
+            mServiceListener = listener;
+        }
 
         // Preserve legacy compatibility where apps were depending on
         // registerStateChangeCallback() performing a permissions check which
@@ -207,11 +213,15 @@ public abstract class BluetoothProfileConnector<T> {
     }
 
     void disconnect() {
-        mServiceListener = null;
-        if (mProfileSupported) {
-            unregisterStateChangeCallback(mBluetoothStateChangeCallback);
-            doUnbind();
+        synchronized (mLock) {
+            if (mProfileSupported) {
+                unregisterStateChangeCallback(mBluetoothStateChangeCallback);
+                doUnbind();
+            }
+            mServiceListener = null;
         }
+        mHandler.removeMessages(MESSAGE_SERVICE_CONNECTED);
+        mHandler.removeMessages(MESSAGE_SERVICE_DISCONNECTED);
     }
 
     T getService() {
@@ -275,17 +285,19 @@ public abstract class BluetoothProfileConnector<T> {
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
+            final BluetoothProfile.ServiceListener listener;
+            synchronized (mLock) {
+                listener = mServiceListener;
+            }
+            if (listener == null) return;
+
             switch (msg.what) {
                 case MESSAGE_SERVICE_CONNECTED: {
-                    if (mServiceListener != null) {
-                        mServiceListener.onServiceConnected(mProfileId, mProfileProxy);
-                    }
+                    listener.onServiceConnected(mProfileId, mProfileProxy);
                     break;
                 }
                 case MESSAGE_SERVICE_DISCONNECTED: {
-                    if (mServiceListener != null) {
-                        mServiceListener.onServiceDisconnected(mProfileId);
-                    }
+                    listener.onServiceDisconnected(mProfileId);
                     break;
                 }
             }
