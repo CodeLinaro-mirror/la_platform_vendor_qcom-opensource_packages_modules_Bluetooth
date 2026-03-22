@@ -2187,9 +2187,14 @@ static void bta_dm_remname_cback(const tBTM_REMOTE_DEV_NAME* p) {
       hci_error_code_text(p_remote_name->hci_status).c_str(),
       p_remote_name->remote_bd_name[0], p_remote_name->length);
 
-  if (bta_dm_search_cb.peer_bdaddr == p_remote_name->bd_addr) {
+  const bool addr_match = (bta_dm_search_cb.peer_bdaddr == p_remote_name->bd_addr);
+
+  if (addr_match) {
     BTM_SecDeleteRmtNameNotifyCallback(&bta_dm_service_search_remname_cback);
   } else {
+    LOG_WARN("Remote name mismatch, synthesize failure event. exp:%s act:%s",
+            ADDRESS_TO_LOGGABLE_CSTR(bta_dm_search_cb.peer_bdaddr),
+            ADDRESS_TO_LOGGABLE_CSTR(p_remote_name->bd_addr));
     // if we got a different response, maybe ignore it
     // we will have made a request directly from BTM_ReadRemoteDeviceName so we
     // expect a dedicated response for us
@@ -2204,14 +2209,19 @@ static void bta_dm_remname_cback(const tBTM_REMOTE_DEV_NAME* p) {
           "Ignored remote name response for the wrong address exp:%s act:%s",
           ADDRESS_TO_LOGGABLE_CSTR(bta_dm_search_cb.peer_bdaddr),
           ADDRESS_TO_LOGGABLE_CSTR(p_remote_name->bd_addr));
-      return;
+      BTM_SecDeleteRmtNameNotifyCallback(&bta_dm_service_search_remname_cback);
     }
   }
 
   /* remote name discovery is done but it could be failed */
   bta_dm_search_cb.name_discover_done = true;
-  strlcpy((char*)bta_dm_search_cb.peer_name,
-          (char*)p_remote_name->remote_bd_name, BD_NAME_LEN + 1);
+
+  if (p_remote_name->hci_status == HCI_SUCCESS && addr_match) {
+    strlcpy((char*)bta_dm_search_cb.peer_name,
+            (char*)p_remote_name->remote_bd_name, BD_NAME_LEN + 1);
+  } else {
+    bta_dm_search_cb.peer_name[0] = '\0';
+  }
 
   if (bta_dm_search_cb.transport == BT_TRANSPORT_LE) {
     GAP_BleReadPeerPrefConnParams(bta_dm_search_cb.peer_bdaddr);
@@ -2221,8 +2231,12 @@ static void bta_dm_remname_cback(const tBTM_REMOTE_DEV_NAME* p) {
       (tBTA_DM_REM_NAME*)osi_malloc(sizeof(tBTA_DM_REM_NAME));
   p_msg->result.disc_res.hci_status = p->hci_status;
   p_msg->result.disc_res.bd_addr = bta_dm_search_cb.peer_bdaddr;
-  strlcpy((char*)p_msg->result.disc_res.bd_name,
-          (char*)p_remote_name->remote_bd_name, BD_NAME_LEN + 1);
+  if (p_remote_name->hci_status == HCI_SUCCESS && addr_match) {
+    strlcpy((char*)p_msg->result.disc_res.bd_name,
+            (char*)p_remote_name->remote_bd_name, BD_NAME_LEN + 1);
+  } else {
+    p_msg->result.disc_res.bd_name[0] = '\0';
+  }
   p_msg->hdr.event = BTA_DM_REMT_NAME_EVT;
 
   bta_sys_sendmsg(p_msg);
