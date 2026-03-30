@@ -14,6 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
 
 /*****************************************************************************
@@ -2493,19 +2497,11 @@ bool BTM_ReadRemoteConnectionAddr(const RawAddress& pseudo_addr,
   if (bluetooth::shim::is_gd_l2cap_enabled()) {
     return bluetooth::shim::L2CA_ReadRemoteConnectionAddr(
         pseudo_addr, conn_addr, p_addr_type);
+  } else {
+    bluetooth::shim::ACL_ReadPeerConnectionAddress(pseudo_addr, conn_addr,
+                                                   p_addr_type);
+    return true;
   }
-
-  bool st = true;
-  tACL_CONN* p_acl = internal_.btm_bda_to_acl(pseudo_addr, BT_TRANSPORT_LE);
-
-  if (p_acl == NULL) {
-    LOG_WARN("Unable to find active acl");
-    return false;
-  }
-
-  conn_addr = p_acl->active_remote_addr;
-  *p_addr_type = p_acl->active_remote_addr_type;
-  return st;
 }
 
 uint8_t acl_link_role_from_handle(uint16_t handle) {

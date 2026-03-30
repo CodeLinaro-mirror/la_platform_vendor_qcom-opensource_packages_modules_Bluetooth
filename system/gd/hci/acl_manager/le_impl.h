@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #pragma once
@@ -62,6 +67,9 @@ constexpr uint8_t PHY_LE_NO_PACKET = 0x00;
 constexpr uint8_t PHY_LE_1M = 0x01;
 constexpr uint8_t PHY_LE_2M = 0x02;
 constexpr uint8_t PHY_LE_CODED = 0x04;
+
+/* BLE ADDR type ID bit */
+constexpr uint8_t kBleAddrTypeIdBit= 0x02;
 
 enum class ConnectabilityState {
   DISARMED = 0,
@@ -517,6 +525,7 @@ struct le_impl : public bluetooth::hci::LeAddressManagerCallback {
     connection->latency_ = conn_latency;
     connection->supervision_timeout_ = supervision_timeout;
     connection->local_resolvable_private_address_ = connection_complete.GetLocalResolvablePrivateAddress();
+    connection->UpdateLocalRPAddress();
     connection->peer_resolvable_private_address_ = connection_complete.GetPeerResolvablePrivateAddress();
     connection->in_filter_accept_list_ = in_filter_accept_list;
     connections.add(
@@ -758,6 +767,9 @@ struct le_impl : public bluetooth::hci::LeAddressManagerCallback {
     InitiatorFilterPolicy initiator_filter_policy = InitiatorFilterPolicy::USE_FILTER_ACCEPT_LIST;
     OwnAddressType own_address_type =
         static_cast<OwnAddressType>(le_address_manager_->GetCurrentAddress().GetAddressType());
+    if (le_address_manager_->GetAddressPolicy() == LeAddressManager::AddressPolicy::USE_RESOLVABLE_ADDRESS) {
+      own_address_type = (OwnAddressType)((uint8_t)own_address_type | kBleAddrTypeIdBit);
+    }
     uint16_t conn_interval_min = 0x0018;
     uint16_t conn_interval_max = 0x0028;
     uint16_t conn_latency = 0x0000;

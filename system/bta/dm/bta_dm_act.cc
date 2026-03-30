@@ -2686,6 +2686,15 @@ static void bta_dm_check_av() {
  *
  ******************************************************************************/
 static void bta_dm_disable_conn_down_timer_cback(UNUSED_ATTR void* data) {
+  if (BTM_GetNumAclLinks()) {
+    LOG_INFO("ACL link is up just between the DisableDelayTimerInMs (200ms)");
+    LOG_INFO("Set timer to wait for all ACL connections to close:%lu ms",
+             first_pass.TimeToWaitInMs());
+    alarm_set_on_mloop(bta_dm_cb.disable_timer, first_pass.time_to_wait_in_ms,
+                       bta_dm_wait_for_acl_to_drain_cback,
+                       first_pass.AlarmCallbackData());
+    return;
+  }
   /* disable the power managment module */
   bta_dm_disable_pm();
 
@@ -3680,8 +3689,13 @@ static uint8_t bta_dm_ble_smp_cback(tBTM_LE_EVT event, const RawAddress& bda,
 
     case BTM_LE_NC_REQ_EVT:
       sec_event.key_notif.bd_addr = bda;
-      strlcpy((char*)sec_event.key_notif.bd_name, bta_dm_get_remname(),
-              (BD_NAME_LEN + 1));
+      p_name = (bluetooth::shim::is_gd_security_enabled())
+                   ? bluetooth::shim::BTM_SecReadDevName(bda)
+                   : BTM_SecReadDevName(bda);
+      if (p_name != NULL)
+        strlcpy((char*)sec_event.key_notif.bd_name, p_name, BD_NAME_LEN + 1);
+      else
+        sec_event.key_notif.bd_name[0] = 0;
       sec_event.key_notif.passkey = p_data->key_notif;
       bta_dm_cb.p_sec_cback(BTA_DM_BLE_NC_REQ_EVT, &sec_event);
       break;

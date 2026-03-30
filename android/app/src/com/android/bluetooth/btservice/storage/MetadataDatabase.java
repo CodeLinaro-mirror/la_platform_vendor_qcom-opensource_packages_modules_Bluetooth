@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
  *
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.bluetooth.btservice.storage;
@@ -580,7 +580,7 @@ public abstract class MetadataDatabase extends RoomDatabase {
         public void migrate (SupportSQLiteDatabase database) {
             try {
                 database.execSQL("ALTER TABLE metadata ADD COLUMN `a2dpMediaPlayer` "
-                        + "TEXT NOT NULL");
+                        + "TEXT NOT NULL DEFAULT ''");
                 database.execSQL("ALTER TABLE metadata ADD COLUMN `a2dpAudioZone` INTEGER");
             } catch (SQLException ex) {
                 // Check if user has new schema, but is just missing the version update

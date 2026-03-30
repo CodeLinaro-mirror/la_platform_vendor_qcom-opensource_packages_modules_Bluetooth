@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #pragma once
@@ -52,6 +57,15 @@ class LeAclConnection : public AclConnection {
     local_address_ = address;
   }
 
+  AddressWithType GetLocalRPAddress() const {
+    return local_resolvable_private_address_with_type_;
+  }
+
+  void UpdateLocalRPAddress() {
+    local_resolvable_private_address_with_type_ =
+        AddressWithType(local_resolvable_private_address_, local_address_.GetAddressType());;
+  }
+
   virtual AddressWithType GetRemoteAddress() const {
     return remote_address_;
   }
@@ -86,6 +100,8 @@ class LeAclConnection : public AclConnection {
 
   Address local_resolvable_private_address_ = Address::kEmpty;
   Address peer_resolvable_private_address_ = Address::kEmpty;
+
+  AddressWithType local_resolvable_private_address_with_type_;
 
   virtual void RegisterCallbacks(LeConnectionManagementCallbacks* callbacks, os::Handler* handler);
   virtual void Disconnect(DisconnectReason reason);

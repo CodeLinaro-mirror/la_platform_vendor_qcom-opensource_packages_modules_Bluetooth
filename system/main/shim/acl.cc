@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #include "main/shim/acl.h"
@@ -725,6 +730,10 @@ class LeShimAclConnection
     return connection_->GetLocalAddress();
   }
 
+  bluetooth::hci::AddressWithType GetLocalRPAddressWithType() {
+    return connection_->GetLocalRPAddress();
+  }
+
   void OnConnectionUpdate(hci::ErrorCode hci_status,
                           uint16_t connection_interval,
                           uint16_t connection_latency,
@@ -1403,10 +1412,31 @@ bluetooth::hci::AddressWithType shim::legacy::Acl::GetConnectionLocalAddress(
   auto remote_address = ToGdAddress(remote_bda);
   for (auto& [handle, connection] : pimpl_->handle_to_le_connection_map_) {
     if (connection->GetRemoteAddressWithType().GetAddress() == remote_address) {
-      return connection->GetLocalAddressWithType();
+      address_with_type = connection->GetLocalRPAddressWithType();
+      if (address_with_type.GetAddress() == bluetooth::hci::Address::kEmpty) {
+        LOG_DEBUG("local RPA is empty, utilize local address instead");
+        return connection->GetLocalAddressWithType();
+      }
+      return address_with_type;
     }
   }
-  LOG_WARN("address not found!");
+  LOG_WARN("local address not found!");
+  return address_with_type;
+}
+
+bluetooth::hci::AddressWithType shim::legacy::Acl::GetConnectionPeerAddress(
+    const RawAddress& remote_bda){
+  bluetooth::hci::AddressWithType address_with_type;
+  auto remote_address = ToGdAddress(remote_bda);
+  for (auto& [handle, connection] : pimpl_->handle_to_le_connection_map_) {
+    LOG_DEBUG("handle %u, remote_addr_with_type %s remote_addr %s", handle,
+        connection->GetRemoteAddressWithType().ToString().c_str(),
+        remote_address.ToString().c_str());
+    if (connection->GetRemoteAddressWithType().GetAddress() == remote_address) {
+      return connection->GetRemoteAddressWithType();
+    }
+  }
+  LOG_WARN("peer address not found!");
   return address_with_type;
 }
 
