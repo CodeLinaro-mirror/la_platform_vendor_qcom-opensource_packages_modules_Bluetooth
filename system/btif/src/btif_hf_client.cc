@@ -15,6 +15,11 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
+ *  Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear.
+ *
  ******************************************************************************/
 
 /*******************************************************************************
@@ -306,7 +311,14 @@ static bt_status_t connect_int(RawAddress* bd_addr, uint16_t uuid) {
    * The handle is valid until we have called BTA_HfClientClose or the LL
    * has notified us of channel close due to remote closing, error etc.
    */
-  return BTA_HfClientOpen(cb->peer_bda, &cb->handle);
+  if (BTA_HfClientOpen(cb->peer_bda, &cb->handle) != BT_STATUS_SUCCESS) {
+    cb->peer_bda = RawAddress::kAny;
+    cb->state = BTHF_CLIENT_CONNECTION_STATE_DISCONNECTED;
+    BTIF_TRACE_ERROR("%s: HF Client Open Failed!", __func__);
+    return BT_STATUS_BUSY;
+  }
+
+  return BT_STATUS_SUCCESS;
 }
 
 static bt_status_t connect(const RawAddress* bd_addr) {

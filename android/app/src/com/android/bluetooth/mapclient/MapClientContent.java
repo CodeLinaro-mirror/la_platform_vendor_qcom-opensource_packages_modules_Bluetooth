@@ -12,6 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear.
  */
 
 package com.android.bluetooth.mapclient;
@@ -134,25 +139,27 @@ class MapClientContent {
         mResolver.registerContentObserver(MmsSms.CONTENT_URI, true, mContentObserver);
     }
 
-    static void clearAllContent(Context context) {
+    static boolean clearAllContent(Context context) {
         SubscriptionManager subscriptionManager =
                 context.getSystemService(SubscriptionManager.class);
         List<SubscriptionInfo> subscriptions = subscriptionManager.getActiveSubscriptionInfoList();
         if (subscriptions == null) {
             Log.w(TAG, "Active subscription list is missing");
-            return;
+            return true;
         }
         for (SubscriptionInfo info : subscriptions) {
             if (info.getSubscriptionType() == SubscriptionManager.SUBSCRIPTION_TYPE_REMOTE_SIM) {
-                clearMessages(context, info.getSubscriptionId());
                 try {
+                    clearMessages(context, info.getSubscriptionId());
                     subscriptionManager.removeSubscriptionInfoRecord(info.getIccId(),
                             SubscriptionManager.SUBSCRIPTION_TYPE_REMOTE_SIM);
                 } catch (Exception e) {
                     Log.w(TAG, "cleanUp failed: " + e.toString());
+                    return false;
                 }
             }
         }
+        return true;
     }
 
     private static void logI(String message) {
@@ -428,18 +435,34 @@ class MapClientContent {
         String threads = new String();
 
         Uri uri = Threads.CONTENT_URI.buildUpon().appendQueryParameter("simple", "true").build();
-        Cursor threadCursor = resolver.query(uri, null, null, null, null);
-        while (threadCursor.moveToNext()) {
-            threads += threadCursor.getInt(threadCursor.getColumnIndex(Threads._ID)) + ", ";
-        }
+        Cursor threadCursor = null;
+        try {
+            // Query all threads
+            threadCursor = resolver.query(uri, null, null, null, null);
 
-        resolver.delete(Sms.CONTENT_URI, Sms.SUBSCRIPTION_ID + " =? ",
-                new String[]{Integer.toString(subscriptionId)});
-        resolver.delete(Mms.CONTENT_URI, Mms.SUBSCRIPTION_ID + " =? ",
-                new String[]{Integer.toString(subscriptionId)});
-        if (threads.length() > 2) {
-            threads = threads.substring(0, threads.length() - 2);
-            resolver.delete(Threads.CONTENT_URI, Threads._ID + " IN (" + threads + ")", null);
+            if (threadCursor != null) {
+                // Collect thread IDs BEFORE deleting SMS/MMS
+                while (threadCursor.moveToNext()) {
+                    threads += threadCursor.getInt(threadCursor.getColumnIndex(Threads._ID)) + ", ";
+                }
+            }
+
+            // Delete SMS and MMS for this subscription ID
+            resolver.delete(Sms.CONTENT_URI, Sms.SUBSCRIPTION_ID + " =? ",
+                    new String[]{Integer.toString(subscriptionId)});
+            resolver.delete(Mms.CONTENT_URI, Mms.SUBSCRIPTION_ID + " =? ",
+                    new String[]{Integer.toString(subscriptionId)});
+
+            // Delete threads if any ID was collected
+            if (threads.length() > 2) {
+                threads = threads.substring(0, threads.length() - 2);
+                resolver.delete(Threads.CONTENT_URI, Threads._ID + " IN (" + threads + ")", null);
+            }
+        } finally {
+            // Ensure cursor is closed to avoid resource leak
+            if (threadCursor != null) {
+                threadCursor.close();
+            }
         }
     }
 
@@ -467,7 +490,12 @@ class MapClientContent {
         }
 
         logV("Contacts = " + messageContacts.toString());
-        return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        try {
+            return Telephony.Threads.getOrCreateThreadId(mContext, messageContacts);
+        } catch (Exception e) {
+            Log.e(TAG, "getOrCreateThreadId failed: " + e.toString());
+            return -1;
+        }
     }
 
     private void getRecipientsFromMessage(Bmessage message, Set<String> messageContacts) {

@@ -37,6 +37,7 @@ import static com.android.server.bluetooth.BluetoothAirplaneModeListener.USED;
 import static com.android.server.bluetooth.ChangeIds.RESTRICT_ENABLE_DISABLE;
 
 import android.Manifest;
+import android.annotation.Nullable;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SuppressLint;
@@ -118,6 +119,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
@@ -180,6 +182,8 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     private static final int MESSAGE_BIND_PROFILE_SERVICE = 401;
     private static final int MESSAGE_RESTORE_USER_SETTING = 500;
     private static final int MESSAGE_INIT_FLAGS_CHANGED = 600;
+    private static final int MESSAGE_RESTART_REASON_USER_SWITCH = 700;
+    private static final int MAX_USER_SWITCH_RETRIES = 10;
 
     private static final int RESTORE_SETTING_TO_ON = 1;
     private static final int RESTORE_SETTING_TO_OFF = 0;
@@ -234,6 +238,9 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     private boolean mUnbinding;
     private List<Integer> mSupportedProfileList = new ArrayList<>();
 
+    private volatile UserHandle mUser;
+    private volatile UserHandle mNextUser;
+
     private BluetoothModeChangeHelper mBluetoothModeChangeHelper;
 
     private BluetoothAirplaneModeListener mBluetoothAirplaneModeListener;
@@ -248,6 +255,15 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
     private boolean mQuietEnable = false;
     private boolean mEnable;
     private boolean mShutdownInProgress = false;
+
+    // Cache the foreground user ID, updated only on initUsers() and ACTION_USER_SWITCHED /
+    // onSwitchUser() / MESSAGE_USER_SWITCHED to avoid reading unstable values from
+    // ActivityManager.getCurrentUser() during user-state transitions.
+    private volatile int mCurrentForegroundUserId = 0;
+
+    private int getBluetoothActiveUserId() {
+        return mCurrentForegroundUserId;
+    }
 
     private static String timeToLog(long timestamp) {
         return DateTimeFormatter.ofPattern("MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
@@ -613,6 +629,21 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         }
     };
 
+    void initUsers() {
+        mCurrentForegroundUserId = ActivityManager.getCurrentUser();
+        final UserHandle current = UserHandle.of(getBluetoothActiveUserId());
+        mUser = current;
+        mNextUser = current;
+        Log.e(TAG, "initUsers, mUser:" + mUser + ", mNextUser:" + mNextUser);
+    }
+
+    void updateNextUser(@Nullable UserHandle handle) {
+        final UserHandle target =
+                (handle != null) ? handle : UserHandle.of(getBluetoothActiveUserId());
+        mNextUser = target;
+        Log.e(TAG, "updateNextUser, mUser:" + mUser + ", mNextUser:" + mNextUser);
+    }
+
     BluetoothManagerService(Context context) {
         mBluetoothHandlerThread = BluetoothServerProxy.getInstance()
                 .createHandlerThread("BluetoothManagerService");
@@ -694,6 +725,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                 switch (intent.getAction()) {
                     case Intent.ACTION_USER_SWITCHED:
                         int foregroundUserId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
+                        mCurrentForegroundUserId = foregroundUserId;
                         propagateForegroundUserId(foregroundUserId);
                         break;
                     case UserManager.ACTION_USER_RESTRICTIONS_CHANGED:
@@ -735,6 +767,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             Log.w(TAG, "Unable to resolve SystemUI's UID.");
         }
         mSystemUiUid = systemUiUid;
+        initUsers();
 
         mBluetoothSatelliteModeListener = new BluetoothSatelliteModeListener(
                 this, mBluetoothHandlerThread.getLooper(), context);
@@ -852,7 +885,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         final long callingIdentity = Binder.clearCallingIdentity();
         try {
             Context userContext = mContext.createContextAsUser(
-                    UserHandle.of(ActivityManager.getCurrentUser()), 0);
+                    UserHandle.of(getBluetoothActiveUserId()), 0);
             Settings.Secure.putInt(userContext.getContentResolver(), name, value);
         } finally {
             Binder.restoreCallingIdentity(callingIdentity);
@@ -868,7 +901,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         final long callingIdentity = Binder.clearCallingIdentity();
         try {
             Context userContext = mContext.createContextAsUser(
-                    UserHandle.of(ActivityManager.getCurrentUser()), 0);
+                    UserHandle.of(getBluetoothActiveUserId()), 0);
             firstTime = Settings.Secure.getInt(userContext.getContentResolver(), name,
                     NOTIFICATION_NOT_SHOWN) == NOTIFICATION_NOT_SHOWN;
         } finally {
@@ -1841,6 +1874,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         if (DBG) {
             Log.d(TAG, "User " + userHandle + " switched");
         }
+        mCurrentForegroundUserId = userHandle.getIdentifier();
         mHandler.obtainMessage(MESSAGE_USER_SWITCHED, userHandle.getIdentifier(), 0).sendToTarget();
     }
 
@@ -2196,9 +2230,11 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                             Message timeoutMsg = mHandler.obtainMessage(MESSAGE_TIMEOUT_BIND);
                             mHandler.sendMessageDelayed(timeoutMsg, TIMEOUT_BIND_MS);
                             Intent i = new Intent(IBluetooth.class.getName());
+                            mUser = UserHandle.of(getBluetoothActiveUserId());
+                            Log.d(TAG, "mUser:" + mUser);
                             if (!doBind(i, mConnection,
                                     Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT,
-                                    UserHandle.CURRENT)) {
+                                    mUser)) {
                                 mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
                             } else {
                                 mBinding = true;
@@ -2484,7 +2520,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                         mBluetoothBinder = service;
                         mBluetooth = IBluetooth.Stub.asInterface(service);
 
-                        int foregroundUserId = ActivityManager.getCurrentUser();
+                        int foregroundUserId = getBluetoothActiveUserId();
                         propagateForegroundUserId(foregroundUserId);
 
                         if (!isNameAndAddressSet()) {
@@ -2666,18 +2702,28 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                         Log.d(TAG, "MESSAGE_USER_SWITCHED");
                     }
                     mHandler.removeMessages(MESSAGE_USER_SWITCHED);
+                    mCurrentForegroundUserId = msg.arg1;
                     mBluetoothNotificationManager.createNotificationChannels();
+
+                    updateNextUser(UserHandle.of(msg.arg1));
 
                     /* disable and enable BT when detect a user switch */
                     if (mBluetooth != null && isEnabled()) {
                         restartForReason(BluetoothProtoEnums.ENABLE_DISABLE_REASON_USER_SWITCH);
                     } else if (mBinding || mBluetooth != null) {
+                        if (msg.arg2 >= MAX_USER_SWITCH_RETRIES) {
+                            Log.e(TAG, "MESSAGE_USER_SWITCHED retry limit reached for user "
+                                    + msg.arg1);
+                            break;
+                        }
                         Message userMsg = mHandler.obtainMessage(MESSAGE_USER_SWITCHED);
+                        userMsg.arg1 = msg.arg1;
                         userMsg.arg2 = 1 + msg.arg2;
                         // if user is switched when service is binding retry after a delay
                         mHandler.sendMessageDelayed(userMsg, USER_SWITCHED_TIME_MS);
                         if (DBG) {
-                            Log.d(TAG, "Retry MESSAGE_USER_SWITCHED " + userMsg.arg2);
+                            Log.d(TAG, "Retry MESSAGE_USER_SWITCHED userId=" + userMsg.arg1
+                                    + ", count=" + userMsg.arg2);
                         }
                     }
                     break;
@@ -2687,6 +2733,8 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                         Log.d(TAG, "MESSAGE_USER_UNLOCKED");
                     }
                     mHandler.removeMessages(MESSAGE_USER_SWITCHED);
+
+                    updateNextUser(null);
 
                     if (mEnable && !mBinding && (mBluetooth == null)) {
                         // We should be connected, but we gave up for some
@@ -2727,6 +2775,14 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                         restartForReason(
                                 BluetoothProtoEnums.ENABLE_DISABLE_REASON_INIT_FLAGS_CHANGED);
                     }
+                    break;
+                }
+                case MESSAGE_RESTART_REASON_USER_SWITCH: {
+                    if (DBG) {
+                        Log.d(TAG, "MESSAGE_RESTART_REASON_USER_SWITCH");
+                    }
+                    mHandler.removeMessages(MESSAGE_RESTART_REASON_USER_SWITCH);
+                    restartForReason(BluetoothProtoEnums.ENABLE_DISABLE_REASON_USER_SWITCH);
                     break;
                 }
             }
@@ -2822,8 +2878,10 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                 Message timeoutMsg = mHandler.obtainMessage(MESSAGE_TIMEOUT_BIND);
                 mHandler.sendMessageDelayed(timeoutMsg, TIMEOUT_BIND_MS);
                 Intent i = new Intent(IBluetooth.class.getName());
+                mUser = UserHandle.of(getBluetoothActiveUserId());
+                Log.d(TAG, "mUser:" + mUser);
                 if (!doBind(i, mConnection, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT,
-                        UserHandle.CURRENT)) {
+                        mUser)) {
                     mHandler.removeMessages(MESSAGE_TIMEOUT_BIND);
                 } else {
                     mBinding = true;
@@ -2895,7 +2953,7 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
         int callingAppId = UserHandle.getAppId(callingUid);
         boolean valid = false;
         try {
-            UserHandle foregroundUser = UserHandle.of(ActivityManager.getCurrentUser());
+            UserHandle foregroundUser = UserHandle.of(getBluetoothActiveUserId());
             valid = (callingUser == foregroundUser) || parentUser == foregroundUser
                     || callingAppId == Process.NFC_UID || callingAppId == mSystemUiUid
                     || callingAppId == Process.SHELL_UID;
@@ -2980,7 +3038,8 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
                     }
                     Intent i = new Intent(IBluetoothGatt.class.getName());
                     doBind(i, mConnection, Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT,
-                            UserHandle.CURRENT);
+                            mUser);
+                    Log.d(TAG, "mUser:" + mUser);
                 }
                 sendBleStateChanged(prevState, newState);
                 //Don't broadcase this as std intent
@@ -3001,6 +3060,12 @@ public class BluetoothManagerService extends IBluetoothManager.Stub {
             boolean isUp = (newState == STATE_ON);
             sendBluetoothStateCallback(isUp);
             sendBleStateChanged(prevState, newState);
+            if (!Objects.equals(mUser, mNextUser)
+                    && !mHandler.hasMessages(MESSAGE_RESTART_REASON_USER_SWITCH)) {
+                Log.w(TAG, "mUser:" + mUser + ", mNextUser:" + mNextUser
+                        + ", restart Bluetooth due to user mismatch!");
+                mHandler.obtainMessage(MESSAGE_RESTART_REASON_USER_SWITCH).sendToTarget();
+            }
 
         } else if (newState == STATE_BLE_TURNING_ON) {
             sendBleStateChanged(prevState, newState);

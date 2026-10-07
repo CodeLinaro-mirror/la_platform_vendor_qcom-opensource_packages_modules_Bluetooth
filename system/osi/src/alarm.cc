@@ -116,7 +116,7 @@ static const clockid_t CLOCK_ID = CLOCK_BOOTTIME;
 // This mutex ensures that the |alarm_set|, |alarm_cancel|, and alarm callback
 // functions execute serially and not concurrently. As a result, this mutex
 // also protects the |alarms| list.
-static std::mutex alarms_mutex;
+static std::mutex* alarms_mutex = new std::mutex();
 static list_t* alarms;
 static timer_t timer;
 static timer_t wakeup_timer;
@@ -203,7 +203,7 @@ uint64_t alarm_get_remaining_ms(const alarm_t* alarm) {
   uint64_t remaining_ms = 0;
   uint64_t just_now_ms = now_ms();
 
-  std::lock_guard<std::mutex> lock(alarms_mutex);
+  std::lock_guard<std::mutex> lock(*alarms_mutex);
   if (alarm->deadline_ms > just_now_ms)
     remaining_ms = alarm->deadline_ms - just_now_ms;
 
@@ -229,7 +229,7 @@ static void alarm_set_internal(alarm_t* alarm, uint64_t period_ms,
   CHECK(alarm != NULL);
   CHECK(cb != NULL);
 
-  std::lock_guard<std::mutex> lock(alarms_mutex);
+  std::lock_guard<std::mutex> lock(*alarms_mutex);
 
   alarm->creation_time_ms = now_ms();
   alarm->period_ms = period_ms;
@@ -248,7 +248,7 @@ void alarm_cancel(alarm_t* alarm) {
 
   std::shared_ptr<std::recursive_mutex> local_mutex_ref;
   {
-    std::lock_guard<std::mutex> lock(alarms_mutex);
+    std::lock_guard<std::mutex> lock(*alarms_mutex);
     local_mutex_ref = alarm->callback_mutex;
     alarm_cancel_internal(alarm);
   }
@@ -289,7 +289,7 @@ void alarm_cleanup(void) {
   thread_free(dispatcher_thread);
   dispatcher_thread = NULL;
 
-  std::lock_guard<std::mutex> lock(alarms_mutex);
+  std::lock_guard<std::mutex> lock(*alarms_mutex);
 
   fixed_queue_free(default_callback_queue, NULL);
   default_callback_queue = NULL;
@@ -313,7 +313,7 @@ static bool lazy_initialize(void) {
   bool timer_initialized = false;
   bool wakeup_timer_initialized = false;
 
-  std::lock_guard<std::mutex> lock(alarms_mutex);
+  std::lock_guard<std::mutex> lock(*alarms_mutex);
 
   alarms = list_new(NULL);
   if (!alarms) {
@@ -596,14 +596,14 @@ static void alarm_ready_generic(alarm_t* alarm,
 }
 
 static void alarm_ready_mloop(alarm_t* alarm) {
-  std::unique_lock<std::mutex> lock(alarms_mutex);
+  std::unique_lock<std::mutex> lock(*alarms_mutex);
   alarm_ready_generic(alarm, lock);
 }
 
 static void alarm_queue_ready(fixed_queue_t* queue, UNUSED_ATTR void* context) {
   CHECK(queue != NULL);
 
-  std::unique_lock<std::mutex> lock(alarms_mutex);
+  std::unique_lock<std::mutex> lock(*alarms_mutex);
   alarm_t* alarm = (alarm_t*)fixed_queue_try_dequeue(queue);
   alarm_ready_generic(alarm, lock);
 }
@@ -622,7 +622,7 @@ static void callback_dispatch(UNUSED_ATTR void* context) {
     semaphore_wait(alarm_expired);
     if (!dispatcher_thread_active) break;
 
-    std::lock_guard<std::mutex> lock(alarms_mutex);
+    std::lock_guard<std::mutex> lock(*alarms_mutex);
     alarm_t* alarm;
 
     // Take into account that the alarm may get cancelled before we get to it.
@@ -725,7 +725,7 @@ static void dump_stat(int fd, stat_t* stat, const char* description) {
 void alarm_debug_dump(int fd) {
   dprintf(fd, "\nBluetooth Alarms Statistics:\n");
 
-  std::lock_guard<std::mutex> lock(alarms_mutex);
+  std::lock_guard<std::mutex> lock(*alarms_mutex);
 
   if (alarms == NULL) {
     dprintf(fd, "  None\n");

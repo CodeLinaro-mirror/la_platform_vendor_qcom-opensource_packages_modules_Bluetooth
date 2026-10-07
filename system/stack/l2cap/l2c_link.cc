@@ -170,8 +170,8 @@ void l2c_link_hci_conn_comp(tHCI_STATUS status, uint16_t handle,
   }
 
   if ((p_lcb->link_state == LST_CONNECTED) &&
-      (status == HCI_ERR_CONNECTION_EXISTS)) {
-    LOG_WARN("Connection already exists handle:0x%04x", handle);
+      ((status == HCI_ERR_CONNECTION_EXISTS) || (status == HCI_ERR_CONTROLLER_BUSY))) {
+    LOG_WARN("Connection already exists status:0x%04x handle:0x%04x", status, handle);
     return;
   } else if (p_lcb->link_state != LST_CONNECTING) {
     LOG_ERROR(

@@ -939,6 +939,12 @@ public class HeadsetClientStateMachine extends StateMachine {
         mAudioManager = mService.getAudioManager();
         mHeadsetService = headsetService;
 
+        // Load the VOICE_CALL volume limits first.
+        // CarAudioManager may not be connected yet, so we need a valid fallback.
+        // Once the car audio system connects, its values will override these
+        sMaxAmVcVol = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
+        sMinAmVcVol = mAudioManager.getStreamMinVolume(AudioManager.STREAM_VOICE_CALL);
+
         if (mService.isAutomotive()) {
             mCar = Car.createCar(context, mConnection);
             mCar.connect();
@@ -973,11 +979,6 @@ public class HeadsetClientStateMachine extends StateMachine {
         mIndicatorNetworkType = HeadsetClientHalConstants.SERVICE_TYPE_HOME;
         mIndicatorNetworkSignal = 0;
         mIndicatorBatteryLevel = 0;
-
-        if (!mService.isAutomotive()) {
-            sMaxAmVcVol = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
-            sMinAmVcVol = mAudioManager.getStreamMinVolume(AudioManager.STREAM_VOICE_CALL);
-        }
 
         mOperatorName = null;
         mSubscriberInfo = null;
@@ -1368,10 +1369,14 @@ public class HeadsetClientStateMachine extends StateMachine {
 
                     int amVol = 0;
                     if (mService.isAutomotive()) {
-                        try {
-                            amVol = mCarAudioManager.getGroupVolume(mVolumeGroupId);
-                        } catch(CarNotConnectedException e) {
-                            Log.e(TAG, "Car is not connected", e);
+                        if (mCarAudioManager != null) {
+                            try {
+                                amVol = mCarAudioManager.getGroupVolume(mVolumeGroupId);
+                            } catch(CarNotConnectedException e) {
+                                Log.e(TAG, "Car is not connected", e);
+                            }
+                        } else {
+                            amVol = mAudioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);
                         }
                     } else {
                         amVol = mAudioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);
@@ -1752,11 +1757,16 @@ public class HeadsetClientStateMachine extends StateMachine {
                                         .getBoolean("bluetooth.hfp_volume_control.enabled", true);
 
                                 if (mService.isAutomotive()) {
-                                    try {
-                                        mCarAudioManager.setGroupVolume(mVolumeGroupId,
+                                    if (mCarAudioManager != null) {
+                                        try {
+                                            mCarAudioManager.setGroupVolume(mVolumeGroupId,
+                                                    +mCommandedSpeakerVolume, AudioManager.FLAG_SHOW_UI);
+                                        } catch (CarNotConnectedException e) {
+                                            Log.e(TAG, "Car is not connected!", e);
+                                        }
+                                    } else {
+                                        mAudioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL,
                                                 +mCommandedSpeakerVolume, AudioManager.FLAG_SHOW_UI);
-                                    } catch (CarNotConnectedException e) {
-                                        Log.e(TAG, "Car is not connected!", e);
                                     }
                                 } else {
                                     mAudioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL,
@@ -1940,10 +1950,14 @@ public class HeadsetClientStateMachine extends StateMachine {
                     // reset the volume to a known-default on mode switch.
                     int amVol = 0;
                     if (mService.isAutomotive()) {
-                        try {
-                            amVol = mCarAudioManager.getGroupVolume(mVolumeGroupId);
-                        } catch(CarNotConnectedException e) {
-                            Log.e(TAG, "Car is not connected", e);
+                        if (mCarAudioManager != null) {
+                            try {
+                                amVol = mCarAudioManager.getGroupVolume(mVolumeGroupId);
+                            } catch(CarNotConnectedException e) {
+                                Log.e(TAG, "Car is not connected", e);
+                            }
+                        } else {
+                            amVol = mAudioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);
                         }
                     } else {
                         amVol = mAudioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);

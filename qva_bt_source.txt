@@ -20,11 +20,14 @@ android/app/src/com/android/bluetooth/btservice/AdapterService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientHandler.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientService.java
 android/app/src/com/android/bluetooth/hfpclient/HeadsetClientStateMachine.java
+android/app/src/com/android/bluetooth/mapclient/MapClientContent.java
+android/app/src/com/android/bluetooth/mapclient/MapClientService.java
 android/app/src/com/android/bluetooth/mapclient/MasClient.java
 android/app/src/com/android/bluetooth/mapclient/MnsService.java
 android/app/src/com/android/bluetooth/le_audio/LeAudioService.java
 android/app/src/com/android/bluetooth/opp/BluetoothOppSendFileInfo.java
 android/app/src/com/android/bluetooth/pbapclient/PbapClientConnectionHandler.java
+android/app/src/com/android/bluetooth/pbapclient/PbapClientStateMachine.java
 android/app/tests/unit/Android.bp.disable
 android/app/tests/unit/src/com/android/bluetooth/opp/BluetoothOppSendFileInfoTest.java
 
@@ -52,6 +55,7 @@ system/bta/dm/bta_dm_cfg.cc
 system/bta/dm/bta_dm_ci.cc
 system/bta/dm/bta_dm_int.h
 system/bta/hf_client/bta_hf_client_api.cc
+system/bta/hf_client/bta_hf_client_at.cc
 system/bta/hf_client/bta_hf_client_int.h
 system/bta/hf_client/bta_hf_client_main.cc
 system/bta/hf_client/bta_hf_client_rfc.cc
@@ -86,6 +90,7 @@ system/btif/src/btif_util.cc
 system/btif/src/stack_manager.cc
 system/gd/hal/hci_hal_android_hidl.cc
 system/gd/hci/hci_layer.cc
+system/gd/os/wakelock_manager.h
 system/gd/stack_manager.cc
 system/gd/stack_manager.h
 system/gd/storage/storage_module.cc
@@ -94,6 +99,7 @@ system/include/hardware/bt_av.h
 system/include/hardware/bt_rc.h
 system/internal_include/bt_target.h
 system/main/shim/btm_api.h
+system/osi/src/alarm.cc
 system/stack/gap/gap_conn.cc
 system/stack/a2dp/a2dp_aac.cc
 system/stack/a2dp/a2dp_codec_config.cc
@@ -109,6 +115,7 @@ system/stack/a2dp/a2dp_vendor_aptx_hd_encoder.cc
 system/stack/a2dp/a2dp_vendor_ldac.cc
 system/stack/a2dp/a2dp_vendor_opus.cc
 system/stack/Android.bp
+system/stack/avct/avct_ccb.cc
 system/stack/avdt/avdt_scb_act.cc
 system/stack/avrc/avrc_bld_ct.cc
 system/stack/avrc/avrc_pars_ct.cc
@@ -128,6 +135,7 @@ system/stack/include/a2dp_vendor_aptx_hd_decoder.h
 system/stack/include/a2dp_vendor_aptx_decoder_auth.h
 system/stack/include/btm_api_types.h
 system/stack/include/btm_client_interface.h
+system/stack/include/hci_error_code.h
 system/stack/include/hcidefs.h
 system/stack/include/hcimsgs.h
 system/stack/include/sec_hci_link_interface.h
